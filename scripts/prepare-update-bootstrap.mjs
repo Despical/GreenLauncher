@@ -4,7 +4,8 @@ import {resolve} from 'node:path'
 const version=JSON.parse(readFileSync('package.json','utf8')).version
 const portable=resolve(`release/GreenLauncher-${version}.exe`),helper=resolve('build/update-helper.exe')
 const bytes=readFileSync(portable),sha256=createHash('sha256').update(bytes).digest('hex')
-writeFileSync('release/portable-update.json',JSON.stringify({version,file:`GreenLauncher-${version}.exe`,sha256,size:bytes.length},null,2)+'\n')
+const portableMetadata=JSON.parse(readFileSync('release/portable-update.json','utf8'))
+if(portableMetadata.version!==version||portableMetadata.sha256!==sha256||portableMetadata.size!==bytes.length||!portableMetadata.blockmap)throw new Error('Build the versioned portable EXE and its differential metadata before the setup.')
 const nsisPath=p=>p.replace(/\$/g,'$$').replace(/"/g,'$\\"')
 writeFileSync('build/update-bootstrap.nsh',`!macro customInit
   ReadEnvStr $R0 "PORTABLE_EXECUTABLE_FILE"

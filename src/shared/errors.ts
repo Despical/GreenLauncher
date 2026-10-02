@@ -3,6 +3,12 @@ export type ErrorDiagnosis = { message: string; code: string }
 export function diagnoseError(error: unknown): ErrorDiagnosis {
   const raw = (error instanceof Error ? error.message : String(error))
     .replace(/^Error invoking remote method '[^']+': Error: /, '')
+  if (/Diskteki boş alan kontrol edilemedi/.test(raw) || (error as { code?: string })?.code === 'DISK_SPACE_CHECK_FAILED') return {
+    message: 'Diskteki boş alan kontrol edilemedi. Yeniden dene.', code: 'DISK_SPACE_CHECK_FAILED'
+  }
+  if (/ENOSPC|INSUFFICIENT_DISK_SPACE|Diskte yeterli boş alan yok/i.test(raw) || ['ENOSPC', 'INSUFFICIENT_DISK_SPACE'].includes(String((error as { code?: string })?.code ?? ''))) return {
+    message: 'Diskte yeterli boş alan yok. Yer açıp yeniden dene.', code: 'INSUFFICIENT_DISK_SPACE'
+  }
   const downloadHttp = /^Dosya indirilemedi \((\d{3})\)/.exec(raw)
   if (downloadHttp) return { message: raw.slice(0, 600), code: `DOWNLOAD_HTTP_${downloadHttp[1]}` }
   if (/429|too many requests|rate.?limit/i.test(raw)) return {

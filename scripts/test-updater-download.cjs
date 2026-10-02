@@ -6,7 +6,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'green-update-network-'))
 app.setPath('userData', path.join(root, 'user'))
 const moduleFixture = { exports: {} }
-vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: moduleFixture, exports: moduleFixture.exports, Date, Number })
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: moduleFixture, exports: moduleFixture.exports, Date, Number, AbortController, require: require('./test-source.cjs').createSourceLoader().requireFrom('src/main/updater.ts') })
 const { LauncherUpdater } = moduleFixture.exports
 let mode = 'corrupt', installerRequests = 0, version = '0.18.0'
 const payload = Buffer.alloc(1024 * 1024, 77), hash = crypto.createHash('sha512').update(payload).digest('base64')

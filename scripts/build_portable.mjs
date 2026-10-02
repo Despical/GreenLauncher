@@ -38,6 +38,8 @@ if (!init.test(original)) throw new Error('electron-builder portable.nsi beklene
 // Focus a running app before NSIS extracts any files. On a cold start a tiny native
 // splash process stays visible until Electron signals that its main window is painted.
 const replacement = `Function .onInit
+  ReadEnvStr $R6 "GREEN_LAUNCHER_UPDATE_QA_ROOT"
+  StrCmp $R6 "" 0 newInstance
   FindWindow $0 "Chrome_WidgetWin_1" "Green Launcher"
   StrCmp $0 0 newInstance
     System::Call 'user32::ShowWindow(p r0, i 9)i .r1'
@@ -68,6 +70,9 @@ if (compile.status !== 0) throw new Error('Windows açılış yardımcısı derl
 
 const section = /Section\r?\n  !ifdef SPLASH_IMAGE/
 const startHelper = `Section
+  ; useZip selects individually compressed files in electron-builder's portable target.
+  ; Keep NSIS compression non-solid so unchanged files remain reusable.
+  SetCompress auto
   InitPluginsDir
   File /oname=$PLUGINSDIR\\splash-helper.exe "${helper}"
   File /oname=$PLUGINSDIR\\splash.png "${splash}"
@@ -94,6 +99,9 @@ const extractionEnd = /  System::Call 'Kernel32::SetEnvironmentVariable\(t, t\)i
 const cleanup = /\tRMDir \/r \$INSTDIR\r?\nSectionEnd/
 if (!extractionStart.test(original) || !extractionEnd.test(original) || !cleanup.test(original)) throw new Error('portable.nsi runtime cache blocks changed.')
 const cachedExtraction = `  StrCpy $INSTDIR "${runtimeDirectory}"
+  ReadEnvStr $R6 "GREEN_LAUNCHER_UPDATE_QA_ROOT"
+  StrCmp $R6 "" +2
+    StrCpy $INSTDIR "$R6\\runtime\\${runtimeId}"
   System::Call 'kernel32::CreateMutexW(p 0, i 0, w "Local\\GreenLauncherRuntime-${runtimeId}")p .r0'
   StrCpy $runtimeMutex $0
   StrCmp $runtimeMutex 0 runtimeCacheFailed
@@ -152,6 +160,10 @@ try {
   const result = spawnSync(process.execPath, argumentsForBuilder, { cwd: root, stdio: 'inherit' })
   if (result.error) throw result.error
   process.exitCode = result.status ?? 1
+  if (result.status === 0 && artifactName === `GreenLauncher-${JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version}.exe`) {
+    const metadata = spawnSync(process.execPath, ['scripts/portable-metadata.mjs'], { cwd: root, stdio: 'inherit' })
+    if (metadata.status !== 0) throw new Error('Portable update metadata generation failed.')
+  }
 } finally {
   writeFileSync(template, original, 'utf8')
 }

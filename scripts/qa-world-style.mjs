@@ -26,9 +26,11 @@ try {
    assert.equal(columns.cells[1],playerWidth,language+' game mode matches player column at '+width)
    assert.ok(columns.cells[2]>=136&&columns.cells[3]>=82)
    assert.ok(columns.fits,language+' world columns fit at '+width)
-   const actions=await evaluate("[...document.querySelectorAll('.retained-page:not([hidden]) .world-action-pair')].map(button=>{const icon=button.querySelector('svg').getBoundingClientRect(),label=button.querySelector('span'),range=document.createRange();range.selectNodeContents(label);const text=range.getBoundingClientRect();return {offset:icon.left-button.getBoundingClientRect().left,gap:text.left-icon.right,aligned:getComputedStyle(label).textAlign==='left'}})")
+   const alignment=await evaluate("(()=>{const page=document.querySelector('.retained-page:not([hidden])');return [3,4].every(n=>getComputedStyle(page.querySelector('.worlds-table-head>span:nth-child('+n+')')).textAlign==='center'&&[...page.querySelectorAll('.world-select>span:nth-child('+n+')')].every(e=>getComputedStyle(e).textAlign==='center'))})()")
+   assert.ok(alignment,language+' last-played and size headings and values centered')
+   const actions=await evaluate("[...document.querySelectorAll('.retained-page:not([hidden]) .world-action-pair')].map(button=>{const content=button.querySelector('.world-action-content'),box=content.getBoundingClientRect(),b=button.getBoundingClientRect(),icon=content.querySelector('svg').getBoundingClientRect(),label=content.querySelector('span'),text=label.getBoundingClientRect();return {offset:icon.left-b.left,gap:text.left-icon.right,aligned:getComputedStyle(label).textAlign==='center',center:Math.abs((box.left+box.right-b.left-b.right)/2),fits:button.scrollWidth<=button.clientWidth+1}})")
    assert.equal(actions.length,4)
-   for(const action of actions){assert.equal(action.offset,actions[0].offset);assert.ok(Math.abs(action.gap-6)<1,JSON.stringify(action));assert.ok(action.aligned)}
+   for(const action of actions){assert.ok(Math.abs(action.offset-actions[0].offset)<1);assert.ok(Math.abs(action.gap-6)<1,JSON.stringify(action));assert.ok(action.aligned&&action.center<1&&action.fits)}
    if(language==='tr'&&width===1440)await shot('qa-world-matching-type')
   }
   await key('9');await click('[role=tab]:last-child');await until("document.querySelector('.launcher-update-panel')")
@@ -39,7 +41,7 @@ try {
   if(language==='tr'){await evaluate("document.querySelector('.launcher-update-settings').scrollIntoView({block:'end'})");await shot('qa-about-full-landscape')}
  }
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS world metadata shares its color, typography matches servers, game/player widths match, aligned action icons stay 6px from text, metadata fits four widths in six languages, compact full-card About landscape')
+ console.log('PASS world metadata shares its color, typography matches servers, game/player widths match, centered sidebar actions retain aligned icons and 6px column gaps, metadata fits four widths in six languages, compact full-card About landscape')
 }finally{socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)

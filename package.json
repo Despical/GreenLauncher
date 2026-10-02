@@ -1,6 +1,6 @@
 {
   "name": "green-launcher",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "description": "A custom Minecraft Java Edition launcher",
@@ -102,7 +102,8 @@
       "icon": "build/icon.ico"
     },
     "portable": {
-      "artifactName": "GreenLauncher.exe"
+      "artifactName": "GreenLauncher.exe",
+      "useZip": true
     },
     "nsis": {
       "oneClick": false,

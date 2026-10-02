@@ -25,6 +25,8 @@ import { TechnicService } from './technic'
 import { ProviderPacks } from './provider-packs'
 import { MetadataCache } from './metadata-cache'
 import { DownloadManager } from './download-manager'
+import { configureDiskSpace, diskSpace } from './disk-space'
+import { activeLauncherPaths, cleanOldRuntimes, cleanUpdateCache } from './runtime-cleanup'
 import { ModFavorites } from './mod-favorites'
 import { ProfilePackages } from './profile-packages'
 import { CustomClients } from './custom-clients'
@@ -172,6 +174,11 @@ else {
     minimizeToTray = store.get().settings.minimizeToTray
     createWindow()
     const logs = new ErrorLog(store.dataPath, entries => send('launcher:errorLog', entries))
+    configureDiskSpace(error => {
+      Object.assign(error, { diskSpaceReported: true })
+      logs.record('İndirme', error)
+      send('launcher:notice', translate(store.get().settings.language, diagnoseError(error).message))
+    })
     let lastInstalled: { version: string; at: string } | undefined
     mainWindow!.once('ready-to-show', () => {
       lastInstalled = confirmUpdate(store.dataPath, app.getVersion(), process.env.PORTABLE_EXECUTABLE_FILE || process.execPath, logs, result => downloads.recordLauncherUpdate(result.version, result.at, 0, true))
@@ -280,10 +287,31 @@ else {
       state => { if (state.phase === 'ready' && state.version && state.downloadedAt) downloads.recordLauncherUpdate(state.version, state.downloadedAt, state.total); send('launcher:update', { ...state, lastInstalled }) },
       () => downloads.pending || game.getLaunchState().preparing || game.getRunningInstances().length > 0 || modpacks.isInstalling || installingContent || signingIn,
       async file => { const error = await shell.openPath(file); if (error) throw new Error(error); app.quit() },
-      error => logs.record('Launcher güncellemesi', error),
+      error => { if (!(error as { diskSpaceReported?: boolean })?.diskSpaceReported) logs.record('Launcher güncellemesi', error) },
       process.env.PORTABLE_EXECUTABLE_FILE ? new PortableUpdateTransport(join(store.dataPath, 'cache', 'launcher-updates'), process.env.PORTABLE_EXECUTABLE_FILE, join(process.resourcesPath, 'update-helper.exe'), join(store.dataPath, 'update-result.json'), app.getVersion(), () => app.quit()) : undefined,
       version => installedUpdateReceipt(store.dataPath, app.getVersion(), version, process.execPath),
+      size => {
+        const bytes = size || 300 * 1024 ** 2
+        const leases = []
+        try {
+          leases.push(diskSpace().reserve(join(process.env.LOCALAPPDATA ?? app.getPath('temp'), 'green-launcher-updater'), bytes))
+          diskSpace().check(process.execPath, bytes * 4)
+        } finally { for (const lease of leases) lease.release() }
+      },
     )
+    // Wait until the new main window is usable and the atomic updater has released its backup.
+    mainWindow?.once('ready-to-show', () => {
+      const cleanup = setTimeout(() => void (async () => {
+        cleanUpdateCache(join(store.dataPath, 'cache', 'launcher-updates'), app.getVersion())
+        if (!process.env.PORTABLE_EXECUTABLE_FILE) return
+        const root = join(process.env.LOCALAPPDATA ?? '', 'GreenLauncher', 'runtime')
+        const current = dirname(process.execPath)
+        if (!process.env.LOCALAPPDATA || resolve(dirname(current)).toLowerCase() !== resolve(root).toLowerCase()) return
+        const removed = cleanOldRuntimes(root, current, await activeLauncherPaths())
+        if (removed) logs.info('Launcher güncellemesi', `${removed} eski launcher çalışma klasörü temizlendi.`, 'UPDATE_CLEANUP')
+      })().catch(error => logs.record('Güncelleme temizliği', error)), 15000)
+      cleanup.unref()
+    })
     const startupUpdate = setTimeout(() => void updater.check(), 2500)
     startupUpdate.unref()
     const periodicUpdate = setInterval(() => void updater.check(), 6 * 60 * 60 * 1000)
@@ -292,7 +320,7 @@ else {
     const handle = <T extends unknown[]>(channel: string, action: (...args: T) => Promise<unknown> | unknown) => {
       ipcMain.handle(channel, async (_event, ...args: T) => {
         try { return await action(...args) }
-        catch (error) { logs.record(channel.replace('launcher:', ''), error); throw error }
+        catch (error) { if (!(error as { diskSpaceReported?: boolean })?.diskSpaceReported) logs.record(channel.replace('launcher:', ''), error); throw error }
       })
     }
 
@@ -312,7 +340,23 @@ else {
       discord.setLauncherContext({ page: context.page, section: typeof context.section === 'string' ? context.section.slice(0, 40) : undefined, contentType: context.contentType === 'modpack' ? 'modpack' : 'mod', favorites: context.favorites === true })
     })
     handle('launcher:control-downloads', (action: string, id?: string, beforeId?: string) => { if (!['pause-all', 'resume-all', 'pause', 'resume', 'prioritize', 'reorder', 'clear'].includes(action)) throw new Error('Geçersiz indirme işlemi.'); const update = updater.get(); return downloads.control(action, action === 'clear' && update.downloadedAt && update.version ? `launcher-update-${update.version}` : id, beforeId) })
-    handle('launcher:get-mod-favorites', () => favorites.get())
+    handle('launcher:get-mod-favorites', async (refresh?: boolean) => {
+      if (!refresh) return favorites.get()
+      const saved = favorites.get()
+      const refreshed = await modrinth.hydrate(saved.filter(item => item.provider === 'modrinth'))
+      if (favorites.refresh('modrinth', refreshed)) send('launcher:modFavorites', favorites.get())
+      const other = saved.filter(item => item.provider !== 'modrinth')
+      let next = 0
+      const refreshOther = async () => { while (next < other.length) {
+        const item = other[next++]
+        try {
+          const details = await metadata.get(JSON.stringify(['project', item.provider, item.projectId]), () => item.provider === 'curseforge' ? curseforge.project(item.projectId) : technic.project(item.projectId))
+          if (favorites.refresh(item.provider, [{ projectId: item.projectId, slug: details.slug, title: details.title, description: details.description, iconUrl: details.iconUrl, downloads: details.downloads }])) send('launcher:modFavorites', favorites.get())
+        } catch { /* Keep favorites available when a provider is offline or unconfigured. */ }
+      } }
+      await Promise.all(Array.from({ length: Math.min(3, other.length) }, refreshOther))
+      return favorites.get()
+    })
     handle('launcher:set-mod-favorite', (favorite: ModFavorite, saved: boolean) => favorites.set(favorite, saved === true))
     handle('launcher:get-running-instances', () => game.getRunningInstances())
     handle('launcher:get-versions', async (refresh?: boolean | 'if-stale') => {
@@ -417,9 +461,12 @@ else {
     handle('launcher:get-provider-status', () => ({curseforge:curseforge.connected}))
     handle('launcher:connect-curseforge', async (key:string) => { await curseforge.connect(key); metadata.clear(); return {curseforge:curseforge.connected} })
     handle('launcher:get-mod-categories', (source:ModProvider,type:ModContentType) => provider(source)==='curseforge'?metadata.get(JSON.stringify(['categories',source,type]), () => curseforge.categories(type)):[])
-    handle('launcher:search-mods', (query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, contentType: ModContentType = 'mod', source?:ModProvider) => {
+    handle('launcher:search-mods', async (query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, contentType: ModContentType = 'mod', source?:ModProvider) => {
       const selected=provider(source)
-      return metadata.get(JSON.stringify(['search',selected,query,gameVersion,loader,sort,offset,category,contentType]), () => selected==='curseforge'?curseforge.search(query,gameVersion,loader,sort,offset,category,contentType):selected==='technic'?technic.search(query,gameVersion,sort,offset):modrinth.search(query, gameVersion, loader, sort, offset, category, contentType))
+      const result = await metadata.get(JSON.stringify(['search',selected,query,gameVersion,loader,sort,offset,category,contentType]), () => selected==='curseforge'?curseforge.search(query,gameVersion,loader,sort,offset,category,contentType):selected==='technic'?technic.search(query,gameVersion,sort,offset):modrinth.search(query, gameVersion, loader, sort, offset, category, contentType))
+      if (selected === 'modrinth') result.hits = await modrinth.hydrate(result.hits)
+      if (favorites.refresh(selected, result.hits)) send('launcher:modFavorites', favorites.get())
+      return result
     })
     handle('launcher:get-account-capes', (id: string) => {
       const account = store.get().accounts.find(item => item.id === id)
@@ -430,7 +477,16 @@ else {
       if (!account) throw new Error('Hesap bulunamadı.')
       return accountCapes.activate(account, capeId)
     })
-    handle('launcher:get-mod-project', (id: string, source?:ModProvider) => metadata.get(JSON.stringify(['project',provider(source),id]), () => source==='curseforge'?curseforge.project(id):source==='technic'?technic.project(id):modrinth.project(id)))
+    handle('launcher:get-mod-project', async (id: string, source?:ModProvider) => {
+      const selected = provider(source)
+      const details = await metadata.get(JSON.stringify(['project',selected,id]), () => selected==='curseforge'?curseforge.project(id):selected==='technic'?technic.project(id):modrinth.project(id))
+      if (selected === 'modrinth') {
+        const [summary] = await modrinth.hydrate([{ projectId: id, slug: details.slug, title: details.title, description: details.description, iconUrl: details.iconUrl, downloads: details.downloads, author: '', updated: '', categories: [] }])
+        Object.assign(details, { slug: summary.slug, title: summary.title, description: summary.description, iconUrl: summary.iconUrl, downloads: summary.downloads })
+      }
+      if (favorites.refresh(selected, [{ projectId: id, slug: details.slug, title: details.title, description: details.description, iconUrl: details.iconUrl, downloads: details.downloads }])) send('launcher:modFavorites', favorites.get())
+      return details
+    })
     handle('launcher:get-mod-versions', (id: string, gameVersion: string, loader: ModLoader, source?:ModProvider, allGameVersions = false) => metadata.get(JSON.stringify(['versions',provider(source),id,gameVersion,loader,allGameVersions === true]), () => source==='curseforge'?curseforge.versions(id,gameVersion,loader,allGameVersions === true):source==='technic'?technic.versions(id):modrinth.versions(id, gameVersion, loader,allGameVersions === true)))
     handle('launcher:get-installed-mods', (profileId: string) => modrinth.installed(profileId))
     handle('launcher:get-profile-mods', (profileId: string) => {

@@ -181,10 +181,17 @@ handle('clear-error-log', () => { entries = []; window.webContents.send('launche
 handle('open-error-log', () => { snapshots.fileOpened++; return snapshots })
 handle('get-provider-status', () => ({ curseforge: connected }))
 handle('get-mod-categories', () => [])
-let favorites=[]
-handle('get-mod-favorites',()=>favorites)
+let favorites=[],catalogDownloads=235123
+handle('get-mod-favorites',refresh=>{
+  if(refresh&&process.argv.includes('--qa-catalog-refresh')){
+    catalogDownloads=876543
+    favorites=favorites.map(item=>({...item,downloads:catalogDownloads,description:'Fresh catalog metadata.'}))
+    window.webContents.send('launcher:modFavorites',favorites)
+  }
+  return favorites
+})
 handle('set-mod-favorite',(item,saved)=>{favorites=favorites.filter(f=>f.provider!==item.provider||f.projectId!==item.projectId);if(saved)favorites.unshift(item);return favorites})
-const hit=(provider,type)=>({projectId:provider==='technic'?'qa-technic':type==='modpack'?'qaPack123':'qaMod123',slug:'qa-project',title:provider==='technic'?'Technic Adventure':type==='modpack'?'World Explorer Pack':'Better Worlds',description:'A detailed project description for visual and interaction checks.',author:'DesignQA',iconUrl:null,downloads:235123,updated:'2026-09-30T10:00:00Z',categories:['adventure']})
+const hit=(provider,type)=>({projectId:provider==='technic'?'qa-technic':type==='modpack'?'qaPack123':'qaMod123',slug:'qa-project',title:provider==='technic'?'Technic Adventure':type==='modpack'?'World Explorer Pack':'Better Worlds',description:'A detailed project description for visual and interaction checks.',author:'DesignQA',iconUrl:null,downloads:catalogDownloads,updated:'2026-09-30T10:00:00Z',categories:['adventure']})
 handle('search-mods',(_q,_g,_l,_s,_o,_c,type,provider)=>withContent?({total:withProfileTools?2:1,hits:[hit(provider,type),...(withProfileTools?[{...hit(provider,type),projectId:'qaMore123',title:'Another Great Mod'}]:[])]}):({total:0,hits:[]}))
 handle('get-mod-project',(id,provider)=>{projectRequests++;return {...hit(provider,id==='qaPack123'?'modpack':'mod'),id,title:id==='qaMore123'?'Another Great Mod':hit(provider,id==='qaPack123'?'modpack':'mod').title,body:'Explore new worlds with this test project. This fixture contains no actual downloadable content.',license:'MIT',sourceUrl:provider==='technic'?'https://www.technicpack.net/modpack/qa':'https://modrinth.com/mod/qa-project',projectType:provider==='technic'||id==='qaPack123'?'modpack':'mod'}})
 handle('get-mod-versions',(id,_g,_l,provider,all)=>[{id:provider==='technic'?'qa-technic:recommended':id==='qaMore123'?'qaVerMore':'qaVer123',name:'Release',versionNumber:'1.0.0',type:'release',published:'2026-09-30',downloads:100,gameVersions:['1.21.1'],loaders:['fabric']},...(all?[{id:'qaOther123',name:'Other release',versionNumber:'2.0.0',type:'beta',published:'2026-09-30',downloads:1,gameVersions:['26.3'],loaders:['fabric']},...(withOctober?Array.from({length:24},(_,i)=>({id:`qaOther${i}`,name:'Other release',versionNumber:`15.0.0-alpha.${i}`,type:'alpha',published:'2026-09-30',downloads:1,gameVersions:['26.3'],loaders:['fabric']})):[])]:[])])

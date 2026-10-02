@@ -18,6 +18,14 @@ interface ReleaseNotes {
   sections?: Array<{ title: string; changes: string[] }>
 }
 
+const v0177Changes = [
+  "Taşınabilir güncellemelerde yalnızca değişen parçalar indirilir ve yeni EXE doğrulanarak oluşturulur; gerektiğinde tam indirmeye dönülür. Bu sisteme geçiş sürümü bir kez tam indirilir.",
+  "Başarılı açılıştan sonra eski launcher çalışma klasörleri ve kullanılmış güncelleme dosyaları temizlenir; çalışan sürümler ve kullanıcı verileri korunur.",
+  "İndirmeden önce hedef diskteki boş alan kontrol edilir; eşzamanlı indirmeler, geçici dosyalar ve güncellemenin açılması hesaba katılır. Yetersiz alanda bildirim gösterilir ve sorun günlüğe kaydedilir.",
+  "Dünya tablosunda son oynanma ve boyut başlıkları ile değerleri ortalandı; sağ paneldeki dört yönetim düğmesinin içeriği ortalanırken ikonlar aynı hizada tutuldu.",
+  "Modrinth kataloğu ve favoriler aynı güncel proje bilgilerini kullanır. Katalog ve açıklamalar kısa süreli önbellekle yaklaşık iki dakikada bir yenilenir; çevrimdışıyken kayıtlı bilgiler korunur."
+]
+
 const v0176Changes = [
   'Güncelleme kartı Hakkında sekmesine taşındı; Hakkında, güncelleme kartı ve değişiklik günlüğü için alanlarına uygun ayrı manzaralar hazırlandı.',
   'Değişiklik günlüğündeki sürüm bağlantısından animasyonlu kontrol ve sonuç bildirimi yapılır; yeni sürüme tıklayınca indirme başlar ve İndirmeler açılır.',
@@ -71,6 +79,10 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.17.7', date: '2026-10-03', title: 'Daha küçük güncellemeler, güncel katalog', intro: 'Değişen parçaları indiren güncellemeler, otomatik dosya temizliği ve indirme öncesi disk kontrolü.', changes: v0177Changes, sections: [
+    { title: 'Yeni özellikler', changes: v0177Changes.slice(0, 3) },
+    { title: 'Düzeltmeler', changes: v0177Changes.slice(3) }
+  ] },
   { version: '0.17.6', date: '2026-10-02', title: 'Kartlar ve güncellemeler yenilendi', intro: 'Kısa kartlara uygun yeni manzaralar, daha düzenli dünya bilgileri ve kolay güncelleme takibi.', changes: v0176Changes, sections: [
     { title: 'Yeni özellikler', changes: v0176Changes.slice(0, 2) },
     { title: 'Düzeltmeler', changes: v0176Changes.slice(2) }

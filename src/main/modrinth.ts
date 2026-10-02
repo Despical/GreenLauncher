@@ -3,6 +3,7 @@ import { join, basename, extname } from 'node:path'
 import type { InstalledMod, ModContentType, ModLoader, ModProject, ModSearchHit, ModSearchResult, ModSort, ModVersion } from '../shared/types'
 import { LauncherStore } from './store'
 import { downloadVerified } from './modrinth-download'
+import { ProjectSummaryCache, type ProjectSummary } from './project-summary-cache'
 
 const api = 'https://api.modrinth.com/v2'
 const idPattern = /^[a-zA-Z0-9]{8,16}$/
@@ -29,7 +30,16 @@ function compatible(version: ApiVersion, gameVersion: string, loader: ModLoader)
 }
 
 export class ModrinthService {
+  private summaries = new ProjectSummaryCache()
   constructor(private readonly store: LauncherStore) {}
+
+  hydrate<T extends ModSearchHit>(hits: T[]): Promise<T[]> {
+    return this.summaries.hydrate(hits, async ids => {
+      for (const id of ids) assertId(id)
+      const items = await request<Array<{ id: string; slug: string; title: string; description: string; icon_url: string | null; downloads: number; updated: string; categories: string[] }>>('/projects', new URLSearchParams({ ids: JSON.stringify(ids) }))
+      return items.map((item): ProjectSummary => ({ projectId: item.id, slug: item.slug, title: item.title, description: item.description, iconUrl: item.icon_url, downloads: item.downloads, updated: item.updated, categories: item.categories }))
+    })
+  }
 
   async search(query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, contentType: ModContentType = 'mod'): Promise<ModSearchResult> {
     assertGameVersion(gameVersion)
@@ -41,12 +51,14 @@ export class ModrinthService {
     if (category !== 'all') facets.push([`categories:${category}`])
     const params = new URLSearchParams({ query: query.trim().slice(0, 100), facets: JSON.stringify(facets), index: sort, offset: String(Math.max(0, Math.min(10000, Math.floor(offset)))), limit: '9' })
     const result = await request<{ hits: Array<{ project_id: string; slug: string; title: string; description: string; author: string; icon_url: string | null; downloads: number; date_modified: string; categories: string[] }>; total_hits: number }>('/search', params)
-    return { total: result.total_hits, hits: result.hits.map((hit): ModSearchHit => ({ projectId: hit.project_id, slug: hit.slug, title: hit.title, description: hit.description, author: hit.author, iconUrl: hit.icon_url, downloads: hit.downloads, updated: hit.date_modified, categories: hit.categories })) }
+    const hits = result.hits.map((hit): ModSearchHit => ({ projectId: hit.project_id, slug: hit.slug, title: hit.title, description: hit.description, author: hit.author, iconUrl: hit.icon_url, downloads: hit.downloads, updated: hit.date_modified, categories: hit.categories }))
+    return { total: result.total_hits, hits: await this.hydrate(hits) }
   }
 
   async project(id: string): Promise<ModProject> {
     assertId(id)
-    const item = await request<{ id: string; slug: string; title: string; description: string; body: string; icon_url: string | null; downloads: number; license?: { id?: string }; source_url: string | null; project_type: ModContentType }>(`/project/${id}`)
+    const item = await request<{ id: string; slug: string; title: string; description: string; body: string; icon_url: string | null; downloads: number; updated: string; categories: string[]; license?: { id?: string }; source_url: string | null; project_type: ModContentType }>(`/project/${id}`)
+    this.summaries.remember({ projectId: item.id, slug: item.slug, title: item.title, description: item.description, iconUrl: item.icon_url, downloads: item.downloads, updated: item.updated, categories: item.categories })
     return { id: item.id, slug: item.slug, title: item.title, description: item.description, body: item.body, iconUrl: item.icon_url, downloads: item.downloads, license: item.license?.id ?? '—', sourceUrl: `https://modrinth.com/${item.project_type === 'modpack' ? 'modpack' : 'mod'}/${encodeURIComponent(item.slug)}`, projectType: item.project_type }
   }
 

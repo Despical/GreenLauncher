@@ -1,3 +1,4 @@
+import { diskSpace } from './disk-space'
 import { WorldService } from './worlds'
 import { BrowserWindow, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
@@ -498,6 +499,7 @@ export class GameService {
       if (!download.ok || !download.headers.get('content-type')?.includes('java-archive')) throw new Error('OptiFine dosyası indirilemedi.')
       const bytes = Buffer.from(await download.arrayBuffer())
       if (bytes.length < 100_000 || bytes.length > 50_000_000 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) throw new Error('OptiFine dosyası doğrulanamadı.')
+      diskSpace().check(destination, bytes.length)
       mkdirSync(dirname(destination), { recursive: true }); writeFileSync(destination, bytes)
     }
     return destination

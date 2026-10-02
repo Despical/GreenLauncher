@@ -28,7 +28,7 @@ export function persistentIcon(): string {
 }
 
 export function configureWindows(_language: LauncherSettings['language']): void {
-  if (process.platform !== 'win32' || !app.isPackaged) return
+  if (process.platform !== 'win32' || !app.isPackaged || process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT) return
   const target = executable(), icon = persistentIcon()
   const details = { target, args: '', cwd: dirname(target), description: 'Green Launcher', icon, iconIndex: 0, appUserModelId: appId }
   const programs = join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs')

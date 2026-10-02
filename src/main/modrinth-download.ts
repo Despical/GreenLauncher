@@ -5,6 +5,7 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { Transform } from 'node:stream'
 import { getDownloadManager } from './download-manager'
+import { diskSpace, isDiskSpaceError } from './disk-space'
 
 export type FileHashes = { sha512?: string; sha1?: string }
 const allowedHosts = new Set(['cdn.modrinth.com', 'github.com', 'raw.githubusercontent.com', 'gitlab.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'])
@@ -40,6 +41,7 @@ export async function downloadVerified(urls: string[], hashes: FileHashes, desti
   const expected = hashes[algorithm]?.toLowerCase()
   if (!expected || !new RegExp(`^[0-9a-f]{${algorithm === 'sha512' ? 128 : 40}}$`).test(expected)) throw new Error('Dosyanın geçerli doğrulama özeti yok.')
   if (await matches(destination, algorithm, expected)) return
+  diskSpace().check(destination, 8 * 1024 ** 2)
   const cachePath = join(cacheRoot, `${algorithm}-${expected}`)
   mkdirSync(cacheRoot, { recursive: true })
   if (!(await matches(cachePath, algorithm, expected))) {
@@ -53,6 +55,7 @@ export async function downloadVerified(urls: string[], hashes: FileHashes, desti
         const response = await fetchSafe(value)
         if (!response.ok || !response.body) throw new Error(`Dosya indirilemedi (${response.status}).`)
         if (Number(response.headers.get('content-length') ?? 0) > maxBytes) throw new Error('Dosya izin verilen boyutu aşıyor.')
+        diskSpace().check(cachePath, Number(response.headers.get('content-length') ?? 0) || 64 * 1024 ** 2)
         let received = 0
         const limit = new Transform({ transform(chunk: Buffer, _encoding, callback) { received += chunk.length; callback(received > maxBytes ? new Error('Dosya izin verilen boyutu aşıyor.') : null, chunk) } })
         await pipeline(Readable.fromWeb(response.body as import('node:stream/web').ReadableStream), limit, createWriteStream(temporary))
@@ -62,12 +65,13 @@ export async function downloadVerified(urls: string[], hashes: FileHashes, desti
         renameSync(temporary, cachePath)
         lastError = null
         break
-      } catch (error) { lastError = error; rmSync(temporary, { force: true }) }
+      } catch (error) { lastError = error; rmSync(temporary, { force: true }); if (isDiskSpaceError(error)) throw error }
     }
     if (lastError) throw lastError
     }
   }
   mkdirSync(dirname(destination), { recursive: true })
+  diskSpace().check(destination, statSync(cachePath).size)
   const temporary = `${destination}.${randomUUID()}.download`
   try { copyFileSync(cachePath, temporary); if (existsSync(destination)) rmSync(destination, { force: true }); renameSync(temporary, destination) }
   catch (error) { rmSync(temporary, { force: true }); throw error }

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript'), { EventEmitter } = require('node:events')
 const mod = { exports: {} }
-vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: mod, exports: mod.exports, Date, Number, AbortController })
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: mod, exports: mod.exports, Date, Number, AbortController, require: require('./test-source.cjs').createSourceLoader().requireFrom('src/main/updater.ts') })
 const { LauncherUpdater, newerRelease } = mod.exports
 const settle = () => new Promise(resolve => setImmediate(resolve))
 class Engine extends EventEmitter {
@@ -65,6 +65,10 @@ async function main() {
   })
   await nativeUpdater.check();releaseNative=null;const nativePending=nativeUpdater.download();while(!releaseNative)await settle();await nativeUpdater.cancel();await nativePending;assert.equal(cancelledSignal.aborted,true);assert.equal(nativeUpdater.get().phase,'available');assert.equal(nativeEngine.downloads,0)
   await nativeUpdater.download();assert.equal(nativeUpdater.get().phase,'ready');await nativeUpdater.install();assert.equal(nativeInstalls,1);assert.equal(nativeUpdater.get().phase,'installing');nativeUpdater.dispose()
+  const spaceEngine=new Engine(),spaceFailures=[];let noSpace=true
+  const spaceUpdater=new LauncherUpdater(spaceEngine,'0.17.6',true,false,()=>{},()=>false,async()=>{},e=>spaceFailures.push(e),undefined,()=>{},()=>{if(noSpace)throw Object.assign(Error('disk full'),{code:'INSUFFICIENT_DISK_SPACE'})})
+  await spaceUpdater.check();await spaceUpdater.download();assert.equal(spaceUpdater.get().error,'space');assert.equal(spaceEngine.downloads,0);assert.equal(spaceFailures.length,1)
+  noSpace=false;await spaceUpdater.download();assert.equal(spaceUpdater.get().phase,'ready');noSpace=true;await spaceUpdater.install();assert.equal(spaceUpdater.get().error,'space');assert.equal(spaceEngine.installs,0);spaceUpdater.dispose()
   service.dispose(); portable.dispose(); stopped.dispose(); changed.dispose()
   console.log('PASS stable version ordering, downgrade prevention, check/download coalescing, offline recovery, checksum/interruption failure, cancellation/retry, progress, operation guards, explicit installation, portable transition and disabled development checks')
 }

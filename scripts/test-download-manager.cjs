@@ -2,12 +2,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os'), vm = require('node:vm'), ts = require('typescript')
 const { createServer } = require('node:http'), { createHash } = require('node:crypto')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'green-download-test-'))
-const load = file => {
-  const output = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-  const mod = { exports: {} }
-  vm.runInNewContext(output, { exports: mod.exports, module: mod, require, structuredClone, Buffer, URL, AbortController, AbortSignal, fetch, console, setInterval, clearInterval, setTimeout, clearTimeout })
-  return mod.exports
-}
+const load = require('./test-source.cjs').createSourceLoader()
 const { DownloadManager } = load('src/main/download-manager.ts')
 const { ModFavorites } = load('src/main/mod-favorites.ts')
 const settings = { language: 'tr', downloadSpeedLimitKiB: 0, pauseDownloadsWhilePlaying: false, downloadConcurrency: 4 }

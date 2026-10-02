@@ -8,7 +8,7 @@ const fakeFetch=async(url,{signal})=>{
  if(String(url).endsWith('portable-update.json'))return Response.json({version:'0.17.5',file:mode==='filename'?'../../other.exe':'GreenLauncher-0.17.5.exe',size:bytes.length,sha256:digest})
  return new Response(mode==='checksum'?Buffer.alloc(2048,1):bytes)
 }
-vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/portable-updater.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,require,process,Buffer,URL,fetch:fakeFetch,Date,Number,Set,Map,Error,JSON})
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/portable-updater.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,require:require('./test-source.cjs').createSourceLoader({fetch:fakeFetch}).requireFrom('src/main/portable-updater.ts'),process,Buffer,URL,fetch:fakeFetch,Date,Number,Set,Map,Error,JSON})
 async function main(){
  const {PortableUpdateTransport,confirmUpdate}=mod.exports
  const transport=new PortableUpdateTransport(path.join(root,'cache'),path.join(root,'Launcher.exe'),'missing-helper',path.join(root,'receipt'),'0.17.4',()=>{throw Error('must not quit')})

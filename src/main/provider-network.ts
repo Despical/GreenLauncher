@@ -5,6 +5,7 @@ import { dirname } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { getDownloadManager } from './download-manager'
+import { diskSpace } from './disk-space'
 
 export async function publicUrl(value: string): Promise<URL> {
   const url = new URL(value)
@@ -42,11 +43,13 @@ export async function downloadProviderFile(url: string, destination: string, has
   const manager = getDownloadManager()
   if (manager) return manager.download({ urls: [url], destination, checksum: algorithm ? { algorithm, value: expected! } : undefined, maxBytes: limit, request: (value, transferHeaders, signal) => providerFetch(value, headers, 120000, signal, transferHeaders), replace: !algorithm })
   mkdirSync(dirname(destination), { recursive: true })
+  diskSpace().check(destination, 8 * 1024 ** 2)
   const temporary = `${destination}.${randomUUID()}.download`
   try {
     const response = await providerFetch(url, headers, 120000)
     if (!response.ok || !response.body) throw new Error(`Dosya indirilemedi (${response.status}).`)
     if (Number(response.headers.get('content-length')) > limit) throw new Error('İndirilecek dosya çok büyük.')
+    diskSpace().check(destination, Number(response.headers.get('content-length')) || 16 * 1024 ** 2)
     let size = 0
     const hash = algorithm ? createHash(algorithm) : null
     const measure = new Transform({ transform(chunk: Buffer, _encoding, callback) { size += chunk.length; hash?.update(chunk); callback(size > limit ? new Error('İndirilecek dosya çok büyük.') : null, chunk) } })

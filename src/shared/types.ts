@@ -164,6 +164,7 @@ export interface LauncherEvents {
   shortcutError: string
   notice: string
   errorLog: LauncherErrorEntry[]
+  modFavorites: ModFavorite[]
 }
 
 export interface LauncherApi {
@@ -175,7 +176,7 @@ export interface LauncherApi {
   setPresenceContext(context: LauncherPresenceContext): Promise<void>
   getDownloads(): Promise<DownloadSnapshot>
   controlDownloads(action: 'pause-all' | 'resume-all' | 'pause' | 'resume' | 'prioritize' | 'reorder' | 'clear', id?: string, beforeId?: string): Promise<DownloadSnapshot>
-  getModFavorites(): Promise<ModFavorite[]>
+  getModFavorites(refresh?: boolean): Promise<ModFavorite[]>
   setModFavorite(favorite: ModFavorite, saved: boolean): Promise<ModFavorite[]>
   getState(): Promise<LauncherState>
   getVersions(refresh?: boolean | 'if-stale'): Promise<GameVersion[]>
@@ -278,6 +279,6 @@ export interface LauncherUpdate {
   transferred?: number
   total?: number
   bytesPerSecond?: number
-  error?: 'network' | 'metadata' | 'checksum' | 'install' | 'busy'
+  error?: 'network' | 'metadata' | 'checksum' | 'install' | 'busy' | 'space' | 'space-check'
   portable: boolean
 }

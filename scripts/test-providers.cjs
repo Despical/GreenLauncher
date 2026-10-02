@@ -11,7 +11,7 @@ function load(name, mocks = {}, globals = {}) {
   const file = path.resolve('src/main', name + '.ts')
   const compiled = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText
   const mod = { exports: {} }
-  vm.runInNewContext(compiled, { exports: mod.exports, module: mod, require: n => mocks[n] || (n.startsWith('./') ? load(n.slice(2), mocks, globals) : require(n)), process, console, Buffer, URL, URLSearchParams, AbortSignal, fetch, Response, structuredClone, ...globals }, { filename: file })
+  vm.runInNewContext(compiled, { exports: mod.exports, module: mod, require: n => mocks[n] || (n.startsWith('.') ? load(n.startsWith('./') ? n.slice(2) : n, mocks, globals) : require(n)), process, console, Buffer, URL, URLSearchParams, AbortSignal, fetch, Response, structuredClone, ...globals }, { filename: file })
   return mod.exports
 }
 async function check(name, run) { await run(); checks++; console.log('PASS', name) }

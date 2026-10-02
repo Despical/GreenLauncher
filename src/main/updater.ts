@@ -1,5 +1,6 @@
 import type { NsisUpdater } from 'electron-updater'
 import type { LauncherUpdate } from '../shared/types'
+import { isDiskSpaceError } from './disk-space'
 
 /** Only stable, strictly newer releases are installable, including at install time. */
 export function newerRelease(candidate: string | undefined, current: string): boolean {
@@ -31,6 +32,7 @@ export class LauncherUpdater {
     private reportFailure: (error: unknown) => void = () => {},
     private portableTransport?: { download(version: string, progress: (state: Partial<LauncherUpdate>) => void, signal: AbortSignal): Promise<string[]>; install(file: string, version: string): Promise<void> },
     private beforeInstalledUpdate: (version: string) => void = () => {},
+    private installedSpaceCheck: (size: number) => void = () => {},
   ) {
     this.state = { phase: enabled ? 'idle' : 'disabled', currentVersion: version, portable }
     engine.autoDownload = false
@@ -64,7 +66,7 @@ export class LauncherUpdater {
     this.failureReported = true
     this.reportFailure(error)
     const code = String((error as { code?: string })?.code ?? '')
-    this.set({ phase: 'error', error: /CHECKSUM|SIGNATURE/.test(code) ? 'checksum' : /CHANNEL_FILE_NOT_FOUND|INVALID_RELEASE_FEED|NO_PUBLISHED_VERSIONS/.test(code) ? 'metadata' : this.installing ? 'install' : 'network', ...(this.state.operation === 'check' && { checkedAt: new Date().toISOString() }) })
+    this.set({ phase: 'error', error: code === 'DISK_SPACE_CHECK_FAILED' ? 'space-check' : isDiskSpaceError(error) ? 'space' : /CHECKSUM|SIGNATURE/.test(code) ? 'checksum' : /CHANNEL_FILE_NOT_FOUND|INVALID_RELEASE_FEED|NO_PUBLISHED_VERSIONS/.test(code) ? 'metadata' : this.installing ? 'install' : 'network', ...(this.state.operation === 'check' && { checkedAt: new Date().toISOString() }) })
   }
   check(): Promise<LauncherUpdate> {
     if (this.checking) return this.checking
@@ -111,7 +113,7 @@ export class LauncherUpdater {
         if (this.state.portable && this.portableTransport) {
           this.abort = new AbortController(); if (this.cancelled) this.abort.abort()
           this.files = await this.portableTransport.download(result.updateInfo.version, progress => { if (!this.cancelled) this.set(progress) }, this.abort.signal)
-        } else this.files = await this.engine.downloadUpdate(result.cancellationToken)
+        } else { this.installedSpaceCheck(result.updateInfo.files?.[0]?.size ?? 0); this.files = await this.engine.downloadUpdate(result.cancellationToken) }
         if (!this.cancelled && this.files.length) this.set({ phase: 'ready', percent: 100, bytesPerSecond: 0, estimatedSeconds: undefined, downloadedAt: new Date().toISOString() })
         else this.set({ phase: 'available', percent: undefined })
       } catch (error) {
@@ -137,7 +139,7 @@ export class LauncherUpdater {
       if (this.state.portable) {
         if (this.portableTransport) await this.portableTransport.install(this.files[0], this.state.version!)
         else await this.installPortable(this.files[0])
-      } else { this.beforeInstalledUpdate(this.state.version!); this.engine.quitAndInstall(true, true) }
+      } else { this.installedSpaceCheck(this.state.total ?? 0); this.beforeInstalledUpdate(this.state.version!); this.engine.quitAndInstall(true, true) }
     } catch (error) { this.fail(error) }
     finally { this.installing = false }
     return this.get()

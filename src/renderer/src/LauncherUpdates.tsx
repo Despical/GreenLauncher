@@ -36,7 +36,7 @@ export function useLauncherUpdate() {
 }
 
 export function updateErrorText(update: LauncherUpdate) {
-  const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
+  const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.', space: 'Diskte yeterli boş alan yok. Yer açıp yeniden dene.', 'space-check': 'Diskteki boş alan kontrol edilemedi. Yeniden dene.' }
   return update.error === 'network' && update.operation === 'download' ? 'Güncelleme indirilemedi. Bağlantını kontrol edip yeniden dene.' : errors[update.error ?? 'network']
 }
 

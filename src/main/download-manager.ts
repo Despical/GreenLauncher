@@ -7,6 +7,7 @@ import { availableParallelism, totalmem } from 'node:os'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createDefaultNodeInstallRuntime, type InstallFile, type InstallRuntime } from '@xmcl/installer'
 import type { DownloadJob, DownloadPhase, DownloadSnapshot, LauncherActivity, LauncherSettings } from '../shared/types'
+import { diskSpace, isDiskSpaceError } from './disk-space'
 
 type Job = DownloadJob & { action: () => Promise<unknown>; resolve: (value: unknown) => void; reject: (error: unknown) => void; controllers: Set<AbortController>; transferPhases: Map<AbortController, DownloadPhase>; transferredBytes: number; lastBytes: number; lastAt: number; samples: Array<{ at: number; bytes: number }>; estimateAt: number; rateClock: number }
 type Request = (url: string, headers: Record<string, string>, signal: AbortSignal) => Promise<Response>
@@ -201,6 +202,8 @@ export class DownloadManager {
     let counted = 0
     let knownSize = file.size ?? 0
     let failures = 0
+    // Check the destination volume before issuing the payload request.
+    diskSpace().check(file.destination, Math.max(0, (file.size ?? 8 * 1024 ** 2) - (existsSync(partial) ? statSync(partial).size : 0)))
     const request: Request = file.request ?? (async (url, headers, signal) => {
       const parsed = new URL(url)
       if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error('Geçersiz indirme adresi.')
@@ -220,6 +223,7 @@ export class DownloadManager {
       const arm = () => { clearTimeout(stall); stall = setTimeout(() => controller.abort(new Error('İndirme bağlantısı zaman aşımına uğradı.')), 30_000); stall.unref() }
       let output: Awaited<ReturnType<typeof open>> | undefined
       let permanentFailure = false
+      let reservation: ReturnType<ReturnType<typeof diskSpace>['reserve']> | undefined
       try {
         this.phase(job, 'downloading', basename(file.destination), controller)
         const headers: Record<string, string> = { 'Accept-Encoding': 'identity' }
@@ -247,6 +251,7 @@ export class DownloadManager {
         if (file.size !== undefined && total && total !== file.size) { await response.body.cancel(); throw new Error('Dosyanın boyutu beklenen değerle uyuşmuyor.') }
         if (job) { job.totalBytes += Math.max(0, total - knownSize); job.downloadedBytes += offset - counted }
         counted = offset; knownSize = Math.max(knownSize, total)
+        reservation = diskSpace().reserve(file.destination, total ? Math.max(0, total - offset) : 16 * 1024 ** 2)
         const etag = response.headers.get('etag')
         const validator = etag && !etag.startsWith('W/') ? etag : response.headers.get('last-modified') || undefined
         writeFileSync(metadata, JSON.stringify({ url, validator }), 'utf8')
@@ -262,7 +267,10 @@ export class DownloadManager {
               if (controller.signal.aborted) throw controller.signal.reason
               offset += chunk.length
               if (offset > (file.maxBytes ?? 2 * 1024 ** 3)) throw new Error('Dosya izin verilen boyutu aşıyor.')
+              if (!total) reservation.ensure(16 * 1024 ** 2 + chunk.length)
+              else if (offset % (1024 ** 2) < chunk.length) reservation.check()
               await output.write(chunk)
+              reservation.consume(chunk.length)
               if (job) { job.downloadedBytes += chunk.length; job.transferredBytes += chunk.length }
               counted += chunk.length
             }
@@ -277,6 +285,7 @@ export class DownloadManager {
         this.phase(job, 'installing', undefined, controller)
         return
       } catch (error) {
+        if (isDiskSpaceError(error)) throw error
         if (job && this.blocked(job)) { failures = 0; continue }
         if (permanentFailure) {
           failures = 0; urlIndex++
@@ -287,13 +296,20 @@ export class DownloadManager {
         if (++failures > 3) { failures = 0; urlIndex++; if (urlIndex >= file.urls.length) throw error }
         this.phase(job, 'retrying', 'Bağlantı yeniden kuruluyor', controller)
         await delay(Math.min(4000, 500 * 2 ** failures))
-      } finally { clearTimeout(stall); await output?.close().catch(() => {}); job?.controllers.delete(controller); if (job) { job.transferPhases.delete(controller); this.phase(job, job.phase) } }
+      } finally { reservation?.release(); clearTimeout(stall); await output?.close().catch(() => {}); job?.controllers.delete(controller); if (job) { job.transferPhases.delete(controller); this.phase(job, job.phase) } }
     }
     throw new Error('İndirme adresi bulunamadı.')
   }
   runtime(): InstallRuntime {
     const base = createDefaultNodeInstallRuntime()
     return { ...base, download: async (files: InstallFile[]) => {
+      const volumes = new Map<string, { path: string; bytes: number }>()
+      for (const file of files) {
+        if (!file.replace && existsSync(file.path)) continue
+        const bytes = Math.max(0, file.size ?? 0), volume = diskSpace().check(file.path, 0)
+        const group = volumes.get(volume) ?? { path: file.path, bytes: 0 }; group.bytes += bytes; volumes.set(volume, group)
+      }
+      for (const group of volumes.values()) diskSpace().check(group.path, group.bytes)
       const job = this.context.getStore()
       if (job) { job.filesTotal += files.length; job.totalBytes += files.reduce((sum, file) => sum + Math.max(0, file.size ?? 0), 0) }
       let next = 0

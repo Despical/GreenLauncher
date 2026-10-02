@@ -1,3 +1,4 @@
+import { diskSpace } from './disk-space'
 import { copyFileSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { createWriteStream } from 'node:fs'
@@ -75,6 +76,7 @@ export async function extractOverrides(archive: string, stage: string, layer: st
     if (!entry.fileName.startsWith(layer) || entry.fileName.endsWith('/')) return
     const relative = entry.fileName.slice(layer.length)
     const target = safePath(stage, relative)
+    diskSpace().check(target, entry.uncompressedSize * 2)
     mkdirSync(dirname(target), { recursive: true })
     const temporary = `${target}.extracting`
     await pipeline(await streamEntry(zip, entry), createWriteStream(temporary))

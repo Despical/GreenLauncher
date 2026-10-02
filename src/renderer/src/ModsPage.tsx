@@ -155,6 +155,41 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
   const searchToken = useRef(0)
   const pageInFlight = useRef(false)
   const selectionKey = JSON.stringify([source, gameVersion, loader, contentType, searchText, sort, category, reload, showFavorites])
+  useEffect(() => window.launcher.on('modFavorites', items => {
+    setFavorites(items)
+    const fresh = new Map(items.filter(item => item.provider === provider).map(item => [item.projectId, item]))
+    setHits(current => current.map(item => fresh.has(item.projectId) ? { ...item, ...fresh.get(item.projectId)! } : item))
+    setSelected(current => current && fresh.has(current.projectId) ? { ...current, ...fresh.get(current.projectId)! } : current)
+  }), [provider])
+  useEffect(() => {
+    if (source === 'custom' || source === 'curseforge' && !connected) return
+    let active = true
+    const refresh = async () => {
+      if (document.visibilityState === 'hidden') return
+      const token = searchToken.current
+      try {
+        if (showFavorites) {
+          const fresh = await window.launcher.getModFavorites(true)
+          if (active) setFavorites(fresh)
+        } else {
+          const result = await window.launcher.searchMods(searchText, gameVersion, loader, sort, 0, category, contentType, provider)
+          if (active && token === searchToken.current) {
+            const fresh = new Map(result.hits.map(item => [item.projectId, item]))
+            setHits(current => current.map(item => fresh.has(item.projectId) ? fresh.get(item.projectId)! : item))
+          }
+        }
+        if (selected?.projectId && active && (showFavorites || token === searchToken.current)) {
+          const details = await window.launcher.getModProject(selected.projectId, provider)
+          if (active && (showFavorites || token === searchToken.current)) setProject(details)
+        }
+      } catch { /* The current catalog remains usable while offline. */ }
+    }
+    if (showFavorites) void refresh()
+    const timer = window.setInterval(() => void refresh(), 125_000)
+    const visible = () => { if (showFavorites && document.visibilityState === 'visible') void refresh() }
+    document.addEventListener('visibilitychange', visible)
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', visible) }
+  }, [selectionKey, connected, selected?.projectId])
 
   const selectSource = (next: 'custom' | ModProvider) => {
     searchToken.current++
@@ -207,7 +242,7 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
       .catch(reason => { if (active) onNotice(reason instanceof Error ? reason.message : String(reason)) })
       .finally(() => { if (active) setDetailsLoading(false) })
     return () => { active = false }
-  }, [selected, selectionKey, connected])
+  }, [selected?.projectId, selected?.selectionKey, selectionKey, connected])
   useEffect(() => {
     if (!selected || selected.selectionKey !== selectionKey || source === 'custom' || (source === 'curseforge' && !connected)) { setProjectVersions([]); setVersionId(''); return }
     let active = true
@@ -215,7 +250,7 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
       .then(items => { if (active) { setProjectVersions(items); setVersionId(current => items.some(item => item.id === current) ? current : items[0]?.id ?? '') } })
       .catch(reason => { if (active) onNotice(reason instanceof Error ? reason.message : String(reason)) })
     return () => { active = false }
-  }, [selected, selectionKey, connected, allGameVersions])
+  }, [selected?.projectId, selected?.selectionKey, selectionKey, connected, allGameVersions])
 
   const loadMore = async () => {
     if (showFavorites || pageInFlight.current || loading || loadingMore || hits.length >= total || !gameVersion) return
@@ -247,7 +282,7 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
   const toggleFavorite = async () => {
     if (!selected || !project || savingFavorite) return
     setSavingFavorite(true)
-    try { setFavorites(await window.launcher.setModFavorite({ ...selected, provider, contentType: project.projectType, savedAt: new Date().toISOString() }, !favoriteSaved)); onNotice(t(favoriteSaved ? 'Favorilerden kaldırıldı.' : 'Favorilere eklendi.')) }
+    try { setFavorites(await window.launcher.setModFavorite({ ...selected, slug: project.slug, title: project.title, description: project.description, iconUrl: project.iconUrl, downloads: project.downloads, provider, contentType: project.projectType, savedAt: new Date().toISOString() }, !favoriteSaved)); onNotice(t(favoriteSaved ? 'Favorilerden kaldırıldı.' : 'Favorilere eklendi.')) }
     catch (error) { onNotice(error instanceof Error ? error.message : String(error)) }
     finally { setSavingFavorite(false) }
   }
