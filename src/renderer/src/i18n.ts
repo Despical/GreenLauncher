@@ -498,6 +498,7 @@ const dictionary: Record<string, [string, string, string, string, string]> = {
   'Bağlan': ['Connect', 'Verbinden', 'Connecter', 'Подключить', 'Połącz'],
   'Green Launcher sürümlerindeki yenilikler ve düzeltmeler.': ['Features and fixes in Green Launcher releases.', 'Neuerungen und Korrekturen in Green Launcher.', 'Nouveautés et corrections de Green Launcher.', 'Нововведения и исправления Green Launcher.', 'Nowości i poprawki w Green Launcher.'],
   'Güncel': ['Current', 'Aktuell', 'Actuelle', 'Текущая', 'Aktualna'],
+  'Güncelle': ['Update', 'Aktualisieren', 'Mettre à jour', 'Обновить', 'Aktualizuj'],
   'Minecraft sürüm notları': ['Minecraft release notes', 'Minecraft-Versionshinweise', 'Notes de version Minecraft', 'Обновления Minecraft', 'Zmiany w Minecraft'],
   'Daha fazla kaynak, daha düzenli ayarlar': ['More sources, clearer settings', 'Mehr Quellen, übersichtlichere Einstellungen', 'Plus de sources, des paramètres plus clairs', 'Больше источников и удобные настройки', 'Więcej źródeł, czytelniejsze ustawienia'],
   'Hesaplar ve oyun oturumları': ['Accounts and game sessions', 'Konten und Spielsitzungen', 'Comptes et sessions de jeu', 'Аккаунты и игровые сеансы', 'Konta i sesje gry'],

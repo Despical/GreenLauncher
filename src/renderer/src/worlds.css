@@ -1,10 +1,12 @@
-.worlds-page .servers-list-panel{--world-columns:minmax(200px,1fr) 110px 128px 74px}
+.worlds-page .servers-list-panel{--world-columns:minmax(200px,1fr) var(--player-column-width) 150px 90px}
 .worlds-table-head,.world-select{display:grid;grid-template-columns:var(--world-columns);align-items:center}
 .worlds-table-head{align-items:stretch;border-inline:1px solid transparent;min-height:43px;margin:0 8px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600}
-.worlds-table-head>span{padding:12px 10px;align-content:center}
-.world-select{min-height:66px;width:100%;padding:0;background:transparent;border:0;text-align:left;color:var(--text);font:500 12px 'Inter Variable',sans-serif;cursor:pointer;align-items:stretch}
+.worlds-table-head>span{padding:12px 14px;align-content:center}
+.world-select{min-height:66px;width:100%;padding:0;background:transparent;border:0;text-align:left;color:var(--text);font:500 13px/1.65 'Inter Variable',sans-serif;cursor:pointer;align-items:stretch}
 .world-select:hover{background:transparent}
-.world-select>span{position:relative;min-height:66px;align-content:center;padding:10px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.world-select>span{position:relative;min-height:66px;align-content:center;padding:9px 14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.world-select>span:nth-child(2),.worlds-table-head>span:nth-child(2){text-align:center}
+.world-select>span:nth-child(n+3){color:#b8c9dc}
 .world-select>span+span::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none}
 .worlds-table-head>span{position:relative}
 .worlds-table-head>span:first-child{padding-left:0}
@@ -22,7 +24,8 @@
 .world-launch-note{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.7;color:var(--muted);margin:18px 0 0}
 .world-launch-note svg{flex:none;margin-top:3px}
 .worlds-profile-required{min-height:340px}
-@media(max-width:1150px){.worlds-page .servers-list-panel{--world-columns:minmax(170px,1fr) 80px 112px 65px}.world-select{font-size:11px}.world-select>span,.worlds-table-head>span{padding-inline:8px}.worlds-page .world-management-actions .secondary{font-size:12px}.world-select .world-identity{gap:10px}}
+@media(max-width:1150px){.worlds-page .servers-list-panel{--world-columns:minmax(170px,1fr) var(--player-column-width) 136px 82px}.world-select>span,.worlds-table-head>span{padding-inline:8px}.worlds-page .world-management-actions .secondary{font-size:12px}.world-select .world-identity{gap:10px}}
 
 .worlds-page .server-facts{display:flex;flex-direction:column;gap:19px}
-.worlds-page .server-facts dd{font-size:13px}
+.worlds-page .server-facts dd{font:500 13px/1.65 'Inter Variable',sans-serif;color:var(--text);font-variant-numeric:tabular-nums}
+.worlds-page .server-facts>div+div dd{font-family:inherit;font-size:14px;color:#b8c9dc}

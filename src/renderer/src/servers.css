@@ -12,7 +12,7 @@
 .servers-toolbar .search-box{flex:1;height:42px;background:#161b22;border-color:#30363d}
 .servers-toolbar .search-box input{font:400 13px 'Inter Variable',sans-serif}
 .servers-toolbar>span{white-space:nowrap;font-size:12px;color:var(--muted)}
-.servers-list-panel{--server-columns:minmax(160px,1fr) minmax(110px,1.35fr) 126px minmax(130px,.85fr)}
+.servers-list-panel{--player-column-width:126px;--server-columns:minmax(160px,1fr) minmax(110px,1.35fr) var(--player-column-width) minmax(130px,.85fr)}
 .servers-table-head,.server-select{display:grid;grid-template-columns:var(--server-columns);column-gap:0;align-items:center}
 .servers-table-head{min-height:43px;margin:0 8px;padding:0;border-inline:1px solid transparent;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600}
 .servers-table-head>span{padding:12px 14px;position:relative;min-width:0}

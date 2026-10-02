@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { CalendarDays, ChevronRight, Search } from 'lucide-react'
+import { ArrowRight, CalendarDays, ChevronRight, RefreshCw, Search } from 'lucide-react'
 import slime from '../../../build/launcher-mark.png'
 import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
@@ -77,7 +77,7 @@ const releases: ReleaseNotes[] = [
   { version: '0.12.2', date: '2026-09-29', title: 'Hesaplar ve oyun oturumları', changes: ['Profiller ve masaüstü kısayolları hesaplara bağlandı.', 'Çalışan oyunları görüntüleme ve onayla tekrar başlatma eklendi.', 'Hesap menüleri, yazı boyutları ve bildirimler yenilendi.', 'Windows simgesi ve hızlı erişim kısayolları iyileştirildi.'] }
 ]
 
-export function Changelog({ language, update, onUpdate, onClose }: { language: Language; update: LauncherUpdate; onUpdate(): void; onClose: () => void }) {
+export function Changelog({ language, update, onCheck, onUpdate, onClose }: { language: Language; update: LauncherUpdate; onCheck(): Promise<unknown>; onUpdate(): void; onClose: () => void }) {
   const t = (text: string, values?: Record<string, string | number>) => translate(language, text, values)
   const available = !!update.version && ['available', 'checking', 'downloading', 'ready', 'error'].includes(update.phase)
   const incoming: ReleaseNotes | null = available && !releases.some(release => release.version === update.version) ? {
@@ -90,6 +90,14 @@ export function Changelog({ language, update, onUpdate, onClose }: { language: L
   const search = useRef<HTMLInputElement>(null)
   const shown = history.filter(release => `v${release.version} ${release.title} ${release.changes.join(' ')} ${release.sections?.flatMap(section => section.changes).join(' ') ?? ''} ${release.remoteNotes ?? ''}`.toLocaleLowerCase(language).includes(query.toLocaleLowerCase(language)))
   const [closing, setClosing] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const checkBusy = checking || update.phase === 'checking'
+  const check = async () => {
+    if (checkBusy) return
+    setChecking(true)
+    try { await onCheck() } catch { /* The shared update controls report failures through a notification. */ }
+    finally { setChecking(false) }
+  }
   const selected = history.find(release => release.version === selectedVersion) ?? history[0]
   const content = useRef<HTMLElement>(null)
   const navigation = useRef<HTMLElement>(null)
@@ -142,7 +150,7 @@ export function Changelog({ language, update, onUpdate, onClose }: { language: L
           <span className="release-history-version-top"><span className="release-history-version-label"><strong>v{release.version}</strong>{release.version === history[0].version && <span className="release-latest-badge">{t('En son')}</span>}{history[0].version !== update.currentVersion && release.version === update.currentVersion && <span className="release-current-badge">{t('Kullandığın sürüm')}</span>}</span><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
           <span className="release-history-version-title">{t(release.title)}</span>
         </button>)}{!shown.length && <p className="release-history-no-results">{t('Sürüm bulunamadı.')}</p>}</div>
-        <footer className="release-history-build"><strong>Green Launcher · v{update.currentVersion || packageJson.version}</strong>{available && <><span className="release-footer-separator" aria-hidden="true"/><button className="release-update-link" onClick={onUpdate}>{t('Güncellemek için şimdi tıkla')}</button></>}</footer>
+        <footer className="release-history-build">{available ? <button type="button" className="release-update-cta" onClick={onUpdate} disabled={checkBusy}><span>v{update.version}</span><span aria-hidden="true">·</span><span>{t('Güncelle')}</span><ArrowRight size={15} aria-hidden="true" /></button> : <div className="release-current-cta"><span>v{update.currentVersion || packageJson.version}</span><span aria-hidden="true">·</span><span>{t(update.error ? 'Kontrol et' : 'Güncel')}</span><button type="button" className="release-check" onClick={() => void check()} disabled={checkBusy} aria-label={t('Güncellemeleri kontrol et')} aria-busy={checkBusy}><RefreshCw size={15} className={checkBusy ? 'spin' : undefined} aria-hidden="true" /></button></div>}</footer>
       </nav>
       <section className="release-history-detail" id="release-history-detail" aria-labelledby="release-history-title" tabIndex={0} ref={content}>
         <div className="release-history-article" key={selected.version}>

@@ -6,7 +6,8 @@ try {
  await call('Runtime.enable');await until("document.querySelector('.side-nav')")
  await evaluate("window.launcher.saveSettings({language:'tr',qaUpdate:{phase:'current',version:null,error:null,downloadedAt:null,lastInstalled:null}})");await call('Page.reload');await until("document.querySelector('.side-nav')")
  await key('1');assert.equal(await evaluate("!!document.querySelector('.statusbar-update')"),false)
- await key('9');await button('Hakkında');assert.equal(await evaluate("!!document.querySelector('.launcher-update-panel')"),false);await button('Launcher');await until("document.querySelector('.launcher-update-panel')")
+ await key('9');await button('Launcher');assert.equal(await evaluate("!!document.querySelector('.launcher-update-panel')"),false);await button('Hakkında');await until("document.querySelector('.launcher-update-panel')")
+ assert.equal(await evaluate("document.querySelector('.launcher-about').nextElementSibling.classList.contains('launcher-update-settings')"),true)
  assert.match(await evaluate("document.querySelector('.launcher-update-panel').textContent"),/En son sürüm yüklü/)
  await button('Kontrol et');await until("document.querySelector('.update-last-check')")
  const setUpdate=async value=>await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify(value)+'})')
@@ -36,7 +37,7 @@ try {
  assert.equal(await evaluate("document.querySelectorAll('.download-jobs .launcher-update-job').length"),0)
  await button('Geçmişi temizle');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('8');assert.equal(await evaluate("document.querySelectorAll('.launcher-update-history').length"),0)
  for(const language of ['tr','en','de','fr','ru','pl']){
-   await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1');assert.equal(await evaluate("!!document.querySelector('.home-update')"),false);await key('9');await button('Launcher')
+   await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1');assert.equal(await evaluate("!!document.querySelector('.home-update')"),false);await key('9');await click('[role=tab]:last-child')
    await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
    assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth&&[...document.querySelectorAll('.launcher-update-settings button')].every(b=>b.scrollWidth<=b.clientWidth+1)"),language)
  }
