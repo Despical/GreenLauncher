@@ -14,9 +14,9 @@
 .changelog-dialog .release-history-version:hover { background: #21262d; }
 .changelog-dialog .release-history-version[aria-current] { background: #30363d; box-shadow: none; }
 .release-history-version-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.release-history-version-label { flex: 1; display: inline-flex; align-items: center; gap: 8px; min-width: max-content; }
-.release-history-version-top strong { font-size: 15px; font-weight: 600; color: #e4eaf0; }
-.release-latest-badge { display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; line-height: 1.3; padding: 2px 7px; border: 1px solid #40634c; border-radius: 4px; background: #223b2c; color: #91cea1; white-space: nowrap; }
+.release-history-version-label { flex: 1; display: inline-flex; align-items: center; gap: 6px; min-width: max-content; white-space: nowrap; }
+.release-history-version-top strong { font-size: 15px; line-height:18px; font-weight: 600; color: #e4eaf0; }
+.release-latest-badge { display: inline-flex; align-items: center; flex:none; font-size: 11px; font-weight: 600; line-height: 16px; height:18px; box-sizing:border-box; padding: 0 6px; border: 1px solid #40634c; border-radius: 4px; background: #223b2c; color: #91cea1; white-space: nowrap; }
 .release-history-version-top time { color: #9aa8b6; font-size: 12px; }
 .release-history-version-top > svg { position: absolute; right: 13px; top: 47px; }
 .release-history-version-title { padding-right: 14px; font-size: 13px; line-height: 1.55; color: #aebbc7; }
