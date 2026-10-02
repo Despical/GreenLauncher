@@ -18,6 +18,14 @@ interface ReleaseNotes {
   sections?: Array<{ title: string; changes: string[] }>
 }
 
+const v0176Changes = [
+  'Güncelleme kartı Hakkında sekmesine taşındı; Hakkında, güncelleme kartı ve değişiklik günlüğü için alanlarına uygun ayrı manzaralar hazırlandı.',
+  'Değişiklik günlüğündeki sürüm bağlantısından animasyonlu kontrol ve sonuç bildirimi yapılır; yeni sürüme tıklayınca indirme başlar ve İndirmeler açılır.',
+  'Tamamlanan launcher güncellemeleri kuyruktan Son indirmelere taşınır; indirme kartında hız, en yüksek hız, kalan süre ve kaliteli launcher simgesi gösterilir.',
+  'Dünya tablosu ve sağ panelin yazı tipleri, renkleri ve sütunları sunucularla eşleştirildi; yönetim butonlarının ikonları yazılara yaklaştırıldı.',
+  'Sunucu ve dünya ikonlarına hafif sol boşluk eklendi; tablo ayırıcıları ve son satırın yuvarlak köşeleri korundu.'
+]
+
 const v016Sections = [
   { title: 'Yeni özellikler', changes: [
     'Her profil tek bir Minecraft sürümüne bağlandı; normal profillerin sürümü profil düzenleyicisinden değiştirilebilir.',
@@ -63,6 +71,10 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.17.6', date: '2026-10-02', title: 'Kartlar ve güncellemeler yenilendi', intro: 'Kısa kartlara uygun yeni manzaralar, daha düzenli dünya bilgileri ve kolay güncelleme takibi.', changes: v0176Changes, sections: [
+    { title: 'Yeni özellikler', changes: v0176Changes.slice(0, 2) },
+    { title: 'Düzeltmeler', changes: v0176Changes.slice(2) }
+  ] },
   { version: '0.17.5', date: '2026-10-02', title: "Kurulum ekranı olmadan güncelle", changes: ["Taşınabilir launcher güncellemeleri doğrulanmış EXE ile yerinde uygulanır; launcher kapanıp yeni sürümle açılır, başarısız açılışta eski dosya geri yüklenir.","Güncellemenin indirme, yeniden başlatma ve tamamlanma durumu İndirmeler sayfasında gösterilir; alt çubuktaki güncelleme bağlantısı bu sayfayı açar.","Güncelleme başarıları ve hataları günlüğe kaydedilir; aynı hatalar tekrar sayısıyla gruplanır, ilk ve son görülme zamanları ayrıntıda gösterilir."] },
   { version: '0.17.4', date: '2026-10-02', title: "Güncellemelere daha kolay ulaş", changes: ["Taşınabilir launcher paketine eksik güncelleme yapılandırması eklendi; indirme sırasında görülen app-update.yml hatası düzeltildi.","Alt çubuktaki güncelleme bağlantısı sürümle aynı ayırıcı grubuna taşındı ve doğrudan değişiklik günlüğünü açar.","Güncelleme ayarlarına sürüm notlarına doğrudan bağlantı ve yeşil indirme düğmesi eklendi; ayrı güncelleme penceresi kaldırıldı.","GitHub sürüm notlarındaki Markdown ve HTML başlıkları değişiklik günlüğünde başlık olarak gösterilir."] },
   { version: '0.17.3', date: '2026-10-02', title: "Alt çubuk ve güncellemeler daha sade", changes: ["Alt çubuk, açılışta son seçili profilin oyun geçmişini normal durum yazısıyla aynı fontta gösterir; toplam süre parantez içinde yer alır.","Oyun süresi metninin tıklama ve hover davranışı kaldırıldı; ayrı istatistik menüsü ve profil bilgilerindeki bağlantısı kaldırıldı.","Alt çubuğun sağındaki profil yazısı Profillerim sayfasını açar.","Güncelleme notları yalnızca değişiklik günlüğünde gösterilir; yeni ve kullanılan sürümler ayrı rozetlerle belirtilir.","Taşınabilir launcher güncellemeleri tam dosyayla indirilir; hatalar bildirim ve günlükle gösterilir, son kontrol tarihi kontrol sırasında sabit kalır."] },
