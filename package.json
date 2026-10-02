@@ -1,6 +1,6 @@
 {
   "name": "green-launcher",
-  "version": "0.17.4",
+  "version": "0.17.5",
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "description": "A custom Minecraft Java Edition launcher",
@@ -11,9 +11,9 @@
     "dev": "electron-vite dev",
     "build": "tsc --noEmit && electron-vite build",
     "preview": "electron-vite preview",
-    "dist:portable": "pnpm run build && node scripts/build_portable.mjs",
+    "dist:portable": "node scripts/build_update_helper.mjs && pnpm run build && node scripts/build_portable.mjs",
     "dist:win": "pnpm dist:portable",
-    "dist:setup": "pnpm run build && electron-builder --win nsis --x64 --publish never"
+    "dist:setup": "node scripts/build_update_helper.mjs && pnpm run build && node scripts/prepare-update-bootstrap.mjs && electron-builder --win nsis --x64 --publish never --config.nsis.include=build/update-bootstrap.nsh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -71,6 +71,7 @@
       "node_modules/@xmcl/**/*"
     ],
     "extraResources": [
+      { "from": "build/update-helper.exe", "to": "update-helper.exe" },
       {
         "from": "src/main/app-update.yml",
         "to": "app-update.yml"

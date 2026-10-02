@@ -17,4 +17,8 @@ assert.ok(latest.releaseNotes === undefined || typeof latest.releaseNotes === 's
 const config = yaml.load(fs.readFileSync(path.join(release, 'win-unpacked', 'resources', 'app-update.yml'), 'utf8'))
 assert.equal(config.provider, 'github'); assert.equal(config.owner, 'Despical'); assert.equal(config.repo, 'GreenLauncher'); assert.ok(!config.token)
 assert.equal(pkg.build.nsis.deleteAppDataOnUninstall, false)
+const portable=fs.readFileSync(path.join(release,`GreenLauncher-${pkg.version}.exe`)), metadata=JSON.parse(fs.readFileSync(path.join(release,'portable-update.json'),'utf8'))
+assert.deepEqual(metadata,{version:pkg.version,file:`GreenLauncher-${pkg.version}.exe`,sha256:createHash('sha256').update(portable).digest('hex'),size:portable.length})
+assert.equal(portable.subarray(0,2).toString(),'MZ')
+assert.ok(fs.readFileSync(path.join(release,'win-unpacked/resources/update-helper.exe')).equals(fs.readFileSync(path.join(__dirname,'../build/update-helper.exe'))))
 console.log(`PASS ${pkg.version} setup executable, exact SHA-512/size, blockmap and token-free packaged GitHub update configuration`)

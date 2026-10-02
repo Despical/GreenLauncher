@@ -6,6 +6,7 @@ const { createRequire } = require('node:module')
 const yaml = createRequire(require.resolve('electron-updater'))('js-yaml')
 const updateConfig = yaml.load(fs.readFileSync('release/win-unpacked/resources/app-update.yml', 'utf8'))
 assert.deepEqual(updateConfig, yaml.load(fs.readFileSync('src/main/app-update.yml', 'utf8')), 'every portable runtime must contain the public feed and download cache configuration')
+assert.ok(fs.readFileSync('release/win-unpacked/resources/update-helper.exe').equals(fs.readFileSync('build/update-helper.exe')),'packaged native updater matches verified helper')
 let verifiedFiles = 0
 function verifyDirectory(directory) {
   for (const entry of fs.readdirSync(directory, {withFileTypes:true})) {

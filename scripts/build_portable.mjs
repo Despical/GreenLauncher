@@ -27,7 +27,7 @@ function hashPath(relative) {
   }
 }
 hashPath('out')
-for (const name of ['package.json', 'pnpm-lock.yaml', 'scripts/build_portable.mjs', 'scripts/portable-manifest.cjs', 'scripts/splash-helper.cpp', 'build/icon.png', 'build/icon.ico', 'build/tray-icon.ico', 'build/portable-splash.png', 'LICENSE']) {
+for (const name of ['package.json', 'pnpm-lock.yaml', 'scripts/build_portable.mjs', 'scripts/portable-manifest.cjs', 'scripts/splash-helper.cpp', 'build/update-helper.exe', 'scripts/update-helper.cpp', 'build/icon.png', 'build/icon.ico', 'build/tray-icon.ico', 'build/portable-splash.png', 'LICENSE']) {
   runtimeHash.update(name); runtimeHash.update(readFileSync(join(root, name)))
 }
 const runtimeId = runtimeHash.digest('hex').slice(0, 24)

@@ -1,6 +1,7 @@
 import { WorldService } from './worlds'
 import { NsisUpdater } from 'electron-updater'
 import { LauncherUpdater } from './updater'
+import { PortableUpdateTransport, confirmUpdate, installedUpdateReceipt } from './portable-updater'
 import type { ServerJoinPreference, ResourcePackPolicy } from '../shared/types'
 import { clipboard, app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
@@ -49,7 +50,7 @@ const shortcutTarget = executable
 const shortcutIcon = persistentIcon
 
 // Set the data directory before Electron starts its GPU and renderer processes.
-app.setPath('userData', prepareDataPath(app.getPath('appData')))
+app.setPath('userData', prepareDataPath(process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT || app.getPath('appData')))
 
 function send(event: string, value: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(event, value)
@@ -171,6 +172,12 @@ else {
     minimizeToTray = store.get().settings.minimizeToTray
     createWindow()
     const logs = new ErrorLog(store.dataPath, entries => send('launcher:errorLog', entries))
+    let lastInstalled: { version: string; at: string } | undefined
+    mainWindow!.once('ready-to-show', () => {
+      lastInstalled = confirmUpdate(store.dataPath, app.getVersion(), process.env.PORTABLE_EXECUTABLE_FILE || process.execPath, logs)
+      send('launcher:update', { ...updater.get(), lastInstalled })
+      if (process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT) setTimeout(() => app.quit(), 2000)
+    })
     const accountService = new AccountService(store)
     const accountSkins = new AccountSkins(join(store.dataPath, 'skin-cache'), (account, skin) => {
       const current = store.get().accounts.find(item => item.id === account.id)
@@ -270,10 +277,12 @@ else {
     const updateEngine = new NsisUpdater({ provider: 'github', owner: 'Despical', repo: 'GreenLauncher' })
     updateEngine.logger = null
     const updater = new LauncherUpdater(updateEngine, app.getVersion(), app.isPackaged && process.platform === 'win32', !!process.env.PORTABLE_EXECUTABLE_FILE,
-      state => send('launcher:update', state),
+      state => send('launcher:update', { ...state, lastInstalled }),
       () => downloads.pending || game.getLaunchState().preparing || game.getRunningInstances().length > 0 || modpacks.isInstalling || installingContent || signingIn,
       async file => { const error = await shell.openPath(file); if (error) throw new Error(error); app.quit() },
       error => logs.record('Launcher güncellemesi', error),
+      process.env.PORTABLE_EXECUTABLE_FILE ? new PortableUpdateTransport(join(store.dataPath, 'cache', 'launcher-updates'), process.env.PORTABLE_EXECUTABLE_FILE, join(process.resourcesPath, 'update-helper.exe'), join(store.dataPath, 'update-result.json'), app.getVersion(), () => app.quit()) : undefined,
+      version => installedUpdateReceipt(store.dataPath, app.getVersion(), version, process.execPath),
     )
     const startupUpdate = setTimeout(() => void updater.check(), 2500)
     startupUpdate.unref()
@@ -287,11 +296,11 @@ else {
       })
     }
 
-    handle('launcher:get-update', () => updater.get())
-    handle('launcher:check-update', () => updater.check())
-    handle('launcher:download-update', () => updater.download())
-    handle('launcher:cancel-update', () => updater.cancel())
-    handle('launcher:install-update', () => updater.install())
+    handle('launcher:get-update', () => ({ ...updater.get(), lastInstalled }))
+    handle('launcher:check-update', async () => ({ ...await updater.check(), lastInstalled }))
+    handle('launcher:download-update', async () => ({ ...await updater.download(), lastInstalled }))
+    handle('launcher:cancel-update', async () => ({ ...await updater.cancel(), lastInstalled }))
+    handle('launcher:install-update', async () => ({ ...await updater.install(), lastInstalled }))
     handle('launcher:get-state', () => {
       if (pendingShortcut) setTimeout(() => dispatchShortcut?.(), 250)
       if (pendingNavigation) { const page = pendingNavigation; pendingNavigation = null; setTimeout(() => send('launcher:navigate', page), 250) }
