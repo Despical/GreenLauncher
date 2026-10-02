@@ -6,7 +6,7 @@
 .world-select:hover{background:transparent}
 .world-select>span{position:relative;min-height:66px;align-content:center;padding:9px 14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
 .world-select>span:nth-child(2),.worlds-table-head>span:nth-child(2){text-align:center}
-.world-select>span:nth-child(n+3){color:#b8c9dc}
+.world-select>span:nth-child(n+2){color:#b8c9dc}
 .world-select>span+span::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none}
 .worlds-table-head>span{position:relative}
 .worlds-table-head>span:first-child{padding-left:0}
@@ -17,9 +17,9 @@
 .world-details-identity{grid-template-columns:42px minmax(0,1fr)}
 .world-management-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
 .worlds-page .world-management-actions .secondary{padding:0 8px;font-size:12px;min-width:0}
-.worlds-page .world-management-actions .world-action-pair{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;padding-inline:10px;min-height:42px}
+.worlds-page .world-management-actions .world-action-pair{display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;padding-inline:10px;min-height:42px}
 .world-action-pair>svg{justify-self:start}
-.world-action-pair>span{min-width:0;text-align:center;line-height:1.4;overflow-wrap:anywhere}
+.world-action-pair>span{min-width:0;text-align:left;line-height:1.4;overflow-wrap:anywhere}
 .world-management-actions .world-join,.world-management-actions .world-wide{grid-column:1/-1}
 .world-launch-note{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.7;color:var(--muted);margin:18px 0 0}
 .world-launch-note svg{flex:none;margin-top:3px}
