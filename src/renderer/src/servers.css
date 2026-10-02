@@ -30,9 +30,9 @@
 .server-identity{display:flex;align-items:center;gap:10px;min-width:0}
 /* Keep the player/address tracks in place when merging the name and description. */
 .servers-table-head>span:first-child,.server-identity{grid-column:span 2}
-.servers-table-head>span:first-child{padding-left:0}
+.servers-table-head>span:first-child{padding-left:0;left:-8px}
 .server-identity{padding:0 14px 0 0;gap:14px}
-.server-identity .server-icon{width:66px;height:66px;align-self:stretch}
+.server-identity .server-icon{width:74px;height:66px;margin-left:-8px;align-self:stretch}
 .server-identity .server-icon img{object-fit:cover;border-radius:0}
 .servers-table-head>span:nth-child(2){text-align:center}
 .server-identity strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

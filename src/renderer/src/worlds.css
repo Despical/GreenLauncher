@@ -7,9 +7,9 @@
 .world-select>span{position:relative;min-height:66px;align-content:center;padding:10px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
 .world-select>span+span::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none}
 .worlds-table-head>span{position:relative}
-.worlds-table-head>span:first-child{padding-left:0}
-.world-select .world-identity{display:flex;align-items:center;gap:14px;padding:0 10px 0 0}
-.world-identity .server-icon{height:66px;width:66px;align-self:stretch}
+.worlds-table-head>span:first-child{padding-left:0;left:-8px}
+.world-select .world-identity{display:flex;align-items:center;gap:14px;padding:0 10px 0 0;overflow:visible}
+.world-identity .server-icon{height:66px;width:74px;margin-left:-8px;align-self:stretch}
 .world-identity .server-icon img{object-fit:cover;border-radius:0}
 .world-identity strong{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .world-details-identity{grid-template-columns:42px minmax(0,1fr)}
@@ -22,7 +22,7 @@
 .world-launch-note{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.7;color:var(--muted);margin:18px 0 0}
 .world-launch-note svg{flex:none;margin-top:3px}
 .worlds-profile-required{min-height:340px}
-@media(max-width:1150px){.worlds-page .servers-list-panel{--world-columns:minmax(170px,1fr) 80px 112px 65px}.world-select{font-size:11px}.world-select>span,.worlds-table-head>span{padding-inline:8px}.worlds-page .world-management-actions .secondary{font-size:12px}.world-identity .server-icon{width:66px}.world-select .world-identity{gap:10px}}
+@media(max-width:1150px){.worlds-page .servers-list-panel{--world-columns:minmax(170px,1fr) 80px 112px 65px}.world-select{font-size:11px}.world-select>span,.worlds-table-head>span{padding-inline:8px}.worlds-page .world-management-actions .secondary{font-size:12px}.world-select .world-identity{gap:10px}}
 
 .worlds-page .server-facts{display:flex;flex-direction:column;gap:19px}
 .worlds-page .server-facts dd{font-size:13px}

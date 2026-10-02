@@ -7,7 +7,8 @@ try {
  const end = Date.now() - 600_000
  const sessions = [{id:'recent',profileId:'qa-profile',profileName:'Test World',versionId:'26.3',startedAt:new Date(end-292_000).toISOString(),endedAt:new Date(end).toISOString(),durationMs:292_000}, {id:'earlier',profileId:'qa-profile',profileName:'Test World',versionId:'1.21.1',startedAt:new Date(end-172_800_000-1800_000).toISOString(),endedAt:new Date(end-172_800_000).toISOString(),durationMs:1800_000}]
  await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaPlaySessions:sessions,qaDownloads:[],qaActivity:{kind:'idle',label:'Hazır'},qaUpdate:{phase:'current',version:null,error:null}})+')');await call('Page.reload');await until("document.querySelector('.statusbar-playtime')")
- assert.match(await evaluate("document.querySelector('.statusbar-playtime').textContent"),/Minecraft 26.3.*4 dk 52 sn.*34 dk 52 sn/)
+ assert.match(await evaluate("document.querySelector('.statusbar-playtime').textContent"),/^Başlatmaya hazır, en son \d{2}\.\d{2}\.\d{4}.*4 dk 52 sn süreyle oynandı, toplam 34 dk 52 sn oynandı$/)
+ assert.equal(await evaluate("document.querySelectorAll('.statusbar-playtime svg').length"),0)
  await shot('qa-playtime-footer')
  await click('.statusbar-playtime');await until("document.querySelector('.playtime-dialog')")
  assert.equal(await evaluate("document.querySelectorAll('.playtime-summary>div').length"),3)
@@ -27,6 +28,7 @@ try {
  await evaluate("window.launcher.saveSettings({qaActivity:{kind:'idle',label:'Hazır'}})")
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'downloading',percent:42}})");await until("!document.querySelector('.statusbar-playtime')");assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Güncelleme indiriliyor.*42/);await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'current'}})")
  await key('9');await button('Launcher');await until("document.querySelector('.launcher-update-settings')")
+ assert.equal(await evaluate("[...document.querySelectorAll('.settings-tab-panel .folder-link')].some(b=>b.textContent.includes('Oyun süresi istatistikleri'))"),false,'no playtime statistics entry in Launcher settings')
  const backdrop = await evaluate("(()=>{const e=document.querySelector('.launcher-update-settings .launcher-update-panel'),b=getComputedStyle(e,'::before');return {width:b.width,panel:e.getBoundingClientRect().width,image:b.backgroundImage}})()")
  assert.ok(Math.abs(parseFloat(backdrop.width)-backdrop.panel)<3);assert.match(backdrop.image,/update-night-coast/)
  await evaluate("document.querySelector('.launcher-update-settings').scrollIntoView({block:'center'})")

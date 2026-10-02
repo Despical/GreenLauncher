@@ -17,11 +17,11 @@ export function PlaytimeStatus({ state, language, onOpen }: { state: LauncherSta
   if (!state.selectedProfileId) return null
   const summary = playtimeSummary(state.playSessions ?? [], state.selectedProfileId), last = summary.history[0]
   if (!last) return null
-  const label = translate(language, 'Minecraft {version}, en son {date} tarihinde {duration} oynandı, toplam {total} oynandı', {
-    version: last.versionId, date: new Intl.DateTimeFormat(language, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(last.endedAt)),
+  const label = translate(language, 'Başlatmaya hazır, en son {date} tarihinde {duration} süreyle oynandı, toplam {total} oynandı', {
+    date: new Intl.DateTimeFormat(language, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(last.endedAt)),
     duration: playDuration(last.durationMs, language), total: playDuration(summary.total, language)
   })
-  return <button className="statusbar-playtime" title={label} onClick={onOpen}><Clock3 size={13} /><span>{label}</span></button>
+  return <button className="statusbar-playtime" title={label} onClick={onOpen}><span>{label}</span></button>
 }
 
 export function PlaytimeDialog({ state, language, initialProfileId, onClose }: { state: LauncherState; language: Language; initialProfileId: string | null; onClose(): void }) {
