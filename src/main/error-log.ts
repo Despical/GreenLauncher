@@ -54,6 +54,7 @@ export class ErrorLog {
     const key = JSON.stringify([entry.source, entry.code, entry.message]), recent = this.recent.get(key)
     if (recent && Date.now() - recent.at < 5000 && source !== recent.source && /^(?:Oyun|play|play-version)$/i.test(source) && /^(?:Oyun|play|play-version)$/i.test(recent.source)) return
     this.recent.set(key, { source, at: Date.now() })
+    if (this.recent.size > 200) this.recent.delete(this.recent.keys().next().value!)
     const previous = this.entries.find(item => item.source === entry.source && item.code === entry.code && item.message === entry.message && item.level !== 'info')
     if (previous) {
       previous.count = (previous.count ?? 1) + 1; previous.firstAt ??= previous.at; previous.at = entry.at; previous.lastAt = entry.at

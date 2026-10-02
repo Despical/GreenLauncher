@@ -19,6 +19,7 @@ export class LauncherUpdater {
   private files: string[] = []
   private installing = false
   private failureReported = false
+  private abort?: AbortController
   constructor(
     private engine: NsisUpdater,
     version: string,
@@ -28,6 +29,8 @@ export class LauncherUpdater {
     private busy: () => boolean,
     private installPortable: (file: string) => Promise<void>,
     private reportFailure: (error: unknown) => void = () => {},
+    private portableTransport?: { download(version: string, progress: (state: Partial<LauncherUpdate>) => void, signal: AbortSignal): Promise<string[]>; install(file: string, version: string): Promise<void> },
+    private beforeInstalledUpdate: (version: string) => void = () => {},
   ) {
     this.state = { phase: enabled ? 'idle' : 'disabled', currentVersion: version, portable }
     engine.autoDownload = false
@@ -98,7 +101,10 @@ export class LauncherUpdater {
           notes: (typeof notes === 'string' ? notes : notes?.map(item => item.note).join('\n\n'))?.slice(0, 32000),
         })
         if (this.cancelled) this.token?.cancel()
-        this.files = await this.engine.downloadUpdate(result.cancellationToken)
+        if (this.state.portable && this.portableTransport) {
+          this.abort = new AbortController(); if (this.cancelled) this.abort.abort()
+          this.files = await this.portableTransport.download(result.updateInfo.version, progress => { if (!this.cancelled) this.set(progress) }, this.abort.signal)
+        } else this.files = await this.engine.downloadUpdate(result.cancellationToken)
         if (!this.cancelled && this.files.length) this.set({ phase: 'ready', percent: 100 })
         else this.set({ phase: 'available', percent: undefined })
       } catch (error) {
@@ -111,7 +117,7 @@ export class LauncherUpdater {
     return this.downloading
   }
   cancel(): Promise<LauncherUpdate> {
-    if (this.downloading) { this.cancelled = true; this.token?.cancel(); return this.downloading }
+    if (this.downloading) { this.cancelled = true; this.abort?.abort(); this.token?.cancel(); return this.downloading }
     return Promise.resolve(this.get())
   }
   async install(): Promise<LauncherUpdate> {
@@ -119,13 +125,15 @@ export class LauncherUpdater {
     if (this.busy()) { this.set({ error: 'busy', operation: 'install' }); return this.get() }
     this.installing = true
     this.failureReported = false
-    this.set({ error: undefined, operation: 'install' })
+    this.set({ error: undefined, operation: 'install', phase: 'installing' })
     try {
-      if (this.state.portable) await this.installPortable(this.files[0])
-      else this.engine.quitAndInstall(false, true)
+      if (this.state.portable) {
+        if (this.portableTransport) await this.portableTransport.install(this.files[0], this.state.version!)
+        else await this.installPortable(this.files[0])
+      } else { this.beforeInstalledUpdate(this.state.version!); this.engine.quitAndInstall(true, true) }
     } catch (error) { this.fail(error) }
     finally { this.installing = false }
     return this.get()
   }
-  dispose() { this.cancelled = true; this.token?.cancel() }
+  dispose() { this.cancelled = true; this.abort?.abort(); this.token?.cancel() }
 }

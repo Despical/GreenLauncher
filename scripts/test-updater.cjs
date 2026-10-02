@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript'), { EventEmitter } = require('node:events')
 const mod = { exports: {} }
-vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: mod, exports: mod.exports, Date, Number })
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: mod, exports: mod.exports, Date, Number, AbortController })
 const { LauncherUpdater, newerRelease } = mod.exports
 const settle = () => new Promise(resolve => setImmediate(resolve))
 class Engine extends EventEmitter {
@@ -21,7 +21,7 @@ class Engine extends EventEmitter {
     if (this.mode === 'interrupted') throw Object.assign(Error('reset'), { code: 'ECONNRESET' })
     return ['verified-setup.exe']
   }
-  quitAndInstall() { this.installs++ }
+  quitAndInstall(silent, restart) { assert.equal(silent,true); assert.equal(restart,true); this.installs++ }
 }
 async function main() {
   for (const candidate of ['0.16.9', '0.17.0', '0.17.0-beta.1', 'bad', '0.18.0-beta.1', '9007199254740992.0.0']) assert.equal(newerRelease(candidate, '0.17.0'), false)
@@ -57,6 +57,13 @@ async function main() {
   failingEngine.emit('error',logged[0]);assert.equal(logged.length,1,'engine event and rejected promise report the same failure once')
   await loggedUpdater.download();assert.equal(logged.length,2,'a separate retry can produce its own diagnostic')
   failingEngine.mode='offline';await loggedUpdater.check();assert.equal(loggedUpdater.get().operation,'check');assert.ok(loggedUpdater.get().checkedAt)
+  let nativeInstalls=0, cancelledSignal, releaseNative
+  const nativeEngine=new Engine(), nativeUpdater=new LauncherUpdater(nativeEngine,'0.17.4',true,true,()=>{},()=>false,async()=>{throw Error('legacy path used')},()=>{}, {
+    async download(version,progress,signal){assert.equal(version,'0.18.0');progress({percent:33});cancelledSignal=signal;if(releaseNative===null)await new Promise((resolve,reject)=>{releaseNative=resolve;signal.addEventListener('abort',()=>reject(Error('cancelled')))});return ['native.exe']},
+    async install(file,version){assert.equal(file,'native.exe');assert.equal(version,'0.18.0');nativeInstalls++}
+  })
+  await nativeUpdater.check();releaseNative=null;const nativePending=nativeUpdater.download();while(!releaseNative)await settle();await nativeUpdater.cancel();await nativePending;assert.equal(cancelledSignal.aborted,true);assert.equal(nativeUpdater.get().phase,'available');assert.equal(nativeEngine.downloads,0)
+  await nativeUpdater.download();assert.equal(nativeUpdater.get().phase,'ready');await nativeUpdater.install();assert.equal(nativeInstalls,1);assert.equal(nativeUpdater.get().phase,'installing');nativeUpdater.dispose()
   service.dispose(); portable.dispose(); stopped.dispose(); changed.dispose()
   console.log('PASS stable version ordering, downgrade prevention, check/download coalescing, offline recovery, checksum/interruption failure, cancellation/retry, progress, operation guards, explicit installation, portable transition and disabled development checks')
 }
