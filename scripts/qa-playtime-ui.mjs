@@ -28,15 +28,15 @@ try {
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'downloading',percent:42}})");await until("!document.querySelector('.statusbar-playtime')");assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Güncelleme indiriliyor.*42/);await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'current'}})")
  await key('9');await button('Launcher');await until("document.querySelector('.launcher-update-settings')")
  const backdrop = await evaluate("(()=>{const e=document.querySelector('.launcher-update-settings .launcher-update-panel'),b=getComputedStyle(e,'::before');return {width:b.width,panel:e.getBoundingClientRect().width,image:b.backgroundImage}})()")
- assert.ok(Math.abs(parseFloat(backdrop.width)-backdrop.panel)<3);assert.match(backdrop.image,/green-landscape/)
+ assert.ok(Math.abs(parseFloat(backdrop.width)-backdrop.panel)<3);assert.match(backdrop.image,/update-night-coast/)
  await evaluate("document.querySelector('.launcher-update-settings').scrollIntoView({block:'center'})")
- await button('Güncellemeleri kontrol et');await until("document.querySelector('.toast')")
+ await button('Kontrol et');await until("document.querySelector('.toast')")
  assert.match(await evaluate("document.querySelector('.toast').textContent"),/En son sürümü kullanıyorsun/)
  await shot('qa-updates-full-landscape-toast')
  for (const [update, pattern] of [[{version:'0.17.2',error:null},'Yeni bir güncelleme var'],[{version:null,error:'metadata'},'güncelleme dosyaları eksik'],[{version:null,error:'network'},'Bağlantını kontrol']]) {
   await click('.toast button');await wait(260)
   await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify(update)+'})')
-  await button('Güncellemeleri kontrol et');await until("document.querySelector('.toast')")
+  await button('Kontrol et');await until("document.querySelector('.toast')")
   assert.match(await evaluate("document.querySelector('.toast').textContent"),new RegExp(pattern))
  }
  await click('.toast button');await wait(260)

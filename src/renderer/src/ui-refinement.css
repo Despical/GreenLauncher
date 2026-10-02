@@ -1,4 +1,10 @@
 /* Profile cards and their editor share a fixed cover area. */
+/* Heading actions must be available before any lazily loaded page is visited. */
+.servers-heading-actions { display:flex; flex:0 0 auto; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; max-width:100%; }
+.servers-heading-actions .heading-action { flex:none; white-space:nowrap; }
+.page-heading:has(> .servers-heading-actions) { gap:16px 20px; flex-wrap:wrap; }
+.page-heading:has(> .servers-heading-actions) > div:first-child { flex:1 1 240px; min-width:0; }
+@media(max-width:1150px) { .servers-heading-actions .heading-action { font-size:12px; padding:0 11px; } }
 .profile-card { min-height: 278px; padding: 0; border-radius: 10px; background: #141e27; }
 .profile-card .profile-card-cover { height: 164px; opacity: 1; background: linear-gradient(140deg,color-mix(in srgb,var(--profile-color) 42%,#142028),#16212c 75%); }
 .profile-card-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg,#0c131c55,#0c131c11 45%,#111c27e8); }

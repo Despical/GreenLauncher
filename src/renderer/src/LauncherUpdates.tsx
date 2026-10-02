@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownToLine, RefreshCw, RotateCcw, ShieldCheck, X } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import type { LauncherUpdate } from '../../shared/types'
 import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
@@ -40,20 +40,21 @@ export function UpdatePanel({ controls: { update, action }, language, compact = 
   }
   const checking = update.phase === 'checking', downloading = update.phase === 'downloading', ready = update.phase === 'ready'
   const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
-  const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'current' ? t('En son sürümü kullanıyorsun.') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Launcher güncellemeleri')
+  const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'error' ? t('Kontrol tamamlanamadı') : update.phase === 'current' ? t('Güncelsin.') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Yeni sürümleri takip et')
   return <section className={`launcher-update-panel ${compact ? 'compact' : ''}`} aria-label={t('Launcher güncellemeleri')}>
-    <div className={`update-heading ${update.phase}`}><span className="update-status-icon">{update.phase === 'current' ? <ShieldCheck size={22} /> : <RefreshCw size={22} className={checking ? 'spin' : ''} />}</span><div><span className="update-eyebrow">{t('Launcher güncellemeleri')} · v{update.currentVersion}</span><h3>{headline}</h3>{update.version && <p>v{update.currentVersion} → v{update.version}</p>}</div></div>
+    <div className={`update-heading ${update.phase}`}><span className="update-version">v{update.currentVersion}{update.version ? ` → v${update.version}` : ''}</span><h3>{headline}</h3></div>
     {update.phase === 'disabled' ? <p className="update-description">{t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.')}</p> : <>
       {update.phase === 'idle' && <p className="update-description">{t('Launcher açıldığında yeni sürümler otomatik kontrol edilir.')}</p>}
+      {update.phase === 'current' && <p className="update-description">{t('Yeni bir sürüm çıktığında burada göreceksin.')}</p>}
       {update.error && <p className="update-error" role="status">{t(errors[update.error])}</p>}
       {downloading && <div className="update-progress"><progress max={100} value={update.percent ?? 0} aria-label={t('Güncelleme indiriliyor...')} /><span>{Math.floor(update.percent ?? 0)}% · {((update.transferred ?? 0) / 1048576).toFixed(1)} / {((update.total ?? 0) / 1048576).toFixed(1)} MB</span></div>}
       {hasRelease(update) && <p className="update-description">{t(update.portable ? 'Bir kez kurulum yap; sonraki güncellemeler launcher içinden gelecek.' : 'Profillerin, hesapların ve dünyaların korunur.')}</p>}
       {!compact && update.notes && hasRelease(update) && <div className="update-notes"><h4>{t('Bu sürümde neler yeni?')}</h4><p>{update.notes}</p></div>}
-      <div className="update-actions">
-        {ready ? <button className="update-primary" disabled={pending} onClick={() => void run('install')}><RotateCcw size={16} />{t(update.portable ? 'Kurulumu başlat' : 'Yeniden başlat ve güncelle')}</button> : downloading ? <button onClick={() => void run('cancel')}><X size={16} />{t('İndirmeyi iptal et')}</button> : hasRelease(update) && !checking ? <button className="update-primary" disabled={pending} onClick={() => void run('download')}><ArrowDownToLine size={16} />{t('Güncellemeyi indir')}</button> : null}
-        <button disabled={pending || checking || downloading || ready} onClick={() => void run('check')}><RefreshCw size={16} className={checking ? 'spin' : ''} />{t('Güncellemeleri kontrol et')}</button>
+      <div className="update-footer"><div className="update-actions">
+        {ready ? <button className="update-primary" disabled={pending} onClick={() => void run('install')}>{t(update.portable ? 'Kurulumu başlat' : 'Yeniden başlat ve güncelle')}</button> : downloading ? <button onClick={() => void run('cancel')}>{t('İndirmeyi iptal et')}</button> : hasRelease(update) && !checking ? <button className="update-primary" disabled={pending} onClick={() => void run('download')}>{t('Güncellemeyi indir')}</button> : null}
+        <button className="update-check" disabled={pending || checking || downloading || ready} onClick={() => void run('check')}>{checking && <RefreshCw size={15} className="spin" />}{t('Kontrol et')}</button>
       </div>
-      {update.checkedAt && !checking && <small className="update-last-check">{t('Son kontrol')}: {new Intl.DateTimeFormat(language, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(update.checkedAt))}</small>}
+      {update.checkedAt && !checking && <small className="update-last-check">{t('Son kontrol')}: {new Intl.DateTimeFormat(language, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(update.checkedAt))}</small>}</div>
     </>}
   </section>
 }

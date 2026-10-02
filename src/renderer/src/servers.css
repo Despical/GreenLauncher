@@ -1,4 +1,3 @@
-.servers-heading-actions{display:flex;align-items:center;gap:10px}
 .servers-page .secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;padding:0 14px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#d5dde5;font:600 13px 'Inter Variable',sans-serif}
 .servers-page .secondary:hover:enabled{background:#30363d;border-color:#65717c}
 .servers-page .secondary.danger{color:#f09595}
@@ -103,7 +102,7 @@
 .server-account-note svg{flex-shrink:0;margin-top:3px}
 .servers-page .modal-actions{margin-top:27px}
 .servers-profile-select .dropdown-trigger{min-height:65px}
-@media(max-width:1150px){.servers-workspace{grid-template-columns:minmax(0,1fr) 230px;gap:14px}.server-details{padding:18px}.servers-toolbar{gap:10px;padding:15px}.servers-list-profile-select{width:175px}.server-identity{gap:10px}.servers-heading-actions .heading-action{font-size:12px;padding:0 11px}}
+@media(max-width:1150px){.servers-workspace{grid-template-columns:minmax(0,1fr) 230px;gap:14px}.server-details{padding:18px}.servers-toolbar{gap:10px;padding:15px}.servers-list-profile-select{width:175px}.server-identity{gap:10px}}
 @media(prefers-reduced-motion:reduce){.server-row{transition:none!important}}
 
 

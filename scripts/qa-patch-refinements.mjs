@@ -8,7 +8,7 @@ try {
  await key('9');await button('Hakkında');assert.equal(await evaluate("!!document.querySelector('.launcher-update-panel')"),false)
  await button('Launcher');await until("document.querySelector('.launcher-update-settings')")
  assert.equal(await evaluate("document.querySelector('.launcher-update-settings').previousElementSibling.classList.contains('settings-panel')"),true)
- assert.match(await evaluate("document.querySelector('.launcher-update-settings').textContent"),/En son sürümü/)
+ assert.match(await evaluate("document.querySelector('.launcher-update-settings').textContent"),/Güncelsin/)
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'error',error:'metadata'}})")
  assert.match(await evaluate("document.querySelector('.launcher-update-settings .update-error').textContent"),/güncelleme dosyaları eksik/)
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'current',error:null}})");await evaluate("document.querySelector('.launcher-update-settings').scrollIntoView({block:'center'})");await shot('qa-patch-launcher-settings')

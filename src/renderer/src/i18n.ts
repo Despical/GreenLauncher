@@ -10,6 +10,11 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  "Güncelsin.": ["You’re up to date.", "Du bist auf dem neuesten Stand.", "Tout est à jour.", "Всё обновлено.", "Wszystko aktualne."],
+  "Yeni bir sürüm çıktığında burada göreceksin.": ["You’ll see new releases here as they become available.", "Neue Versionen erscheinen hier, sobald sie verfügbar sind.", "Les nouvelles versions apparaîtront ici dès leur sortie.", "Новые версии появятся здесь по мере выхода.", "Nowe wersje pojawią się tutaj, gdy będą dostępne."],
+  "Kontrol et": ["Check now", "Jetzt prüfen", "Vérifier", "Проверить", "Sprawdź"],
+  "Kontrol tamamlanamadı": ["Check could not be completed", "Prüfung konnte nicht abgeschlossen werden", "Vérification impossible", "Не удалось завершить проверку", "Nie udało się zakończyć sprawdzania"],
+  "Yeni sürümleri takip et": ["Keep up with new releases", "Neue Versionen im Blick", "Suis les nouvelles versions", "Следи за новыми версиями", "Śledź nowe wersje"],
   "Oyun süresi istatistikleri": ["Playtime statistics", "Spielzeitstatistik", "Statistiques de jeu", "Статистика игрового времени", "Statystyki czasu gry"],
   "Günlük ve haftalık sürelerini, profil bazında oyun geçmişini gör.": ["View daily and weekly playtime and history for each profile.", "Sieh tägliche und wöchentliche Spielzeit sowie den Verlauf je Profil.", "Consulte le temps quotidien et hebdomadaire et l’historique par profil.", "Смотри время за день и неделю и историю каждого профиля.", "Zobacz dzienny i tygodniowy czas gry oraz historię każdego profilu."],
   "{hours} sa {minutes} dk": ["{hours} h {minutes} min", "{hours} Std. {minutes} Min.", "{hours} h {minutes} min", "{hours} ч {minutes} мин", "{hours} godz. {minutes} min"],
