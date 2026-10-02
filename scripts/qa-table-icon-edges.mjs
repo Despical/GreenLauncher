@@ -10,13 +10,13 @@ try {
   for(const width of [960,1080,1280,1440]){
    await call('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:false});await wait(100)
    const rows=await evaluate("[...document.querySelectorAll('.retained-page:not([hidden]) .server-row')].map(row=>{const icon=row.querySelector('.server-icon').getBoundingClientRect(),r=row.getBoundingClientRect(),select=row.querySelector('.server-select,.world-select'),next=select.children[1].getBoundingClientRect();return {left:icon.left-r.left,top:icon.top-r.top,bottom:r.bottom-icon.bottom,width:icon.width,separatorGap:next.left-icon.right,radius:getComputedStyle(row).borderBottomLeftRadius}})")
-   for(const row of rows){assert.equal(row.left,1);assert.equal(row.top,1);assert.equal(row.bottom,1);assert.equal(row.width,74);assert.ok(row.separatorGap>=14,JSON.stringify(row))}
+   for(const row of rows){assert.equal(row.left,9);assert.equal(row.top,1);assert.equal(row.bottom,1);assert.equal(row.width,74);assert.ok(row.separatorGap>=14,JSON.stringify(row))}
    assert.equal(rows.at(-1).radius,'9px')
   }
   await shot(page==='4'?'qa-server-left-edge':'qa-world-left-edge')
  }
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS server/world icons touch the inner left, top and bottom edges; column separators remain clear and last-row corners stay rounded at four widths')
+ console.log('PASS server/world icons have an 8px inner left inset, keep their full row height, stay clear of column separators and preserve last-row corners at four widths')
 }finally{socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)

@@ -7,9 +7,9 @@
 .world-select>span{position:relative;min-height:66px;align-content:center;padding:10px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
 .world-select>span+span::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none}
 .worlds-table-head>span{position:relative}
-.worlds-table-head>span:first-child{padding-left:0;left:-8px}
+.worlds-table-head>span:first-child{padding-left:0}
 .world-select .world-identity{display:flex;align-items:center;gap:14px;padding:0 10px 0 0;overflow:visible}
-.world-identity .server-icon{height:66px;width:74px;margin-left:-8px;align-self:stretch}
+.world-identity .server-icon{height:66px;width:74px;align-self:stretch}
 .world-identity .server-icon img{object-fit:cover;border-radius:0}
 .world-identity strong{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .world-details-identity{grid-template-columns:42px minmax(0,1fr)}

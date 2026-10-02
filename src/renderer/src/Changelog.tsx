@@ -142,7 +142,7 @@ export function Changelog({ language, update, onUpdate, onClose }: { language: L
           <span className="release-history-version-top"><span className="release-history-version-label"><strong>v{release.version}</strong>{release.version === history[0].version && <span className="release-latest-badge">{t('En son')}</span>}{history[0].version !== update.currentVersion && release.version === update.currentVersion && <span className="release-current-badge">{t('Kullandığın sürüm')}</span>}</span><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
           <span className="release-history-version-title">{t(release.title)}</span>
         </button>)}{!shown.length && <p className="release-history-no-results">{t('Sürüm bulunamadı.')}</p>}</div>
-        <footer className="release-history-build"><strong>Green Launcher · v{update.currentVersion || packageJson.version}</strong>{available && <><span className="release-footer-dot" aria-hidden="true">·</span><button className="release-update-link" onClick={onUpdate}>{t('Güncellemek için şimdi tıkla')}</button></>}</footer>
+        <footer className="release-history-build"><strong>Green Launcher · v{update.currentVersion || packageJson.version}</strong>{available && <><span className="release-footer-separator" aria-hidden="true"/><button className="release-update-link" onClick={onUpdate}>{t('Güncellemek için şimdi tıkla')}</button></>}</footer>
       </nav>
       <section className="release-history-detail" id="release-history-detail" aria-labelledby="release-history-title" tabIndex={0} ref={content}>
         <div className="release-history-article" key={selected.version}>

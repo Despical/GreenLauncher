@@ -15,8 +15,22 @@ const withSkin = process.argv.includes('--qa-skin')
 const withOfficial = process.argv.includes('--qa-microsoft')
 const withWorlds = process.argv.includes('--qa-worlds')
 const withProfileServers = process.argv.includes('--qa-profile-servers')
-let qaUpdate = { phase: 'current', currentVersion: require('../package.json').version, portable: false, checkedAt: new Date().toISOString() }, qaDownloadResolve
-const updateChanged = () => { window?.webContents.send('launcher:update', qaUpdate); if (qaDownloadResolve && !['checking','downloading'].includes(qaUpdate.phase)) { const finish = qaDownloadResolve; qaDownloadResolve = undefined; finish({ ...qaUpdate }) }; return { ...qaUpdate } }
+let qaUpdate = { phase: 'current', currentVersion: require('../package.json').version, portable: false, checkedAt: new Date().toISOString() }, qaDownloadResolve, qaUpdateDownloads=0, qaImportedUpdate
+const updateChanged = () => {
+  if(!qaUpdate.lastInstalled)qaImportedUpdate=undefined
+  if(qaUpdate.phase==='ready'){
+    qaUpdate.downloadedAt ??= new Date().toISOString()
+    const id=`launcher-update-${qaUpdate.version}`
+    downloadJobs=[{id,launcherVersion:qaUpdate.version,title:`Green Launcher · v${qaUpdate.version}`,phase:'completed',detail:'Yeniden başlatmaya hazır',downloadedBytes:qaUpdate.total??0,totalBytes:qaUpdate.total??0,bytesPerSecond:0,filesDone:1,filesTotal:1,forLaunch:false,paused:false,priority:0,createdAt:qaUpdate.downloadedAt,finishedAt:qaUpdate.downloadedAt},...downloadJobs.filter(job=>job.id!==id)]
+  }
+  if(qaUpdate.lastInstalled&&qaImportedUpdate!==qaUpdate.lastInstalled.version){
+    qaImportedUpdate=qaUpdate.lastInstalled.version
+    const id=`launcher-update-${qaImportedUpdate}`
+    downloadJobs=[{id,launcherVersion:qaImportedUpdate,title:`Green Launcher · v${qaImportedUpdate}`,phase:'completed',detail:'Güncelleme başarıyla tamamlandı.',downloadedBytes:0,totalBytes:0,bytesPerSecond:0,filesDone:1,filesTotal:1,forLaunch:false,paused:false,priority:0,createdAt:qaUpdate.lastInstalled.at,finishedAt:qaUpdate.lastInstalled.at},...downloadJobs.filter(job=>job.id!==id)]
+  }
+  window?.webContents.send('launcher:downloads',downloadSnapshot());window?.webContents.send('launcher:update', qaUpdate)
+  if (qaDownloadResolve && !['checking','downloading'].includes(qaUpdate.phase)) { const finish = qaDownloadResolve; qaDownloadResolve = undefined; finish({ ...qaUpdate }) }; return { ...qaUpdate }
+}
 let fixtureSkin = null
 let fixtureCape = null
 if (withSkin) {
@@ -63,7 +77,7 @@ const launches = []
 const running = process.argv.includes('--qa-running') ? Array.from({length:2}, (_,index)=>({id:`qa-instance-${index}`,pid:9000+index,profileId:'qa-profile',profileName:'Test World',accountId:'qa-offline',accountName:'DesignQA',versionId:'1.21.1-fabric',loader:'fabric',startedAt:new Date().toISOString()})) : []
 const changed = () => { window.webContents.send('launcher:state', structuredClone(state)); window.webContents.send('launcher:downloads', downloadSnapshot()); return state }
 const handle = (name, handler) => ipcMain.handle(`launcher:${name}`, (_event, ...args) => handler(...args))
-handle('get-state', () => ({...state,qaPresence:presenceContext,qaProjectRequests:projectRequests,qaLaunches:launches,qaExternalOpened:snapshots.externalOpened}))
+handle('get-state', () => ({...state,qaPresence:presenceContext,qaProjectRequests:projectRequests,qaLaunches:launches,qaExternalOpened:snapshots.externalOpened,qaUpdateDownloads}))
 handle('play', (profileId, allowAdditional, versionId, serverAddress, serverPreference, worldId) => { launches.push({profileId,allowAdditional,versionId,serverAddress,serverPreference,worldId});return running.length && !allowAdditional ? {status:'confirmation-required',instances:running} : {status:'started'} })
 handle('play-version', (versionId, allowAdditional, serverAddress, serverPreference, temporaryOfflineName) => { launches.push({profileId:null,versionId,allowAdditional,serverAddress,serverPreference,temporaryOfflineName});return {status:'started'} })
 handle('get-profile-mods-path', id => id === 'qa-profile-2' ? null : path.join(dataPath,'profiles',id,'mods'))
@@ -124,9 +138,9 @@ handle('get-servers', profileId => withProfileServers ? profileServerService.for
 handle('get-update', () => ({ ...qaUpdate }))
 handle('qa-set-update', update => { qaUpdate = { ...qaUpdate, ...update }; return updateChanged() })
 handle('check-update', async () => { qaUpdate.phase = 'checking'; updateChanged(); await new Promise(resolve => setTimeout(resolve, 120)); qaUpdate.phase = qaUpdate.error ? 'error' : qaUpdate.version ? 'available' : 'current'; qaUpdate.checkedAt = new Date().toISOString(); return updateChanged() })
-handle('download-update', () => { qaUpdate.phase = 'downloading'; qaUpdate.percent = 42; qaUpdate.transferred = 4200000; qaUpdate.total = 10000000; updateChanged(); return new Promise(resolve => { qaDownloadResolve = resolve }) })
+handle('download-update', () => { if(['ready','checking','downloading','installing'].includes(qaUpdate.phase))return {...qaUpdate};qaUpdateDownloads++;qaUpdate.downloadedAt=undefined;qaUpdate.error=undefined;qaUpdate.operation='download';qaUpdate.phase = 'downloading'; qaUpdate.percent = 42; qaUpdate.transferred = 4200000; qaUpdate.total = 10000000;qaUpdate.bytesPerSecond=2400000;qaUpdate.peakBytesPerSecond=3100000;qaUpdate.estimatedSeconds=3; updateChanged(); return new Promise(resolve => { qaDownloadResolve = resolve }) })
 handle('cancel-update', () => { qaUpdate.phase = 'available'; qaUpdate.percent = undefined; return updateChanged() })
-handle('install-update', () => { qaUpdate.error = 'busy'; return updateChanged() })
+handle('install-update', () => { qaUpdate.error = 'busy';qaUpdate.operation='install'; return updateChanged() })
 handle('reorder-servers', (ids,profileId) => {if(withProfileServers)return profileServerService.forProfile(profileId).reorder(ids);const next=ids.map(id=>qaServers.find(server=>server.id===id));qaServers.splice(0,qaServers.length,...next);return qaServers})
 handle('refresh-server', async (id,profileId) => { qaServerChecks++; await new Promise(resolve=>setTimeout(resolve,100)); const item=(withProfileServers?profileServerService.forProfile(profileId).get():qaServers).find(server=>server.id===id); const tableQA=process.argv.includes('--qa-server-table'); return {id,address:item.address,online:item.address!=='localhost:25567',checkedAt:new Date().toISOString(),version:'Paper 1.21.1',players:tableQA?28605:id==='qa-server'?17:42,maxPlayers:tableQA?200000:80,latency:26,icon:tableQA&&id==='qa-server'?'data:image/png;base64,'+fs.readFileSync(path.join(root,'build','launcher-mark.png')).toString('base64'):undefined,motd:tableQA?[{text:'        Hypixel Network [1.8/26.3]\n',color:'#55ff55'},{text:'     SKYBLOCK 0.27.1 TORRHUS & SAFARI',color:'#ffaa00',bold:true}]:[{text:'Green Community\n',color:'#ffaa00',bold:true},{text:'Survival · Creative · Parkour',color:'#aaaaaa'}],sample:['Steve','Alex','GreenPlayer']} })
 handle('save-server', (server,profileId) => { if(withProfileServers)return profileServerService.forProfile(profileId).save(server); if(server.id)Object.assign(qaServers.find(item=>item.id===server.id),server);else qaServers.push({...server,id:'qa-added-'+qaServers.length,createdAt:new Date().toISOString()});return qaServers })

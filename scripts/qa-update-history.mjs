@@ -5,7 +5,7 @@ const checks=String.raw`
 try{
  await call('Runtime.enable');await until("document.querySelector('.side-nav')")
  const notes='<h3>Playtime</h3><ul><li>Daily &amp; weekly history</li><li>Download fixes</li></ul>\n\n### Updates\n- Full installer\n<script>window.badNotes=true</script>'
- await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaUpdate:{phase:'available',currentVersion:'0.17.4',version:'0.18.0',notes,releasedAt:'2026-10-03T10:00:00Z',checkedAt:'2026-10-01T10:00:00Z',error:null}})+')')
+ await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaUpdate:{phase:'available',currentVersion:'0.17.4',version:'0.18.0',notes,releasedAt:'2026-10-03T10:00:00Z',checkedAt:'2026-10-01T10:00:00Z',error:null,downloadedAt:null}})+')')
  await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1')
  assert.equal(await evaluate("document.querySelectorAll('.home-update,.main-content.page-home .launcher-update-panel').length"),0)
  await key('9');await button('Launcher');await until("document.querySelector('.update-last-check')")
@@ -33,9 +33,13 @@ try{
   if(language==='tr')await shot('qa-remote-release-history')
   assert.equal(await evaluate("document.querySelector('.release-remote-notes h4[data-level]').textContent"),'Playtime')
   assert.equal(await evaluate("[...document.querySelectorAll('.release-remote-notes h4')].some(h=>h.textContent==='Updates')"),true)
-  assert.equal(await evaluate("document.querySelector('.release-footer-dot').textContent"),'·')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.release-footer-separator')).height"),'1px')
   await click('.release-update-link');await until("document.querySelector('.main-content.page-downloads .launcher-update-job') && !document.querySelector('.changelog-dialog')")
   assert.equal(await evaluate("document.querySelectorAll('.update-notes,.account-dialog').length"),0)
+  assert.equal(await evaluate("window.launcher.getUpdate().then(s=>s.phase)"),'downloading')
+  assert.equal(await evaluate("document.querySelectorAll('.launcher-update-job .download-job-metrics>div').length"),3)
+  assert.equal(await evaluate("document.documentElement.scrollWidth<=innerWidth&&document.querySelector('.launcher-update-job').scrollWidth<=document.querySelector('.launcher-update-job').clientWidth"),true,language+' update card fits')
+  await evaluate("window.launcher.cancelUpdate()")
   await key('9');await button('Launcher');await click('.update-notes-link');await until("document.querySelector('.changelog-dialog')")
   await click('.changelog-dialog .modal-close');await until("!document.querySelector('.changelog-dialog')")
  }

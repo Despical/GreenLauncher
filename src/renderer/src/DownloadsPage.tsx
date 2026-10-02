@@ -6,7 +6,8 @@ import { CSS } from '@dnd-kit/utilities'
 import type { DownloadJob, DownloadPhase, DownloadSnapshot, LauncherSettings, LauncherState } from '../../shared/types'
 import { translate, type Language } from './i18n'
 import './downloads.css'
-import { LauncherUpdateDownload, updateDownloadVisible, type UpdateControls } from './LauncherUpdates'
+import { LauncherUpdateDownload, UpdateHistoryActions, updateDownloadVisible, type UpdateControls } from './LauncherUpdates'
+import launcherIcon from '../../../build/launcher-mark.png'
 import minecraftIcon from '../assets/minecraft-release.png'
 import fabricIcon from '../assets/loaders/fabric.png'
 import forgeIcon from '../assets/loaders/forge.svg'
@@ -19,7 +20,7 @@ import { DialogHeading } from './AccountControls'
 const contentIcon = (job: DownloadJob) => job.iconUrl || (/neoforge/i.test(job.title) ? neoForgeIcon : /forge/i.test(job.title) ? forgeIcon : /fabric/i.test(job.title) ? fabricIcon : /quilt/i.test(job.title) ? quiltIcon : /liteloader/i.test(job.title) ? liteLoaderIcon : /optifine/i.test(job.title) ? optifineIcon : /minecraft/i.test(job.title) ? minecraftIcon : /java/i.test(job.title) ? javaIcon : undefined)
 
 function DownloadContentIcon({ job }: { job: DownloadJob }) {
-  const src = contentIcon(job)
+  const src = job.launcherVersion ? launcherIcon : contentIcon(job)
   const [failedSource, setFailedSource] = useState<string | undefined>()
   return src && failedSource !== src ? <img src={src} alt="" decoding="async" draggable={false} onDragStart={event => event.preventDefault()} className={src === optifineIcon ? 'download-pixel-icon' : undefined} onError={() => setFailedSource(src)} /> : <CloudDownload size={28} />
 }
@@ -98,7 +99,11 @@ export function DownloadsPage({ state, language, onState, onNotice, updates }: {
     finally { setSaving(false) }
   }
   const live = snapshot.jobs.filter(job => !['completed', 'failed'].includes(job.phase)).sort((a, b) => b.priority - a.priority)
-  const history = snapshot.jobs.filter(job => ['completed', 'failed'].includes(job.phase) && job.downloadedBytes > 0).sort((a, b) => (b.finishedAt ?? b.createdAt).localeCompare(a.finishedAt ?? a.createdAt)).slice(0, 5)
+  const pendingUpdate = !!updates.update.downloadedAt && !!updates.update.version && (['ready','installing'].includes(updates.update.phase) || updates.update.phase === 'error' && updates.update.operation === 'install')
+  const completedJobs = snapshot.jobs.filter(job => ['completed', 'failed'].includes(job.phase) && (job.downloadedBytes > 0 || job.launcherVersion))
+  // A ready update keeps its restart action available even after other downloads fill history.
+  const pendingJob: DownloadJob | undefined = pendingUpdate ? completedJobs.find(job => job.launcherVersion === updates.update.version) ?? { id:`launcher-update-${updates.update.version}`,launcherVersion:updates.update.version,title:`Green Launcher · v${updates.update.version}`,phase:'completed',detail:'Yeniden başlatmaya hazır',downloadedBytes:updates.update.total ?? 0,totalBytes:updates.update.total ?? 0,bytesPerSecond:0,filesDone:1,filesTotal:1,forLaunch:false,paused:false,priority:0,createdAt:updates.update.downloadedAt! } : undefined
+  const history = [...(pendingJob ? [pendingJob] : []), ...completedJobs.filter(job=>job.id!==pendingJob?.id).sort((a, b) => (b.finishedAt ?? b.createdAt).localeCompare(a.finishedAt ?? a.createdAt))].slice(0, 5)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const reorder = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return
@@ -115,7 +120,7 @@ export function DownloadsPage({ state, language, onState, onNotice, updates }: {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}><SortableContext items={live.map(job => job.id)} strategy={verticalListSortingStrategy}>
       <div className="download-jobs"><LauncherUpdateDownload controls={updates} language={language}/>{live.length ? live.map(job => <DownloadCard key={job.id} job={job} t={t} control={control} speedLimit={snapshot.speedLimitKiB} />) : !updateDownloadVisible(updates.update) && <div className="download-empty"><CloudDownload size={34} /><h3>{t('Etkin indirme yok.')}</h3><p>{t('Oyun, mod ve paket indirmeleri burada görünür.')}</p></div>}</div>
     </SortableContext></DndContext>
-    {history.length > 0 && <><div className="download-section-head download-history-heading"><div><h3>{t('Son indirmeler')}</h3><p>{t('Son indirdiğin içerikler burada görünür.')}</p></div><button className="download-text-action" onClick={() => void control('clear')}><Trash2 size={15} />{t('Geçmişi temizle')}</button></div><div className="download-history">{history.map(job => <div key={job.id} className={job.phase}><span className="download-history-icon"><DownloadContentIcon job={job} /></span><div><strong>{t(job.title)}</strong><small>{job.error || job.profileName || job.detail || bytes(job.downloadedBytes)}</small></div><em>{t(phaseLabels[job.phase])}</em></div>)}</div></>}
+    {history.length > 0 && <><div className="download-section-head download-history-heading"><div><h3>{t('Son indirmeler')}</h3><p>{t('Son indirdiğin içerikler burada görünür.')}</p></div><button className="download-text-action" onClick={() => void control('clear')}><Trash2 size={15} />{t('Geçmişi temizle')}</button></div><div className="download-history">{history.map(job => <div key={job.id} className={`${job.phase} ${job.launcherVersion ? 'launcher-update-history' : ''}`}><span className="download-history-icon"><DownloadContentIcon job={job} /></span><div><strong>{t(job.title)}</strong><small>{job.launcherVersion ? t(job.detail) : job.error || job.profileName || job.detail || bytes(job.downloadedBytes)}</small></div>{job.id === pendingJob?.id ? <UpdateHistoryActions controls={updates} language={language}/> : <em>{t(job.launcherVersion && job.detail === 'Güncelleme başarıyla tamamlandı.' ? 'Güncelleme başarıyla tamamlandı.' : phaseLabels[job.phase])}</em>}</div>)}</div></>}
     {settingsOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !saving) setSettingsOpen(false) }}><div className="modal download-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="download-settings-title" ref={dialog}>
       <DialogHeading title={t('İndirme ayarları')} description={t('Değişiklikler aktif indirmelere de uygulanır.')} closeLabel={t('Kapat')} titleId="download-settings-title" locked={saving} onClose={() => setSettingsOpen(false)} />
       <label className="download-speed-field"><span>{t('Hız sınırı')}</span><div><input aria-label={t('Hız sınırı')} inputMode="numeric" placeholder={t('Sınırsız')} value={speed} onChange={event => setSpeed(event.target.value)} /><span>KB/sn</span></div><small>{t('Hız sınırını kilobayt cinsinden yazın.')}</small></label>
