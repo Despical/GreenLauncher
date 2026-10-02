@@ -24,10 +24,10 @@ try {
    await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
    await click('.statusbar-changelog');await until("document.querySelector('.release-latest-badge')")
    const badge=await evaluate("(()=>{const b=document.querySelector('.release-latest-badge'),s=b.previousElementSibling,br=b.getBoundingClientRect(),sr=s.getBoundingClientRect();return {count:document.querySelectorAll('.release-latest-badge').length,left:!!b.closest('.release-history-navigation'),right:!!document.querySelector('.release-history-detail .release-latest-badge'),font:getComputedStyle(b).fontSize==='11px'&&getComputedStyle(s).fontSize==='15px',height:br.height<=sr.height,gap:br.left-sr.right,center:Math.abs((br.top+br.bottom)/2-(sr.top+sr.bottom)/2)<1,fit:b.closest('button').scrollWidth<=b.closest('button').clientWidth+1,version:s.textContent}})()")
-   assert.equal(badge.count,1);assert.equal(badge.left,true);assert.equal(badge.right,false);assert.equal(badge.font,true);assert.equal(badge.center,true);assert.equal(badge.fit,true);assert.equal(badge.height,true);assert.equal(badge.gap,6);assert.equal(badge.version,'v0.17.3')
+   assert.equal(badge.count,1);assert.equal(badge.left,true);assert.equal(badge.right,false);assert.equal(badge.font,true);assert.equal(badge.center,true);assert.equal(badge.fit,true);assert.equal(badge.height,true);assert.equal(badge.gap,6);assert.equal(badge.version,'v0.17.4')
    if(language==='tr'||language==='ru')await shot('qa-patch-changelog-'+language)
    await evaluate("document.querySelectorAll('.release-history-version')[1].click()")
-   assert.equal(await evaluate("document.querySelector('.release-latest-badge').previousElementSibling.textContent"),'v0.17.3')
+   assert.equal(await evaluate("document.querySelector('.release-latest-badge').previousElementSibling.textContent"),'v0.17.4')
    await input('.release-history-search input','0.16.0');assert.equal(await evaluate("document.querySelectorAll('.release-latest-badge').length"),0)
    await click('.changelog-dialog button[aria-label]');await until("!document.querySelector('.changelog-dialog')")
  }

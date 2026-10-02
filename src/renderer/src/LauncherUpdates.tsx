@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import type { LauncherUpdate } from '../../shared/types'
-import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
 import packageJson from '../../../package.json'
 import './updates.css'
@@ -47,8 +46,8 @@ export function updateCheckDate(value: string) {
 type Controls = ReturnType<typeof useLauncherUpdate>
 const hasRelease = (update: LauncherUpdate) => !!update.version && ['available', 'downloading', 'ready', 'error', 'checking'].includes(update.phase)
 
-export function UpdatePanel({ controls: { update, action }, language, compact = false }: { controls: Controls; language: Language; compact?: boolean }) {
-  const t = (source: string) => translate(language, source)
+export function UpdatePanel({ controls: { update, action }, language, onNotes }: { controls: Controls; language: Language; onNotes(): void }) {
+  const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
   const [pending, setPending] = useState(false)
   const run = async (kind: Parameters<Controls['action']>[0]) => {
     setPending(true)
@@ -57,14 +56,14 @@ export function UpdatePanel({ controls: { update, action }, language, compact = 
   }
   const checking = update.phase === 'checking', downloading = update.phase === 'downloading', ready = update.phase === 'ready'
   const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'error' ? t(update.operation === 'download' ? 'Güncelleme indirilemedi' : 'Kontrol tamamlanamadı') : update.phase === 'current' ? t('En son sürüm yüklü') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Yeni sürümleri takip et')
-  return <div className="launcher-update-area"><section className={`launcher-update-panel ${compact ? 'compact' : ''}`} aria-label={t('Launcher güncellemeleri')}>
+  return <div className="launcher-update-area"><section className="launcher-update-panel" aria-label={t('Launcher güncellemeleri')}>
     <div className={`update-heading ${update.phase}`}><h3>{headline}</h3></div>
+    {hasRelease(update) && <button type="button" className="update-notes-link" onClick={onNotes}>{t('v{version} sürümünün güncelleme notlarını görmek için tıkla', { version: update.version! })}</button>}
     {update.phase === 'disabled' ? <p className="update-description">{t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.')}</p> : <>
       {update.phase === 'idle' && <p className="update-description">{t('Launcher açıldığında yeni sürümler otomatik kontrol edilir.')}</p>}
       {update.phase === 'current' && <p className="update-description">{t('Yeni bir sürüm çıktığında burada göreceksin.')}</p>}
       {update.error && <p className="update-error" role="status">{t(updateErrorText(update))}</p>}
       {downloading && <div className="update-progress"><progress max={100} value={update.percent ?? 0} aria-label={t('Güncelleme indiriliyor...')} /><span>{Math.floor(update.percent ?? 0)}% · {((update.transferred ?? 0) / 1048576).toFixed(1)} / {((update.total ?? 0) / 1048576).toFixed(1)} MB</span></div>}
-      {hasRelease(update) && <p className="update-description"><span className="update-release-version">v{update.version}</span>{t(update.portable ? 'Bir kez kurulum yap; sonraki güncellemeler launcher içinden gelecek.' : 'Profillerin, hesapların ve dünyaların korunur.')}</p>}
       <div className="update-actions">
         {ready ? <button className="update-primary" disabled={pending} onClick={() => void run('install')}>{t(update.portable ? 'Kurulumu başlat' : 'Yeniden başlat ve güncelle')}</button> : downloading ? <button onClick={() => void run('cancel')}>{t('İndirmeyi iptal et')}</button> : hasRelease(update) && !checking ? <button className="update-primary" disabled={pending} onClick={() => void run('download')}>{t('Güncellemeyi indir')}</button> : null}
         <button className="update-check" disabled={pending || checking || downloading || ready} onClick={() => void run('check')}>{checking && <RefreshCw size={15} className="spin" />}{t('Kontrol et')}</button>
@@ -80,8 +79,4 @@ export function UpdateIndicator({ controls, language, onOpen }: { controls: Cont
   if (!hasRelease(update)) return null
   const label = update.phase === 'ready' ? 'Güncelleme hazır' : update.phase === 'downloading' ? 'Güncelleme indiriliyor...' : 'Güncelleme var'
   return <button className={`statusbar-update ${update.phase}`} onClick={onOpen}><span className="update-dot" />{t(label)}{update.phase === 'downloading' ? ` ${Math.floor(update.percent ?? 0)}%` : ''}</button>
-}
-
-export function UpdateDialog({ controls, language, onClose }: { controls: Controls; language: Language; onClose(): void }) {
-  return <AccountDialog title={translate(language, 'Launcher güncellemeleri')} description={translate(language, 'Profillerin, hesapların ve dünyaların korunur.')} closeLabel={translate(language, 'Kapat')} onClose={onClose}><UpdatePanel controls={controls} language={language} /></AccountDialog>
 }

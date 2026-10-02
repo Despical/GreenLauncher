@@ -6,13 +6,14 @@ import { translate, type Language } from './i18n'
 import './changelog.css'
 import packageJson from '../../../package.json'
 import type { LauncherUpdate } from '../../shared/types'
-import { releaseNotesText } from '../../shared/release-notes'
+import { releaseNotesBlocks } from '../../shared/release-notes'
 
 interface ReleaseNotes {
   version: string
   date: string
   title: string
   intro?: string
+  remoteNotes?: string
   changes: string[]
   sections?: Array<{ title: string; changes: string[] }>
 }
@@ -62,6 +63,7 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.17.4', date: '2026-10-02', title: "Güncellemelere daha kolay ulaş", changes: ["Taşınabilir launcher paketine eksik güncelleme yapılandırması eklendi; indirme sırasında görülen app-update.yml hatası düzeltildi.","Alt çubuktaki güncelleme bağlantısı sürümle aynı ayırıcı grubuna taşındı ve doğrudan değişiklik günlüğünü açar.","Güncelleme ayarlarına sürüm notlarına doğrudan bağlantı ve yeşil indirme düğmesi eklendi; ayrı güncelleme penceresi kaldırıldı.","GitHub sürüm notlarındaki Markdown ve HTML başlıkları değişiklik günlüğünde başlık olarak gösterilir."] },
   { version: '0.17.3', date: '2026-10-02', title: "Alt çubuk ve güncellemeler daha sade", changes: ["Alt çubuk, açılışta son seçili profilin oyun geçmişini normal durum yazısıyla aynı fontta gösterir; toplam süre parantez içinde yer alır.","Oyun süresi metninin tıklama ve hover davranışı kaldırıldı; ayrı istatistik menüsü ve profil bilgilerindeki bağlantısı kaldırıldı.","Alt çubuğun sağındaki profil yazısı Profillerim sayfasını açar.","Güncelleme notları yalnızca değişiklik günlüğünde gösterilir; yeni ve kullanılan sürümler ayrı rozetlerle belirtilir.","Taşınabilir launcher güncellemeleri tam dosyayla indirilir; hatalar bildirim ve günlükle gösterilir, son kontrol tarihi kontrol sırasında sabit kalır."] },
   { version: '0.17.2', date: '2026-10-02', title: 'Oyun geçmişin her zaman elinin altında', changes: ['Alt çubuk, seçili profilin son oyun tarihini, oturum süresini ve toplam oyun süresini gösterir; indirme ve başlatma durumları önceliklidir.', 'Günlük ve haftalık oyun süreleri, profil geçmişi ve isteğe bağlı yerel kayıt eklendi; ayrıntılar alt çubuktan ve profil bilgilerinden açılır.', 'Sunucu ve dünya ikonları tablo satırlarının sol kenarına yaslandı; sütun ayırıcıları ve yuvarlak köşeler korundu.', 'Güncelleme kartı özel bir manzara, sade durum başlığı ve kartın dışında son kontrol bilgisiyle yenilendi; elle kontrolden sonra bildirim gösterilir.', 'Sürümler sayfasındaki içe aktarma ve yenileme düğmelerinin bazı ziyaret sıralarında üst üste gelmesi düzeltildi.'] },
   { version: '0.17.1', date: '2026-10-02', title: 'Küçük düzeltmeler, daha düzgün bir deneyim', changes: ['Güncelleme kontrolleri için eksik yayın dosyaları tamamlandı; eksik dosya ve bağlantı hataları ayrı gösterilir.', 'Güncelleme kutusu Launcher ayarlarının en altına taşındı.', 'Dünya ve sunucu tablolarının son satır köşeleri ve başlıklarla ikon hizası düzeltildi.', 'Değişiklik günlüğünde en son sürüm, sol menüde yeşil bir rozetle gösterilir.'] },
@@ -79,13 +81,13 @@ export function Changelog({ language, update, onUpdate, onClose }: { language: L
   const available = !!update.version && ['available', 'checking', 'downloading', 'ready', 'error'].includes(update.phase)
   const incoming: ReleaseNotes | null = available && !releases.some(release => release.version === update.version) ? {
     version: update.version!, date: (update.releasedAt ?? new Date().toISOString()).slice(0, 10), title: 'Yeni bir güncelleme var',
-    changes: [], sections: [{ title: 'Sürüm notları', changes: [releaseNotesText(update.notes ?? '') || t('Sürüm notları henüz yayımlanmadı.')] }],
+    changes: [], remoteNotes: update.notes || t('Sürüm notları henüz yayımlanmadı.'),
   } : null
   const history = incoming ? [incoming, ...releases] : releases
   const [selectedVersion, setSelectedVersion] = useState(history[0].version)
   const [query, setQuery] = useState('')
   const search = useRef<HTMLInputElement>(null)
-  const shown = history.filter(release => `v${release.version} ${release.title} ${release.changes.join(' ')} ${release.sections?.flatMap(section => section.changes).join(' ') ?? ''}`.toLocaleLowerCase(language).includes(query.toLocaleLowerCase(language)))
+  const shown = history.filter(release => `v${release.version} ${release.title} ${release.changes.join(' ')} ${release.sections?.flatMap(section => section.changes).join(' ') ?? ''} ${release.remoteNotes ?? ''}`.toLocaleLowerCase(language).includes(query.toLocaleLowerCase(language)))
   const [closing, setClosing] = useState(false)
   const selected = history.find(release => release.version === selectedVersion) ?? history[0]
   const content = useRef<HTMLElement>(null)
@@ -139,7 +141,7 @@ export function Changelog({ language, update, onUpdate, onClose }: { language: L
           <span className="release-history-version-top"><span className="release-history-version-label"><strong>v{release.version}</strong>{release.version === history[0].version && <span className="release-latest-badge">{t('En son')}</span>}{history[0].version !== update.currentVersion && release.version === update.currentVersion && <span className="release-current-badge">{t('Kullandığın sürüm')}</span>}</span><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
           <span className="release-history-version-title">{t(release.title)}</span>
         </button>)}{!shown.length && <p className="release-history-no-results">{t('Sürüm bulunamadı.')}</p>}</div>
-        <footer className="release-history-build"><strong>Green Launcher · v{update.currentVersion || packageJson.version}</strong>{available && <button className="release-update-link" onClick={onUpdate}>{t('Güncellemek için şimdi tıkla')}</button>}</footer>
+        <footer className="release-history-build"><strong>Green Launcher · v{update.currentVersion || packageJson.version}</strong>{available && <><span className="release-footer-dot" aria-hidden="true">·</span><button className="release-update-link" onClick={onUpdate}>{t('Güncellemek için şimdi tıkla')}</button></>}</footer>
       </nav>
       <section className="release-history-detail" id="release-history-detail" aria-labelledby="release-history-title" tabIndex={0} ref={content}>
         <div className="release-history-article" key={selected.version}>
@@ -147,8 +149,10 @@ export function Changelog({ language, update, onUpdate, onClose }: { language: L
             <h3 id="release-history-title">{t(selected.title)}</h3>
             <time dateTime={selected.date}><CalendarDays size={14} aria-hidden="true" />{date(selected.date)}</time>
           </header>
-          <p className="release-history-intro">{t(selected.intro ?? 'Bu sürümde uygulamanın genel akışı iyileştirildi, performans arttırıldı ve kullanıcı arayüzünde önemli düzenlemeler yapıldı.')}</p>
-          {(selected.sections ?? [{ title: 'Yeni özellikler', changes: selected.changes.slice(0, 2) }, { title: 'Düzeltmeler', changes: selected.changes.slice(2, 4) }, { title: 'Performans', changes: selected.changes.slice(4) }]).filter(section => section.changes.length).map(section => <section className="release-history-section" key={section.title}><h4>{t(section.title)}</h4>{section.changes.map(change => <p key={change}>{t(change)}</p>)}</section>)}
+          {selected.remoteNotes ? <section className="release-history-section release-remote-notes">{releaseNotesBlocks(selected.remoteNotes).map((block, index) => block.kind === 'heading' ? <h4 key={index} data-level={block.level}>{block.text}</h4> : block.kind === 'list' ? <ul key={index}>{block.items.map((item, i) => <li key={i}>{item}</li>)}</ul> : <p key={index}>{block.text}</p>)}</section> : <>
+            <p className="release-history-intro">{t(selected.intro ?? 'Bu sürümde uygulamanın genel akışı iyileştirildi, performans arttırıldı ve kullanıcı arayüzünde önemli düzenlemeler yapıldı.')}</p>
+            {(selected.sections ?? [{ title: 'Yeni özellikler', changes: selected.changes.slice(0, 2) }, { title: 'Düzeltmeler', changes: selected.changes.slice(2, 4) }, { title: 'Performans', changes: selected.changes.slice(4) }]).filter(section => section.changes.length).map(section => <section className="release-history-section" key={section.title}><h4>{t(section.title)}</h4>{section.changes.map(change => <p key={change}>{t(change)}</p>)}</section>)}
+          </>}
         </div>
       </section>
     </div>

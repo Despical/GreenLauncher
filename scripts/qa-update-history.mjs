@@ -4,8 +4,8 @@ const helpers=readFileSync('scripts/qa-servers-custom.mjs','utf8').split('try {'
 const checks=String.raw`
 try{
  await call('Runtime.enable');await until("document.querySelector('.side-nav')")
- const notes='<h3>Playtime</h3><ul><li>Daily &amp; weekly history</li><li>Download fixes</li></ul><script>window.badNotes=true</script>'
- await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaUpdate:{phase:'available',currentVersion:'0.17.3',version:'0.18.0',notes,releasedAt:'2026-10-03T10:00:00Z',checkedAt:'2026-10-01T10:00:00Z',error:null}})+')')
+ const notes='<h3>Playtime</h3><ul><li>Daily &amp; weekly history</li><li>Download fixes</li></ul>\n\n### Updates\n- Full installer\n<script>window.badNotes=true</script>'
+ await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaUpdate:{phase:'available',currentVersion:'0.17.4',version:'0.18.0',notes,releasedAt:'2026-10-03T10:00:00Z',checkedAt:'2026-10-01T10:00:00Z',error:null}})+')')
  await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1')
  assert.equal(await evaluate("document.querySelectorAll('.home-update,.main-content.page-home .launcher-update-panel').length"),0)
  await key('9');await button('Launcher');await until("document.querySelector('.update-last-check')")
@@ -24,23 +24,29 @@ try{
   await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
   await click('.statusbar-changelog');await until("document.querySelector('.release-current-badge')")
   assert.equal(await evaluate("document.querySelector('.release-latest-badge').previousElementSibling.textContent"),'v0.18.0')
-  assert.equal(await evaluate("document.querySelector('.release-current-badge').previousElementSibling.textContent"),'v0.17.3')
+  assert.equal(await evaluate("document.querySelector('.release-current-badge').previousElementSibling.textContent"),'v0.17.4')
   const text=await evaluate("document.querySelector('.release-history-detail').textContent")
   assert.match(text,/Daily & weekly history/);assert.doesNotMatch(text,/<h3>|<li>|window.badNotes/)
   assert.equal(await evaluate("window.badNotes===true"),false)
   assert.equal(await evaluate("[...document.querySelectorAll('.release-latest-badge,.release-current-badge')].every(b=>{const s=b.previousElementSibling.getBoundingClientRect(),r=b.getBoundingClientRect();return Math.abs((s.top+s.bottom-r.top-r.bottom)/2)<1&&r.height<=s.height})"),true)
   assert.equal(await evaluate("document.querySelector('.changelog-dialog').scrollWidth<=document.querySelector('.changelog-dialog').clientWidth"),true)
   if(language==='tr')await shot('qa-remote-release-history')
-  await click('.release-update-link');await until("document.querySelector('.account-dialog .launcher-update-panel')")
+  assert.equal(await evaluate("document.querySelector('.release-remote-notes h4[data-level]').textContent"),'Playtime')
+  assert.equal(await evaluate("[...document.querySelectorAll('.release-remote-notes h4')].some(h=>h.textContent==='Updates')"),true)
+  assert.equal(await evaluate("document.querySelector('.release-footer-dot').textContent"),'·')
+  await click('.release-update-link');await until("document.querySelector('.main-content.page-settings .launcher-update-panel') && !document.querySelector('.changelog-dialog')")
   assert.equal(await evaluate("document.querySelectorAll('.update-notes').length"),0)
-  await evaluate("document.querySelector('.account-dialog .modal-close').click()");await until("!document.querySelector('.account-dialog')")
+  assert.equal(await evaluate("document.querySelectorAll('.account-dialog,.update-release-version').length"),0)
+  assert.equal(await evaluate("document.querySelector('.update-primary').getBoundingClientRect().bottom<=innerHeight-28"),true,'update shortcut scrolls settings into view')
+  await click('.update-notes-link');await until("document.querySelector('.changelog-dialog')")
+  await click('.changelog-dialog .modal-close');await until("!document.querySelector('.changelog-dialog')")
  }
  await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Page.reload');await until("document.querySelector('.side-nav')")
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'downloading',operation:'download',error:null}})")
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'error',operation:'download',error:'network'}})")
  await until("document.querySelector('.toast')");assert.match(await evaluate("document.querySelector('.toast').textContent"),/Güncelleme indirilemedi/)
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS no homepage/card release notes, stable visible timestamp with leading-zero date and readable font, remote changelog-only inert notes, latest/current badges aligned in six languages, footer update link and asynchronous download error toast')
+ console.log('PASS no homepage/card release notes, stable visible timestamp with leading-zero date and readable font, remote changelog-only inert notes, latest/current badges aligned in six languages, settings shortcut, formatted Markdown/HTML headings, footer dot and asynchronous download error toast')
 }finally{socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)
