@@ -16,3 +16,5 @@
 .update-notes-link{display:block;margin:12px 0 0;padding:0;background:transparent;border:0;color:#b9c9d8;font:inherit;font-size:13px;line-height:1.7;text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .update-notes-link:hover{color:#edf2f7}.update-notes-link:focus-visible{outline:1px solid #b9c9d8;outline-offset:4px}
 .statusbar-release{display:flex;align-items:center;gap:3px;flex:none;border-left:1px solid #354450;padding-left:4px}.statusbar-release .statusbar-changelog{border-left:0}
+
+.launcher-update-job .update-actions{margin-top:14px}.launcher-update-job .update-error{margin:10px 0;font-size:12px}.launcher-update-rate{font-size:12px;color:#a9b7c5;margin:8px 0}.statusbar-update.installing .update-dot{animation:none}

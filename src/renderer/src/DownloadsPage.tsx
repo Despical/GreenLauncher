@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { DownloadJob, DownloadPhase, DownloadSnapshot, LauncherSettings, LauncherState } from '../../shared/types'
 import { translate, type Language } from './i18n'
 import './downloads.css'
+import { LauncherUpdateDownload, updateDownloadVisible, type UpdateControls } from './LauncherUpdates'
 import minecraftIcon from '../assets/minecraft-release.png'
 import fabricIcon from '../assets/loaders/fabric.png'
 import forgeIcon from '../assets/loaders/forge.svg'
@@ -52,7 +53,7 @@ function DownloadCard({ job, t, control, speedLimit }: { job: DownloadJob; t: Tr
   </article>
 }
 
-export function DownloadsPage({ state, language, onState, onNotice }: { state: LauncherState; language: Language; onState: (state: LauncherState) => void; onNotice: (message: string) => void }) {
+export function DownloadsPage({ state, language, onState, onNotice, updates }: { updates: UpdateControls; state: LauncherState; language: Language; onState: (state: LauncherState) => void; onNotice: (message: string) => void }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
   const [snapshot, setSnapshot] = useState<DownloadSnapshot>({ jobs: [], paused: false, playing: false, speedLimitKiB: state.settings.downloadSpeedLimitKiB ?? 0, concurrency: state.settings.downloadConcurrency ?? 6, pauseWhilePlaying: state.settings.pauseDownloadsWhilePlaying === true })
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -112,7 +113,7 @@ export function DownloadsPage({ state, language, onState, onNotice }: { state: L
     {snapshot.playing && snapshot.pauseWhilePlaying && <div className="download-game-note"><Pause size={16} />{t('Oyun açık. Arka plan indirmeleri oyun kapanınca sürdürülür.')}</div>}
     <div className="download-section-head"><h3>{t('İndirme kuyruğu')}</h3>{live.length > 0 && <button className="download-text-action" onClick={() => void control(snapshot.paused || live.every(job => job.phase === 'paused') ? 'resume-all' : 'pause-all')}>{snapshot.paused || live.every(job => job.phase === 'paused') ? <Play size={15} /> : <Pause size={15} />}{snapshot.paused || live.every(job => job.phase === 'paused') ? t('Tümünü sürdür') : t('Tümünü duraklat')}</button>}</div>
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}><SortableContext items={live.map(job => job.id)} strategy={verticalListSortingStrategy}>
-      <div className="download-jobs">{live.length ? live.map(job => <DownloadCard key={job.id} job={job} t={t} control={control} speedLimit={snapshot.speedLimitKiB} />) : <div className="download-empty"><CloudDownload size={34} /><h3>{t('Etkin indirme yok.')}</h3><p>{t('Oyun, mod ve paket indirmeleri burada görünür.')}</p></div>}</div>
+      <div className="download-jobs"><LauncherUpdateDownload controls={updates} language={language}/>{live.length ? live.map(job => <DownloadCard key={job.id} job={job} t={t} control={control} speedLimit={snapshot.speedLimitKiB} />) : !updateDownloadVisible(updates.update) && <div className="download-empty"><CloudDownload size={34} /><h3>{t('Etkin indirme yok.')}</h3><p>{t('Oyun, mod ve paket indirmeleri burada görünür.')}</p></div>}</div>
     </SortableContext></DndContext>
     {history.length > 0 && <><div className="download-section-head download-history-heading"><div><h3>{t('Son indirmeler')}</h3><p>{t('Son indirdiğin içerikler burada görünür.')}</p></div><button className="download-text-action" onClick={() => void control('clear')}><Trash2 size={15} />{t('Geçmişi temizle')}</button></div><div className="download-history">{history.map(job => <div key={job.id} className={job.phase}><span className="download-history-icon"><DownloadContentIcon job={job} /></span><div><strong>{t(job.title)}</strong><small>{job.error || job.profileName || job.detail || bytes(job.downloadedBytes)}</small></div><em>{t(phaseLabels[job.phase])}</em></div>)}</div></>}
     {settingsOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !saving) setSettingsOpen(false) }}><div className="modal download-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="download-settings-title" ref={dialog}>

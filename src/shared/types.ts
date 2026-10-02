@@ -262,8 +262,9 @@ export interface LauncherApi {
 export interface SavedWorld { id: string; name: string; gameMode?: number; hardcore: boolean; lastPlayed?: number; size?: number; icon?: string; seed?: string; version?: string }
 
 export interface LauncherUpdate {
+  lastInstalled?: { version: string; at: string }
   operation?: 'check' | 'download' | 'install'
-  phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'ready' | 'error' | 'disabled'
+  phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'ready' | 'installing' | 'error' | 'disabled'
   currentVersion: string
   version?: string
   notes?: string

@@ -34,11 +34,9 @@ try{
   assert.equal(await evaluate("document.querySelector('.release-remote-notes h4[data-level]').textContent"),'Playtime')
   assert.equal(await evaluate("[...document.querySelectorAll('.release-remote-notes h4')].some(h=>h.textContent==='Updates')"),true)
   assert.equal(await evaluate("document.querySelector('.release-footer-dot').textContent"),'·')
-  await click('.release-update-link');await until("document.querySelector('.main-content.page-settings .launcher-update-panel') && !document.querySelector('.changelog-dialog')")
-  assert.equal(await evaluate("document.querySelectorAll('.update-notes').length"),0)
-  assert.equal(await evaluate("document.querySelectorAll('.account-dialog,.update-release-version').length"),0)
-  assert.equal(await evaluate("document.querySelector('.update-primary').getBoundingClientRect().bottom<=innerHeight-28"),true,'update shortcut scrolls settings into view')
-  await click('.update-notes-link');await until("document.querySelector('.changelog-dialog')")
+  await click('.release-update-link');await until("document.querySelector('.main-content.page-downloads .launcher-update-job') && !document.querySelector('.changelog-dialog')")
+  assert.equal(await evaluate("document.querySelectorAll('.update-notes,.account-dialog').length"),0)
+  await key('9');await button('Launcher');await click('.update-notes-link');await until("document.querySelector('.changelog-dialog')")
   await click('.changelog-dialog .modal-close');await until("!document.querySelector('.changelog-dialog')")
  }
  await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Page.reload');await until("document.querySelector('.side-nav')")
@@ -46,7 +44,7 @@ try{
  await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'error',operation:'download',error:'network'}})")
  await until("document.querySelector('.toast')");assert.match(await evaluate("document.querySelector('.toast').textContent"),/Güncelleme indirilemedi/)
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS no homepage/card release notes, stable visible timestamp with leading-zero date and readable font, remote changelog-only inert notes, latest/current badges aligned in six languages, settings shortcut, formatted Markdown/HTML headings, footer dot and asynchronous download error toast')
+ console.log('PASS no homepage/card release notes, stable visible timestamp with leading-zero date and readable font, remote changelog-only inert notes, latest/current badges aligned in six languages, Downloads shortcut, formatted Markdown/HTML headings, footer dot and asynchronous download error toast')
 }finally{socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)

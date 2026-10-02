@@ -41,6 +41,7 @@ jobs:
             'scripts/test-profile-server-sync.cjs',
             'scripts/test-worlds.cjs',
             'scripts/test-updater.cjs',
+            'scripts/test-portable-updater.cjs',
             'scripts/test-release-notes.cjs',
             'scripts/test-error-log.cjs'
           )

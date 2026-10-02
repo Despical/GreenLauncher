@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { CloudDownload, RefreshCw } from 'lucide-react'
 import type { LauncherUpdate } from '../../shared/types'
 import { translate, type Language } from './i18n'
 import packageJson from '../../../package.json'
@@ -43,10 +43,11 @@ export function updateCheckDate(value: string) {
   const date = new Date(value), two = (part: number) => String(part).padStart(2, '0')
   return `${two(date.getDate())}.${two(date.getMonth() + 1)}.${date.getFullYear()} ${two(date.getHours())}:${two(date.getMinutes())}`
 }
-type Controls = ReturnType<typeof useLauncherUpdate>
-const hasRelease = (update: LauncherUpdate) => !!update.version && ['available', 'downloading', 'ready', 'error', 'checking'].includes(update.phase)
+export type UpdateControls = ReturnType<typeof useLauncherUpdate>
+type Controls = UpdateControls
+const hasRelease = (update: LauncherUpdate) => !!update.version && ['available', 'downloading', 'ready', 'installing', 'error', 'checking'].includes(update.phase)
 
-export function UpdatePanel({ controls: { update, action }, language, onNotes }: { controls: Controls; language: Language; onNotes(): void }) {
+export function UpdatePanel({ controls: { update, action }, language, onNotes, onDownloads }: { controls: Controls; language: Language; onNotes(): void; onDownloads(): void }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
   const [pending, setPending] = useState(false)
   const run = async (kind: Parameters<Controls['action']>[0]) => {
@@ -63,9 +64,8 @@ export function UpdatePanel({ controls: { update, action }, language, onNotes }:
       {update.phase === 'idle' && <p className="update-description">{t('Launcher açıldığında yeni sürümler otomatik kontrol edilir.')}</p>}
       {update.phase === 'current' && <p className="update-description">{t('Yeni bir sürüm çıktığında burada göreceksin.')}</p>}
       {update.error && <p className="update-error" role="status">{t(updateErrorText(update))}</p>}
-      {downloading && <div className="update-progress"><progress max={100} value={update.percent ?? 0} aria-label={t('Güncelleme indiriliyor...')} /><span>{Math.floor(update.percent ?? 0)}% · {((update.transferred ?? 0) / 1048576).toFixed(1)} / {((update.total ?? 0) / 1048576).toFixed(1)} MB</span></div>}
       <div className="update-actions">
-        {ready ? <button className="update-primary" disabled={pending} onClick={() => void run('install')}>{t(update.portable ? 'Kurulumu başlat' : 'Yeniden başlat ve güncelle')}</button> : downloading ? <button onClick={() => void run('cancel')}>{t('İndirmeyi iptal et')}</button> : hasRelease(update) && !checking ? <button className="update-primary" disabled={pending} onClick={() => void run('download')}>{t('Güncellemeyi indir')}</button> : null}
+        {hasRelease(update) && <button className="update-primary" disabled={update.phase === 'installing'} onClick={() => { onDownloads(); if (!checking && !downloading && !ready && update.phase !== 'installing') void run('download') }}>{t(downloading || ready || update.phase === 'installing' || checking ? 'İndirmelerde görüntüle' : 'Güncellemeyi indir')}</button>}
         <button className="update-check" disabled={pending || checking || downloading || ready} onClick={() => void run('check')}>{checking && <RefreshCw size={15} className="spin" />}{t('Kontrol et')}</button>
       </div>
     </>}
@@ -77,6 +77,29 @@ export function UpdatePanel({ controls: { update, action }, language, onNotes }:
 export function UpdateIndicator({ controls, language, onOpen }: { controls: Controls; language: Language; onOpen(): void }) {
   const { update } = controls, t = (source: string) => translate(language, source)
   if (!hasRelease(update)) return null
-  const label = update.phase === 'ready' ? 'Güncelleme hazır' : update.phase === 'downloading' ? 'Güncelleme indiriliyor...' : 'Güncelleme var'
+  const label = update.phase === 'installing' ? 'Güncelleme uygulanıyor...' : update.phase === 'ready' ? 'Güncelleme hazır' : update.phase === 'downloading' ? 'Güncelleme indiriliyor...' : 'Güncelleme var'
   return <button className={`statusbar-update ${update.phase}`} onClick={onOpen}><span className="update-dot" />{t(label)}{update.phase === 'downloading' ? ` ${Math.floor(update.percent ?? 0)}%` : ''}</button>
+}
+
+export function updateDownloadVisible(update: LauncherUpdate) { return hasRelease(update) || !!update.lastInstalled }
+export function LauncherUpdateDownload({ controls: { update, action }, language }: { controls: Controls; language: Language }) {
+  const t = (source: string) => translate(language, source)
+  const [pending, setPending] = useState(false)
+  if (!updateDownloadVisible(update)) return null
+  const completed = !hasRelease(update) && !!update.lastInstalled
+  const downloading = update.phase === 'downloading' || update.phase === 'checking' && update.operation === 'download'
+  const installing = update.phase === 'installing', ready = update.phase === 'ready'
+  const percent = completed || ready || installing ? 100 : Math.floor(update.percent ?? 0)
+  const run = async (kind: 'download' | 'cancel' | 'install') => { setPending(true); try { await action(kind) } catch {} finally { setPending(false) } }
+  const label = completed ? 'Güncelleme başarıyla tamamlandı.' : installing ? 'Güncelleme uygulanıyor...' : ready ? 'Yeniden başlatmaya hazır' : downloading ? 'Güncelleme indiriliyor...' : update.phase === 'error' ? update.operation === 'install' ? 'Güncelleme kurulamadı. Yeniden dene.' : 'Güncelleme indirilemedi' : 'Yeni bir güncelleme var'
+  return <article className={`download-job launcher-update-job ${completed ? 'completed' : update.phase}`}>
+    <div className="download-job-identity"><span className="download-job-icon"><CloudDownload size={28}/></span><div className="download-job-title"><strong>Green Launcher · v{completed ? update.lastInstalled!.version : update.version}</strong><small>{t(label)}</small></div></div>
+    <div className="download-job-transfer">
+      <div className="download-job-progress-copy"><span>{t(label)}</span><strong>{downloading ? `${((update.transferred ?? 0)/1048576).toFixed(1)} / ${((update.total ?? 0)/1048576).toFixed(1)} MB` : completed ? new Intl.DateTimeFormat(language,{dateStyle:'short',timeStyle:'short'}).format(new Date(update.lastInstalled!.at)) : ''}<em>{percent}%</em></strong></div>
+      <div className="download-job-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Green Launcher"><span style={{width:`${percent}%`}}/></div>
+      {downloading && !!update.bytesPerSecond && <p className="launcher-update-rate">{(update.bytesPerSecond/1048576).toFixed(1)} MB/sn</p>}
+      {update.error && <p className="update-error" role="status">{t(updateErrorText(update))}</p>}
+      <div className="update-actions">{!completed && !installing && (downloading ? <button onClick={()=>void run('cancel')}>{t('İndirmeyi iptal et')}</button> : <button className="update-primary" disabled={pending} onClick={()=>void run(ready ? 'install' : 'download')}>{t(ready ? 'Yeniden başlat ve güncelle' : update.phase === 'error' ? 'Yeniden dene' : 'Güncellemeyi indir')}</button>)}</div>
+    </div>
+  </article>
 }
