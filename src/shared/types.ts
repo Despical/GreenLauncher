@@ -38,6 +38,7 @@ export interface LauncherProfile {
 export interface ProfileCover { color: string; description: string; image?: string }
 
 export interface PlayHistoryEntry { id: string; profileId: string; profileName: string; versionId: string; at: string }
+export interface PlaySession { id: string; profileId: string; profileName: string; versionId: string; startedAt: string; endedAt: string; durationMs: number }
 export const screenshotPageSize = 18
 export interface ScreenshotItem { id: string; profileId: string | null; name: string; modifiedAt: string; thumbnail: string }
 export type ScreenshotSort = 'newest' | 'oldest'
@@ -60,6 +61,7 @@ export interface LauncherSettings {
   downloadSpeedLimitKiB?: number
   pauseDownloadsWhilePlaying?: boolean
   downloadConcurrency?: number
+  savePlaytime?: boolean
 }
 
 export interface GameAccount {
@@ -81,6 +83,7 @@ export interface LauncherState {
   selectedAccountId: string | null
   dataPath: string
   playHistory: PlayHistoryEntry[]
+  playSessions?: PlaySession[]
 }
 
 export interface LauncherActivity {

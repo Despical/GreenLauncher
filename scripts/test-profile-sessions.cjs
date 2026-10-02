@@ -95,8 +95,11 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   check('failed new launch preserves running session and unlocks launcher',()=>{assert.equal(game.getRunningInstances().length,1);assert.equal(game.getLaunchState().preparing,false)})
   await stop(children[1])
   check('last process exit clears sessions',()=>assert.equal(game.getRunningInstances().length,0))
+  check('actual child process exits record independent profile playtime',()=>{const entries=store.get().playSessions;assert.equal(entries.length,2);assert.ok(entries.every(entry=>entry.profileId===a&&entry.durationMs>=0));assert.notEqual(entries[0].id,entries[1].id)})
+  const completedSessions=store.get().playSessions.length
   launchMode='exited';await assert.rejects(()=>game.play(a))
   check('already exited process is never counted as running',()=>{assert.equal(game.getRunningInstances().length,0);assert.equal(activities.at(-1).kind,'error')})
+  check('failed and already exited processes create no playtime session',()=>assert.equal(store.get().playSessions.length,completedSessions))
   launchMode='gate';const pending=game.play(a)
   while(!releaseGate) await new Promise(r=>setTimeout(r,5))
   await assert.rejects(()=>game.play(a,undefined,true))

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Info, ArrowDownToLine, ArrowUpRight, Copy, FolderOpen, Image, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import { Info, ArrowDownToLine, ArrowUpRight, Clock3, Copy, FolderOpen, Image, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import type { InstalledMod, LauncherProfile, ModProvider, ProfileCover } from '../../shared/types'
 import { memoryGb } from '../../shared/memory'
 import { profileVersionLabel } from '../../shared/profile-version'
@@ -9,7 +9,7 @@ import './profiles.css'
 
 export type ProfileAction = 'edit' | 'cover' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
 
-export function ProfileInformation({ profile, language, onClose }: { profile: LauncherProfile; language: Language; onClose: () => void }) {
+export function ProfileInformation({ profile, language, onClose, onPlaytime }: { profile: LauncherProfile; language: Language; onClose: () => void; onPlaytime: () => void }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
   const [mods, setMods] = useState<InstalledMod[] | null>(null)
   const [error, setError] = useState('')
@@ -37,6 +37,7 @@ export function ProfileInformation({ profile, language, onClose }: { profile: La
     <dl className="profile-information-facts"><div><dt>{t('Minecraft sürümü')}</dt><dd>{profileVersionLabel(profile)}</dd></div><div><dt>{t('Bellek')}</dt><dd>{memoryGb(profile.minMemoryMb ?? 1024)} – {memoryGb(profile.memoryMb)} GB RAM</dd></div><div><dt>{t('Yükleyici')}</dt><dd>{profile.modLoaderVersion ?? (/optifine/i.test(profile.versionId) ? profile.versionId : 'Minecraft')}</dd></div><div><dt>{t('Çözünürlük')}</dt><dd>{profile.width} × {profile.height}</dd></div></dl>
     {profile.modpack && <section className="profile-information-pack"><div><span>{t('Mod paketi')}</span><strong>{profile.modpack.title}</strong><small>{providerName(providerOf(profile.modpack))} · {profile.modpack.fileCount} {t('dosya')}{mods !== null && <> · {t('{count} mod', { count: mods.length })}</>}</small></div><button type="button" disabled={!!opening} title={t('Proje sayfasında aç')} aria-label={`${profile.modpack.title}: ${t('Proje sayfasında aç')}`} onClick={() => void openProject(profile.modpack!, true)}><ArrowUpRight size={20} /></button></section>}
     <section className="profile-information-section">{error ? <p>{error}</p> : mods === null ? <p><LoaderCircle size={16} className="spin" /> {t('Modlar yükleniyor...')}</p> : mods.length ? <ul className="profile-information-mods">{mods.map(mod => <li key={mod.filename}><div><strong>{mod.title}</strong><small>{mod.versionNumber || mod.filename}{mod.projectId && <> · {providerName(providerOf(mod))}</>}</small></div>{mod.projectId && <button type="button" disabled={!!opening} title={t('Proje sayfasında aç')} aria-label={`${mod.title}: ${t('Proje sayfasında aç')}`} onClick={() => void openProject(mod)}><ArrowUpRight size={19} /></button>}</li>)}</ul> : !profile.modpack && <p className="profile-information-empty-note"><Info size={18} aria-hidden="true" /><span>{t('Bu profil hiçbir mod veya mod paketi içermemektedir.')}</span></p>}</section>
+    <button className="profile-playtime-link" onClick={onPlaytime}><Clock3 size={16} />{t('Oyun süresi istatistikleri')}</button>
     {linkError && <p className="profile-information-link-error" role="alert">{linkError}</p>}
   </AccountDialog>
 }

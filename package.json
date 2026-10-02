@@ -60,7 +60,6 @@
     "productName": "GreenLauncher",
     "executableName": "GreenLauncher",
     "publish": { "provider": "github", "owner": "Despical", "repo": "GreenLauncher" },
-    "releaseInfo": { "releaseNotesFile": "docs/releases/0.17.1.md" },
     "directories": {
       "output": "release"
     },

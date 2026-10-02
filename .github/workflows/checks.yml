@@ -36,6 +36,7 @@ jobs:
           $checks = @(
             'scripts/test-accounts.cjs',
             'scripts/test-profile-sessions.cjs',
+            'scripts/test-playtime.cjs',
             'scripts/test-servers-custom.cjs',
             'scripts/test-profile-server-sync.cjs',
             'scripts/test-worlds.cjs'

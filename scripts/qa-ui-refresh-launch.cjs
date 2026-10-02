@@ -123,7 +123,7 @@ let qaServerChecks = 0, qaCustomImported = false
 handle('get-servers', profileId => withProfileServers ? profileServerService.forProfile(profileId).get() : qaServers)
 handle('get-update', () => ({ ...qaUpdate }))
 handle('qa-set-update', update => { qaUpdate = { ...qaUpdate, ...update }; return updateChanged() })
-handle('check-update', async () => { qaUpdate.phase = 'checking'; updateChanged(); await new Promise(resolve => setTimeout(resolve, 120)); qaUpdate.phase = qaUpdate.version ? 'available' : 'current'; qaUpdate.checkedAt = new Date().toISOString(); return updateChanged() })
+handle('check-update', async () => { qaUpdate.phase = 'checking'; updateChanged(); await new Promise(resolve => setTimeout(resolve, 120)); qaUpdate.phase = qaUpdate.error ? 'error' : qaUpdate.version ? 'available' : 'current'; qaUpdate.checkedAt = new Date().toISOString(); return updateChanged() })
 handle('download-update', () => { qaUpdate.phase = 'downloading'; qaUpdate.percent = 42; qaUpdate.transferred = 4200000; qaUpdate.total = 10000000; updateChanged(); return new Promise(resolve => { qaDownloadResolve = resolve }) })
 handle('cancel-update', () => { qaUpdate.phase = 'available'; qaUpdate.percent = undefined; return updateChanged() })
 handle('install-update', () => { qaUpdate.error = 'busy'; return updateChanged() })
@@ -144,7 +144,7 @@ handle('select-account', id => { state.selectedAccountId=id; return changed() })
 handle('create-offline-account', name => { const account={id:`qa-account-${state.accounts.length}`,name,kind:'offline',homeAccountId:''};state.accounts.push(account);state.selectedAccountId=account.id;return changed() })
 const qaVersions = () => [{ id: '1.21.1', type: 'release', releaseTime: '2024-08-08', url: '', installed: true, optifineVersions: [] }, ...(process.argv.includes('--qa-server-join') ? [...Array.from({length:120},(_,i)=>({id:`1.20.${i}`,type:'release',releaseTime:'2023-12-07',url:'',installed:false,optifineVersions:[]})), ...['1.8.9','1.8','1.7.10','1.6.4','1.5.2','1.0'].map(id=>({id,type:'release',releaseTime:'2014-09-02',url:'',installed:false,optifineVersions:[]})),{id:'24w02a',type:'snapshot',releaseTime:'2024-01-10',url:'',installed:false,optifineVersions:[]}] : []), ...(process.argv.includes('--qa-reorder') ? [{id:'1.20.4',type:'release',releaseTime:'2023-12-07',url:'',installed:true,optifineAvailable:true,optifineVersions:[]}] : [])]
 handle('get-versions', () => [...qaVersions(),...(qaCustomImported?[{id:'1.8.9-SPECIAL',custom:true,type:'release',releaseTime:'2015-12-09',url:'',installed:true,optifineVersions:[]}]:[])])
-handle('save-settings', settings => { const { qaUpdate: update, ...saved } = settings; if (update) { qaUpdate = { ...qaUpdate, ...update }; updateChanged() }; Object.assign(state.settings, saved); return changed() })
+handle('save-settings', settings => { const { qaUpdate: update, qaPlaySessions, qaDownloads, qaActivity, ...saved } = settings; if (qaPlaySessions) state.playSessions = qaPlaySessions; if (qaDownloads) downloadJobs = qaDownloads; if (qaActivity) window.webContents.send('launcher:activity', qaActivity); if (update) { qaUpdate = { ...qaUpdate, ...update }; updateChanged() }; Object.assign(state.settings, saved); return changed() })
 handle('sign-out', () => { state.accounts = []; state.selectedAccountId = null; return changed() })
 handle('get-account-skin', () => fixtureSkin)
 let activeCape = 'minecraft:qa'

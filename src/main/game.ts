@@ -41,6 +41,7 @@ import {
 import type { GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherProfile, ModLoader, RunningInstance, LaunchResult } from '../shared/types'
 import { AccountService } from './auth'
 import { LauncherStore } from './store'
+import { PlaytimeTracker } from './playtime'
 import { getDownloadManager } from './download-manager'
 
 const versionIdPattern = /^[a-zA-Z0-9._-]{1,90}$/
@@ -59,6 +60,7 @@ export class GameService {
   private readonly folder: MinecraftFolder
   private busy = false
   private sessions = new Map<string, RunningInstance>()
+  private readonly playtime: PlaytimeTracker
   private get running(): boolean { return this.sessions.size > 0 }
 
   constructor(
@@ -66,8 +68,13 @@ export class GameService {
     private readonly accounts: AccountService,
     private readonly window: () => BrowserWindow | null,
     private readonly emit: (activity: LauncherActivity) => void,
-    private readonly emitInstances: (instances: RunningInstance[]) => void = () => {}
+    private readonly emitInstances: (instances: RunningInstance[]) => void = () => {},
+    onPlaytimeChanged: () => void = () => {}
   ) {
+    this.playtime = new PlaytimeTracker(session => {
+      try { store.recordPlaySession(session); onPlaytimeChanged() }
+      catch (error) { console.warn('Could not save local playtime:', message(error)) }
+    })
     this.manifestPath = join(store.dataPath, 'versions-cache.json')
     this.optifineCachePath = join(store.dataPath, 'optifine-cache.json')
     this.folder = new MinecraftFolder(store.minecraftPath)
@@ -96,6 +103,7 @@ export class GameService {
   }
 
   getRunningInstances(): RunningInstance[] { return structuredClone([...this.sessions.values()]) }
+  flushPlaytime(): void { this.playtime.dispose() }
 
   private localVersions(): {
     vanilla: Map<string, { folder: MinecraftFolder; source: 'launcher'; releaseTime: string; type: GameVersion['type']; custom?: boolean }>
@@ -621,11 +629,13 @@ export class GameService {
       const id = randomUUID()
       this.sessions.set(id, { id, pid: process.pid, profileId: profile.id, profileName: profile.name, accountId: account.id, accountName: account.name, versionId, loader: /optifine/i.test(versionId) ? 'optifine' : versionId === profile.modLoaderVersion ? profile.modLoader : undefined, startedAt: new Date().toISOString() })
       if (profileId !== null) this.store.markPlayed(profile.id, versionId)
+      if (profileId !== null) this.playtime.start(this.sessions.get(id)!)
       this.emitInstances(this.getRunningInstances())
       this.status({ kind: 'playing', label: 'Oyun çalışıyor', detail: `${profile.name} · ${versionId}`, profileId: profile.id, progress: 100 })
       if (state.settings.closeOnLaunch) this.window()?.minimize()
       const finish = (error?: string) => {
         if (!this.sessions.delete(id)) return
+        this.playtime.finish(id)
         this.emitInstances(this.getRunningInstances())
         if (this.busy) return
         const remaining = this.getRunningInstances()[0]

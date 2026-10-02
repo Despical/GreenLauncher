@@ -193,7 +193,8 @@ else {
         const versionId = game.getRunningInstances()[0]?.versionId
         if (versionId) discord.setPlaying(versionId)
       } else if (!game.getRunningInstances().length && (activity.kind === 'idle' || activity.kind === 'error')) discord.clearPlaying()
-    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() })
+    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()))
+    app.on('before-quit', () => game.flushPlaytime())
     keepForGames = () => game.getRunningInstances().length > 0
     const modpacks = new ModpackService(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const curseforge = new CurseForgeService(store)

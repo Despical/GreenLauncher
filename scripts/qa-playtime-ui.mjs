@@ -1,0 +1,66 @@
+import assert from 'node:assert/strict'
+import { readFileSync, writeFileSync } from 'node:fs'
+const helpers = readFileSync('scripts/qa-servers-custom.mjs', 'utf8').split('try {')[0].replace(/^import[^\n]*\n/gm, '')
+const checks = String.raw`
+try {
+ await call('Runtime.enable');await until("document.querySelector('.side-nav')")
+ const end = Date.now() - 600_000
+ const sessions = [{id:'recent',profileId:'qa-profile',profileName:'Test World',versionId:'26.3',startedAt:new Date(end-292_000).toISOString(),endedAt:new Date(end).toISOString(),durationMs:292_000}, {id:'earlier',profileId:'qa-profile',profileName:'Test World',versionId:'1.21.1',startedAt:new Date(end-172_800_000-1800_000).toISOString(),endedAt:new Date(end-172_800_000).toISOString(),durationMs:1800_000}]
+ await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaPlaySessions:sessions,qaDownloads:[],qaActivity:{kind:'idle',label:'Hazır'},qaUpdate:{phase:'current',version:null,error:null}})+')');await call('Page.reload');await until("document.querySelector('.statusbar-playtime')")
+ assert.match(await evaluate("document.querySelector('.statusbar-playtime').textContent"),/Minecraft 26.3.*4 dk 52 sn.*34 dk 52 sn/)
+ await shot('qa-playtime-footer')
+ await click('.statusbar-playtime');await until("document.querySelector('.playtime-dialog')")
+ assert.equal(await evaluate("document.querySelectorAll('.playtime-summary>div').length"),3)
+ assert.equal(await evaluate("document.querySelectorAll('.playtime-history li').length"),2)
+ assert.match(await evaluate("document.querySelector('.playtime-summary').textContent"),/Bugün.*Bu hafta.*Toplam/)
+ await shot('qa-playtime-history')
+ await evaluate("document.querySelectorAll('.playtime-profiles button')[1].click()")
+ assert.equal(await evaluate("document.querySelectorAll('.playtime-history li').length"),0)
+ assert.match(await evaluate("document.querySelector('.playtime-history p').textContent"),/henüz ölçülmüş/)
+ await click('.playtime-dialog .modal-close')
+ await evaluate("window.launcher.selectProfile('qa-profile-1')");await until("!document.querySelector('.statusbar-playtime')")
+ await evaluate("window.launcher.selectProfile('qa-profile')")
+ await evaluate("window.launcher.saveSettings({qaDownloads:[{id:'qa-active',title:'Minecraft QA',phase:'downloading',downloadedBytes:100,totalBytes:1000,bytesPerSecond:10,priority:0,forLaunch:false}]})")
+ await until("!document.querySelector('.statusbar-playtime')")
+ assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Minecraft QA/)
+ await evaluate("window.launcher.saveSettings({qaDownloads:[],qaActivity:{kind:'launching',label:'Oyun başlatılıyor'}})");await until("!document.querySelector('.statusbar-playtime')")
+ await evaluate("window.launcher.saveSettings({qaActivity:{kind:'idle',label:'Hazır'}})")
+ await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'downloading',percent:42}})");await until("!document.querySelector('.statusbar-playtime')");assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Güncelleme indiriliyor.*42/);await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'current'}})")
+ await key('9');await button('Launcher');await until("document.querySelector('.launcher-update-settings')")
+ const backdrop = await evaluate("(()=>{const e=document.querySelector('.launcher-update-settings .launcher-update-panel'),b=getComputedStyle(e,'::before');return {width:b.width,panel:e.getBoundingClientRect().width,image:b.backgroundImage}})()")
+ assert.ok(Math.abs(parseFloat(backdrop.width)-backdrop.panel)<3);assert.match(backdrop.image,/green-landscape/)
+ await evaluate("document.querySelector('.launcher-update-settings').scrollIntoView({block:'center'})")
+ await button('Güncellemeleri kontrol et');await until("document.querySelector('.toast')")
+ assert.match(await evaluate("document.querySelector('.toast').textContent"),/En son sürümü kullanıyorsun/)
+ await shot('qa-updates-full-landscape-toast')
+ for (const [update, pattern] of [[{version:'0.17.2',error:null},'Yeni bir güncelleme var'],[{version:null,error:'metadata'},'güncelleme dosyaları eksik'],[{version:null,error:'network'},'Bağlantını kontrol']]) {
+  await click('.toast button');await wait(260)
+  await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify(update)+'})')
+  await button('Güncellemeleri kontrol et');await until("document.querySelector('.toast')")
+  assert.match(await evaluate("document.querySelector('.toast').textContent"),new RegExp(pattern))
+ }
+ await click('.toast button');await wait(260)
+ for (const language of ['tr','en','de','fr','ru','pl']) {
+  await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+',qaUpdate:{phase:"current",version:null,error:null}})');await call('Page.reload');await until("document.querySelector('.statusbar-playtime')")
+  await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
+  await click('.statusbar-playtime');await until("document.querySelector('.playtime-dialog')")
+  assert.equal(await evaluate("document.querySelector('.playtime-dialog').scrollWidth<=document.querySelector('.playtime-dialog').clientWidth"),true)
+  assert.equal(await evaluate("document.querySelectorAll('.playtime-summary>div').length"),3)
+  if(language!=='tr')assert.notEqual(await evaluate("document.querySelector('.playtime-dialog h2').textContent"),'Oyun süresi istatistikleri')
+  await click('.playtime-dialog .modal-close')
+  await key('9');await evaluate("[...document.querySelectorAll('.settings-tabs button')].find(b=>b.textContent.trim()==='Launcher').click()")
+  await click('.launcher-update-settings .update-actions button');await until("document.querySelector('.toast')")
+  if(language!=='tr')assert.notEqual(await evaluate("document.querySelector('.toast span').textContent"),'En son sürümü kullanıyorsun.')
+ }
+ await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Page.reload');await until("document.querySelector('.statusbar-playtime')")
+ const many=Array.from({length:26},(_,i)=>({...sessions[0],id:'page-'+i,endedAt:new Date(end-i*3600_000).toISOString(),startedAt:new Date(end-i*3600_000-292_000).toISOString()}))
+ await evaluate('window.launcher.saveSettings({qaPlaySessions:'+JSON.stringify(many)+'})');await click('.statusbar-playtime')
+ assert.equal(await evaluate("document.querySelectorAll('.playtime-history li').length"),20)
+ await click('.playtime-history .load-more');assert.equal(await evaluate("document.querySelectorAll('.playtime-history li').length"),26)
+ await click('.playtime-dialog .modal-close');await key('3');await evaluate("document.querySelector('.profile-card').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+ await until("document.querySelector('.profile-information-dialog')");await click('.profile-playtime-link');await until("document.querySelector('.playtime-dialog')")
+ assert.equal(errors.length,0,JSON.stringify(errors))
+ console.log('PASS idle footer summary, download/preparation priority, profile history/empty states/pagination, profile information entry, full-width update scenery, manual current/available/error notifications and six-language layouts')
+} finally {socket.close()}
+`
+await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)

@@ -12,6 +12,7 @@ An independent Windows launcher for Minecraft: Java Edition, built with Electron
 - Profile-specific worlds with icons, game mode, last-played time and size; import, rename, duplicate, recycle-bin deletion, icon reset, exact seed copying and folder opening.
 - World seed support for legacy saves, Minecraft 1.16+ `WorldGenSettings`, and the separate `data/minecraft/world_gen_settings.dat` format used by Minecraft 26.1+.
 - Direct world launch on Minecraft versions that support Quick Play Singleplayer (1.20+); direct server launch on supported versions.
+- Daily and weekly playtime, profile-specific session history and optional local persistence, with an idle bottom-bar summary.
 - Screenshot gallery, download manager, storage tools, logs, Discord activity and Windows shortcuts.
 - Turkish, English, German, French, Russian and Polish interfaces.
 
@@ -31,6 +32,7 @@ pnpm run build
 node scripts/check-i18n.mjs
 node scripts/test-accounts.cjs
 node scripts/test-profile-sessions.cjs
+node scripts/test-playtime.cjs
 node scripts/test-servers-custom.cjs
 node scripts/test-profile-server-sync.cjs
 node scripts/test-worlds.cjs
@@ -47,7 +49,7 @@ pnpm dist:setup
 node scripts/verify-release.cjs
 ```
 
-The setup, its blockmap and `latest.yml` must all be uploaded to the same stable GitHub release. The publisher settings in `package.json` generate the update metadata, including `docs/releases/<version>.md`. Use a draft until all assets are present and verified. A future website can serve the same NSIS installer and update metadata through a generic update provider.
+The setup, its blockmap and `latest.yml` must all be uploaded to the same stable GitHub release. The publisher settings in `package.json` generate the update metadata. Release notes belong to the GitHub release. Create releases only at the user’s explicit request. Use a draft until all assets are present and verified. A future website can serve the same NSIS installer and update metadata through a generic update provider.
 
 Portable packaging requires Visual Studio C++ Build Tools and the Windows SDK for the native splash helper.
 
@@ -63,6 +65,8 @@ Source artwork and packaging icons live under `build/` and `src/renderer/assets/
 ## Accounts and saved data
 
 Settings, profiles and cached data live under `%APPDATA%/GreenLauncher`, outside this repository. Each profile normally uses `profiles/<profile-id>` as its game directory; a custom game directory can be selected in the profile settings. Existing vanilla Minecraft installations are detected without relocating their files.
+
+Playtime measures successful profile launches until process exit. Sessions are checkpointed every 30 seconds so an interrupted launcher preserves the last measured interval. Daily totals use local dates; weeks start on Monday. Old launch-only history cannot provide accurate durations and is not converted into fabricated playtime. Settings > Launcher can disable local persistence: saved duration records are removed when that preference is saved, and playtime remains only in memory until the launcher closes. Re-enabling persistence saves the in-memory history again. No playtime data is uploaded.
 
 Offline accounts do not require Microsoft sign-in and can join only servers that permit offline accounts. Microsoft launch requires a licensed Minecraft: Java Edition account and successful authentication. Authentication tokens are stored using Windows secure storage; live sign-in availability also depends on the configured OAuth application. CurseForge access requires an approved API key and is not supplied by this repository.
 

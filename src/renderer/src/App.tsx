@@ -12,6 +12,7 @@ import {
 import type { CleanupPreview, DownloadSnapshot, DiskUsage, GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherErrorEntry, LauncherProfile, LauncherSettings, LauncherState, OfflineStatus, ScreenshotItem, ScreenshotSort, VersionType, RunningInstance, LaunchRequest, LauncherPresenceContext } from '../../shared/types'
 import { screenshotPageSize } from '../../shared/types'
 import { HomeUpdate, UpdateDialog, UpdateIndicator, UpdatePanel, useLauncherUpdate } from './LauncherUpdates'
+import { PlaytimeDialog, PlaytimeStatus } from './Playtime'
 import { profileLaunchVersion, profileVersionLabel } from '../../shared/profile-version'
 import { memoryGb } from '../../shared/memory'
 import { serverLaunchMode } from '../../shared/server-launch'
@@ -235,6 +236,8 @@ function ProfilePageButton({ index, active, language, onClick }: { index: number
 function App() {
   const updates = useLauncherUpdate()
   const [updateOpen, setUpdateOpen] = useState(false)
+  const [playtimeOpen, setPlaytimeOpen] = useState(false)
+  const [playtimeProfileId, setPlaytimeProfileId] = useState<string | null>(null)
   const [state, setState] = useState<LauncherState | null>(null)
   const [versions, setVersions] = useState<GameVersion[]>([])
   const [page, setPageState] = useState<Page>('home')
@@ -371,6 +374,7 @@ function App() {
     let current = true
     setProfileDraft(null)
     setProfileInformationId(null)
+    setPlaytimeOpen(false)
     setFocusedProfileId(null)
     setProfilePage(0)
     setScreenshotProfile('all')
@@ -480,6 +484,12 @@ function App() {
   const selectedVersionLabel = profile ? profileVersionLabel(profile).replace(/^Minecraft /, '') : '—'
   const language = settingsDraft?.language ?? 'tr'
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
+  useEffect(() => {
+    const result = updates.checkResult?.value
+    if (!result) return
+    const errorCopy = { metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.', network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.' }
+    notifyCape(result.error ? t(errorCopy[result.error]) : result.phase === 'current' ? t('En son sürümü kullanıyorsun.') : result.phase === 'available' ? `${t('Yeni bir güncelleme var')} · v${result.version}` : t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.'))
+  }, [updates.checkResult])
   const localVersionLabels: Record<VersionType, string> = { release: t('Kararlı sürüm'), snapshot: 'Snapshot', old_beta: t('Eski Beta'), old_alpha: t('Eski Alpha') }
   const busy = launchPending || ['installing', 'launching'].includes(activity.kind)
   const launchBusy = launchPending || activity.kind === 'launching'
@@ -816,6 +826,8 @@ function App() {
             <button className="setting-toggle" onClick={() => updateSettings({ animateHero: !settingsDraft.animateHero })}><span><strong>{t('Ana ekran geçişleri')}</strong><small>{t('Overworld, Nether ve End arasında otomatik geçiş yap')}</small></span><span className={`switch ${settingsDraft.animateHero ? 'on' : ''}`} /></button>
             <button className="setting-toggle" onClick={() => updateSettings({ discordPresence: !settingsDraft.discordPresence })}><span><strong>{t('Discord etkinliği')}</strong><small>{t('Launcher etkinliğini ve oynadığın Minecraft sürümünü Discord profilinde göster')}</small></span><span className={`switch ${settingsDraft.discordPresence ? 'on' : ''}`} /></button>
             <button className="setting-toggle" onClick={() => updateSettings({ minimizeToTray: !settingsDraft.minimizeToTray })}><span><strong>{t('Kapatınca sistem tepsisine küçült')}</strong><small>{t('Pencereyi kapattığında launcher arka planda açık kalsın')}</small></span><span className={`switch ${settingsDraft.minimizeToTray ? 'on' : ''}`} /></button>
+            <button className="setting-toggle" onClick={() => updateSettings({ savePlaytime: settingsDraft.savePlaytime === false })}><span><strong>{t('Oyun sürelerini yerel olarak kaydet')}</strong><small>{t('Kapalıyken süreler yalnızca launcher açıkken tutulur; kayıtlar diskte saklanmaz.')}</small></span><span className={`switch ${settingsDraft.savePlaytime !== false ? 'on' : ''}`} /></button>
+            <button className="folder-link" onClick={() => { setPlaytimeProfileId(state.selectedProfileId); setPlaytimeOpen(true) }}>{t('Oyun süresi istatistikleri')} <ArrowRight size={16} /></button>
             <div className="launcher-files"><button className="folder-link" onClick={() => window.launcher.openFolder()}><FolderOpen size={17} /> {t('Launcher dosyalarını aç')} <ArrowRight size={16} /></button><small className="data-path">{state.dataPath}</small></div>
           </div><div className="launcher-update-settings"><UpdatePanel controls={updates} language={language} /></div></>}
           {<div hidden={settingsTab !== 'logs'}><ErrorLogPanel entries={errorLogs} language={language} onOpenFile={() => run(() => window.launcher.openErrorLog())} onClear={() => run(async () => { setErrorLogs(await window.launcher.clearErrorLog()) }, t('Hata günlükleri temizlendi.'))} /></div>}
@@ -823,11 +835,12 @@ function App() {
         </div></div>}
       </main>
     </div>
-    <div className="statusbar"><span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (activity.kind === 'idle' ? t('Başlatmaya hazır') : t(activity.label))}</span><div className="statusbar-end">{profile && <span className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${profile.name}`}>Minecraft {selectedVersionLabel} · {profile.name}</span>}<UpdateIndicator controls={updates} language={language} onOpen={() => setUpdateOpen(true)} /><button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div>
+    <div className="statusbar">{!downloadStatus && !instances.length && updates.update.phase !== 'downloading' && activity.kind === 'idle' && state.playSessions?.some(session => session.profileId === state.selectedProfileId && session.durationMs > 0) ? <PlaytimeStatus state={state} language={language} onOpen={() => { setPlaytimeProfileId(state.selectedProfileId); setPlaytimeOpen(true) }} /> : <span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (updates.update.phase === 'downloading' ? `${t('Güncelleme indiriliyor...')} ${Math.floor(updates.update.percent ?? 0)}%` : activity.kind === 'idle' ? t(instances.length ? 'Oyun çalışıyor' : 'Başlatmaya hazır') : t(activity.label))}</span>}<div className="statusbar-end">{profile && <span className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${profile.name}`}>Minecraft {selectedVersionLabel} · {profile.name}</span>}<UpdateIndicator controls={updates} language={language} onOpen={() => setUpdateOpen(true)} /><button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div>
+    {playtimeOpen && <PlaytimeDialog state={state} language={language} initialProfileId={playtimeProfileId} onClose={() => setPlaytimeOpen(false)} />}
     {updateOpen && <UpdateDialog controls={updates} language={language} onClose={() => setUpdateOpen(false)} />}
     {changelogOpen && <Suspense fallback={null}><Changelog language={language} onClose={()=>setChangelogOpen(false)}/></Suspense>}
     {profileMenu && page === 'profiles' && state.profiles.some(item => item.id === profileMenu.id) && <ProfileMenu profile={state.profiles.find(item => item.id === profileMenu.id)!} x={profileMenu.x} y={profileMenu.y} language={language} pending={profileTasks.includes(profileMenu.id) || instances.some(item => item.profileId === profileMenu.id)} onClose={() => setProfileMenu(null)} onAction={action => void profileAction(profileMenu.id, action)} />}
-    {profileInformationId && state.profiles.find(item => item.id === profileInformationId) && <ProfileInformation profile={state.profiles.find(item => item.id === profileInformationId)!} language={language} onClose={() => setProfileInformationId(null)} />}
+    {profileInformationId && state.profiles.find(item => item.id === profileInformationId) && <ProfileInformation profile={state.profiles.find(item => item.id === profileInformationId)!} language={language} onClose={() => setProfileInformationId(null)} onPlaytime={() => { setPlaytimeProfileId(profileInformationId); setProfileInformationId(null); setPlaytimeOpen(true) }} />}
     {coverProfileId && state.profiles.some(item => item.id === coverProfileId) && <ProfileCoverEditor profile={state.profiles.find(item => item.id === coverProfileId)!} language={language} onClose={() => setCoverProfileId(null)} onNotice={notifyCape} onSaved={async cover => { setState(await window.launcher.saveProfileCover(coverProfileId, cover)); notifyCape(t('Profil kapağı güncellendi.')) }} />}
     {versionContextMenu && page === 'versions' && <div ref={versionContextMenuRef} className="version-context-menu" role="menu" style={{ left: versionContextMenu.x, top: versionContextMenu.y }}><div className="version-context-label">Minecraft {versionContextMenu.id}</div><div className="version-context-divider" /><button role="menuitem" disabled={launchBusy} onClick={() => { const id = versionContextMenu.id; setVersionContextMenu(null); playVersion(id) }}><Play size={16} fill="currentColor" /> {t('Başlat')}</button><button role="menuitem" onClick={() => { const id = versionContextMenu.id; setVersionContextMenu(null); run(() => window.launcher.createVersionShortcut(id), t('{version} için masaüstü kısayolu oluşturuldu.', { version: id })) }}><Monitor size={16} /> {t('Masaüstüne kısayol oluştur')}</button><button role="menuitem" disabled={!versionContextMenu.installed} title={versionContextMenu.installed ? t('Sürüm klasörünü aç') : t('Sürüm henüz yüklü değil')} onClick={() => { const id = versionContextMenu.id; setVersionContextMenu(null); run(() => window.launcher.openVersionLocation(id)) }}><FolderOpen size={16} /> {t('Dosya konumunda aç')}</button></div>}
     {screenshotContextMenu && page === 'gallery' && <div ref={screenshotContextMenuRef} className="version-context-menu screenshot-context-menu" role="menu" style={{ left: screenshotContextMenu.x, top: screenshotContextMenu.y }}><div className="version-context-label" title={screenshotContextMenu.item.name}>{screenshotContextMenu.item.name}</div><div className="version-context-divider" /><button role="menuitem" onClick={() => { const item = screenshotContextMenu.item; setScreenshotContextMenu(null); run(() => window.launcher.copyScreenshot(item.id), t('Ekran görüntüsü kopyalandı.')) }}><Copy size={16} /> {t('Görüntüyü kopyala')}</button><button role="menuitem" onClick={() => { const item = screenshotContextMenu.item; setScreenshotContextMenu(null); run(() => window.launcher.openScreenshotLocation(item.id)) }}><FolderOpen size={16} /> {t('Dosya konumunda aç')}</button><div className="version-context-divider" /><button role="menuitem" className="context-danger" onClick={() => { setPendingScreenshotDelete(screenshotContextMenu.item); setScreenshotContextMenu(null) }}><Trash2 size={16} /> {t('Sil')}</button></div>}

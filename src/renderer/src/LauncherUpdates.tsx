@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownToLine, RefreshCw, RotateCcw, X } from 'lucide-react'
+import { ArrowDownToLine, RefreshCw, RotateCcw, ShieldCheck, X } from 'lucide-react'
 import type { LauncherUpdate } from '../../shared/types'
 import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
@@ -9,16 +9,23 @@ import './updates.css'
 export function useLauncherUpdate() {
   const [update, setUpdate] = useState<LauncherUpdate>({ phase: 'idle', currentVersion: packageJson.version, portable: false })
   const revision = useRef(0)
+  const [checkResult, setCheckResult] = useState<{ value: LauncherUpdate } | null>(null)
   useEffect(() => {
     const before = revision.current
     void window.launcher.getUpdate().then(value => { if (revision.current === before) setUpdate(value) }).catch(() => {})
     return window.launcher.on('update', value => { revision.current++; setUpdate(value) })
   }, [])
   const action = async (kind: 'check' | 'download' | 'cancel' | 'install') => {
-    const value = await ({ check: window.launcher.checkUpdate, download: window.launcher.downloadUpdate, cancel: window.launcher.cancelUpdate, install: window.launcher.installUpdate })[kind]()
-    revision.current++; setUpdate(value)
+    try {
+      const value = await ({ check: window.launcher.checkUpdate, download: window.launcher.downloadUpdate, cancel: window.launcher.cancelUpdate, install: window.launcher.installUpdate })[kind]()
+      revision.current++; setUpdate(value)
+      if (kind === 'check') setCheckResult({ value })
+    } catch (error) {
+      if (kind === 'check') setCheckResult({ value: { ...update, phase: 'error', error: 'network' } })
+      throw error
+    }
   }
-  return { update, action }
+  return { update, action, checkResult }
 }
 type Controls = ReturnType<typeof useLauncherUpdate>
 const hasRelease = (update: LauncherUpdate) => !!update.version && ['available', 'downloading', 'ready', 'error', 'checking'].includes(update.phase)
@@ -35,7 +42,7 @@ export function UpdatePanel({ controls: { update, action }, language, compact = 
   const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
   const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'current' ? t('En son sürümü kullanıyorsun.') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Launcher güncellemeleri')
   return <section className={`launcher-update-panel ${compact ? 'compact' : ''}`} aria-label={t('Launcher güncellemeleri')}>
-    <div className="update-heading"><RefreshCw size={19} className={checking ? 'spin' : ''} /><div><h3>{headline}</h3><p>v{update.currentVersion}{update.version ? ` → v${update.version}` : ''}</p></div></div>
+    <div className={`update-heading ${update.phase}`}><span className="update-status-icon">{update.phase === 'current' ? <ShieldCheck size={22} /> : <RefreshCw size={22} className={checking ? 'spin' : ''} />}</span><div><span className="update-eyebrow">{t('Launcher güncellemeleri')} · v{update.currentVersion}</span><h3>{headline}</h3>{update.version && <p>v{update.currentVersion} → v{update.version}</p>}</div></div>
     {update.phase === 'disabled' ? <p className="update-description">{t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.')}</p> : <>
       {update.phase === 'idle' && <p className="update-description">{t('Launcher açıldığında yeni sürümler otomatik kontrol edilir.')}</p>}
       {update.error && <p className="update-error" role="status">{t(errors[update.error])}</p>}

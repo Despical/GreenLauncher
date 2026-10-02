@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { offlineAccount } from './offline-account'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
-import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, ProfileCover } from '../shared/types'
+import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, ProfileCover, PlaySession } from '../shared/types'
 import { normalizeServerAddress } from '../shared/server-launch'
 
 function defaultSettings(): LauncherSettings {
@@ -21,7 +21,8 @@ function defaultSettings(): LauncherSettings {
     minimizeToTray: false,
     downloadSpeedLimitKiB: 0,
     pauseDownloadsWhilePlaying: false,
-    downloadConcurrency: 6
+    downloadConcurrency: 6,
+    savePlaytime: true
   }
 }
 
@@ -54,6 +55,7 @@ export class LauncherStore {
     settings.downloadSpeedLimitKiB = bounded(settings.downloadSpeedLimitKiB, 0, 0, 102400)
     settings.downloadConcurrency = bounded(settings.downloadConcurrency, 6, 1, 12)
     settings.pauseDownloadsWhilePlaying = settings.pauseDownloadsWhilePlaying === true
+    settings.savePlaytime = settings.savePlaytime !== false
     const playHistory = (Array.isArray(saved.playHistory) && saved.playHistory.length > 0 ? saved.playHistory.slice(0, 100) : (saved.profiles ?? []).filter(profile => profile.lastPlayed).map(profile => ({ id: randomUUID(), profileId: profile.id, profileName: profile.name, versionId: profile.versionId, at: profile.lastPlayed! }))).sort((a, b) => String(b.at).localeCompare(String(a.at)))
     const lastPlayedVersion = playHistory.find(item => /^[a-zA-Z0-9._-]{1,90}$/.test(item.versionId))?.versionId
     this.state = {
@@ -64,7 +66,8 @@ export class LauncherStore {
       accounts: Array.isArray(saved.accounts) ? saved.accounts : [],
       selectedAccountId: saved.selectedAccountId ?? null,
       dataPath: this.dataPath,
-      playHistory
+      playHistory,
+      playSessions: settings.savePlaytime && Array.isArray(saved.playSessions) ? saved.playSessions.filter(session => session && typeof session.id === 'string' && typeof session.profileId === 'string' && typeof session.profileName === 'string' && typeof session.versionId === 'string' && typeof session.startedAt === 'string' && typeof session.endedAt === 'string' && Number.isFinite(Date.parse(session.startedAt)) && Number.isFinite(Date.parse(session.endedAt)) && Date.parse(session.endedAt) >= Date.parse(session.startedAt) && Number.isFinite(session.durationMs) && session.durationMs >= 0) : []
     }
     this.selections = saved.accountSelections ?? {}
     if (!this.state.accounts.some(a => a.id === this.state.selectedAccountId)) this.state.selectedAccountId = this.state.accounts[0]?.id ?? null
@@ -105,6 +108,7 @@ export class LauncherStore {
     result.profiles = result.profiles.filter(profile => !!result.selectedAccountId && profile.accountId === result.selectedAccountId)
     const ids = new Set(result.profiles.map(profile => profile.id))
     result.playHistory = result.playHistory.filter(entry => ids.has(entry.profileId))
+    result.playSessions = result.playSessions?.filter(entry => ids.has(entry.profileId))
     return result
   }
 
@@ -132,7 +136,7 @@ export class LauncherStore {
   private save(): LauncherState {
     this.rememberSelection()
     const temp = `${this.filePath}.tmp`
-    writeFileSync(temp, JSON.stringify({ ...this.state, accountSelections: this.selections }, null, 2), 'utf8')
+    writeFileSync(temp, JSON.stringify({ ...this.state, playSessions: this.state.settings.savePlaytime ? this.state.playSessions : [], accountSelections: this.selections }, null, 2), 'utf8')
     renameSync(temp, this.filePath)
     return this.get()
   }
@@ -153,6 +157,7 @@ export class LauncherStore {
     if (changes.downloadSpeedLimitKiB !== undefined) settings.downloadSpeedLimitKiB = bounded(changes.downloadSpeedLimitKiB, settings.downloadSpeedLimitKiB ?? 0, 0, 102400)
     if (changes.downloadConcurrency !== undefined) settings.downloadConcurrency = bounded(changes.downloadConcurrency, settings.downloadConcurrency ?? 6, 1, 12)
     if (typeof changes.pauseDownloadsWhilePlaying === 'boolean') settings.pauseDownloadsWhilePlaying = changes.pauseDownloadsWhilePlaying
+    if (typeof changes.savePlaytime === 'boolean') settings.savePlaytime = changes.savePlaytime
     return this.save()
   }
 
@@ -282,6 +287,16 @@ export class LauncherStore {
       this.state.playHistory = [{ id: randomUUID(), profileId: id, profileName: profile.name, versionId, at: profile.lastPlayed }, ...this.state.playHistory].slice(0, 100)
       if (profile.id === this.state.selectedProfileId) this.state.selectedVersionId = profile.modLoaderVersion ?? profile.versionId
     }
+    return this.save()
+  }
+
+  recordPlaySession(session: PlaySession): LauncherState {
+    // A running game may belong to an account that is no longer selected.
+    if (!this.state.profiles.some(profile => profile.id === session.profileId)) return this.get()
+    const entries = this.state.playSessions ??= []
+    const index = entries.findIndex(entry => entry.id === session.id)
+    if (index < 0) entries.push({ ...session })
+    else entries[index] = { ...session }
     return this.save()
   }
 
