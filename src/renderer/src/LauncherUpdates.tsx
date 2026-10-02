@@ -32,7 +32,7 @@ export function UpdatePanel({ controls: { update, action }, language, compact = 
     finally { setPending(false) }
   }
   const checking = update.phase === 'checking', downloading = update.phase === 'downloading', ready = update.phase === 'ready'
-  const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
+  const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
   const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'current' ? t('En son sürümü kullanıyorsun.') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Launcher güncellemeleri')
   return <section className={`launcher-update-panel ${compact ? 'compact' : ''}`} aria-label={t('Launcher güncellemeleri')}>
     <div className="update-heading"><RefreshCw size={19} className={checking ? 'spin' : ''} /><div><h3>{headline}</h3><p>v{update.currentVersion}{update.version ? ` → v${update.version}` : ''}</p></div></div>

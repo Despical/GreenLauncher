@@ -9,6 +9,7 @@ class Engine extends EventEmitter {
   async checkForUpdates() {
     this.checks++; await settle()
     if (this.mode === 'offline') throw Object.assign(Error('offline'), { code: 'ECONNRESET' })
+    if (this.mode === 'missing-metadata') throw Object.assign(Error('release manifest missing'), { code: 'ERR_UPDATER_CHANNEL_FILE_NOT_FOUND' })
     const token = { cancelled: false, cancel() { this.cancelled = true; this.callback?.() } }
     return { updateInfo: { version: this.version, releaseDate: '2026-10-03', releaseNotes: 'Test notes' }, cancellationToken: token }
   }
@@ -33,6 +34,7 @@ async function main() {
   assert.equal((await service.install()).phase, 'available'); assert.equal(engine.installs, 0)
   for (const version of ['0.16.0', '0.17.0', '0.18.0-beta.1']) { engine.version = version; assert.equal((await service.check()).phase, 'current'); await service.download(); assert.equal(engine.downloads, 0) }
   engine.version = '0.18.0'; engine.mode = 'offline'; assert.equal((await service.check()).error, 'network')
+  engine.mode = 'missing-metadata'; assert.equal((await service.check()).error, 'metadata')
   engine.mode = 'ok'; await service.check()
   engine.mode = 'checksum'; assert.equal((await service.download()).error, 'checksum'); await service.install(); assert.equal(engine.installs, 0)
   engine.mode = 'interrupted'; assert.equal((await service.download()).error, 'network'); await service.install(); assert.equal(engine.installs, 0)

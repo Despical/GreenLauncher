@@ -60,6 +60,7 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.17.1', date: '2026-10-02', title: 'Küçük düzeltmeler, daha düzgün bir deneyim', changes: ['Güncelleme kontrolleri için eksik yayın dosyaları tamamlandı; eksik dosya ve bağlantı hataları ayrı gösterilir.', 'Güncelleme kutusu Launcher ayarlarının en altına taşındı.', 'Dünya ve sunucu tablolarının son satır köşeleri ve başlıklarla ikon hizası düzeltildi.', 'Değişiklik günlüğünde en son sürüm, sol menüde yeşil bir rozetle gösterilir.'] },
   { version: '0.17.0', date: '2026-10-02', title: 'Bir kez kur, güncel kal', intro: 'Launcher güncellemeleri ve dünyaların yönetimi artık aynı yerde.', changes: ['Açılışta ve elle güncelleme kontrolü, ana sayfada sürüm notları ve alt barda güncelleme bildirimi eklendi.', 'Doğrulanan indirmeler, iptal, tekrar deneme ve yeniden başlatarak güncelleme eklendi; eski sürüme dönüş engellendi.', 'Dünyalar ve sunucular profillere bağlandı; sunucu listeleri oyunla karşılıklı eşitlenir.', 'Dünya ekleme, ad değiştirme, kopyalama, silme, simge sıfırlama ve seed kopyalama eklendi.', 'Dünya bilgilerinin simgeleri ve iki tablonun tam genişlikte seçim ve hover görünümü düzenlendi.'] },
   { version: '0.16.0', date: '2026-10-01', title: 'Profiline göre oyna', intro: 'Tek sürüme bağlı profiller, doğrudan sunucuya katılma ve yenilenen ayarlar. Profilini seç, dünyana devam et.', changes: v016Sections.flatMap(section => section.changes), sections: v016Sections },
   { version: '0.15.0', date: '2026-10-01', title: 'Daha fazla kontrol, daha düzenli', intro: 'Profil araçları, indirme yönetimi ve mod favorileri bir arada. Bu sürümde Discord etkinliği ve ortak menü tasarımı da yenilendi.', changes: v015Sections.flatMap(section => section.changes), sections: v015Sections },
@@ -125,7 +126,7 @@ export function Changelog({ language, onClose }: { language: Language; onClose: 
           aria-controls="release-history-detail"
           onClick={() => setSelectedVersion(release.version)}
         >
-          <span className="release-history-version-top"><strong>v{release.version}</strong><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
+          <span className="release-history-version-top"><span className="release-history-version-label"><strong>v{release.version}</strong>{release.version === releases[0].version && <span className="release-latest-badge">{t('En son')}</span>}</span><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
           <span className="release-history-version-title">{t(release.title)}</span>
         </button>)}{!shown.length && <p className="release-history-no-results">{t('Sürüm bulunamadı.')}</p>}</div>
         <footer className="release-history-build"><strong>Green Launcher · v{packageJson.version}</strong></footer>

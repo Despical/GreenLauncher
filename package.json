@@ -1,6 +1,6 @@
 {
   "name": "green-launcher",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "description": "A custom Minecraft Java Edition launcher",
@@ -60,7 +60,7 @@
     "productName": "GreenLauncher",
     "executableName": "GreenLauncher",
     "publish": { "provider": "github", "owner": "Despical", "repo": "GreenLauncher" },
-    "releaseInfo": { "releaseNotesFile": "docs/releases/0.17.0.md" },
+    "releaseInfo": { "releaseNotesFile": "docs/releases/0.17.1.md" },
     "directories": {
       "output": "release"
     },

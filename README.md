@@ -40,7 +40,7 @@ The core checks use isolated fixtures. Renderer QA helpers in `scripts/` also us
 
 ## Windows distribution
 
-Install `GreenLauncher-Setup-<version>.exe` from [GitHub Releases](https://github.com/Despical/GreenLauncher/releases) once to receive future updates inside the launcher. Automatic checks run at startup and every six hours. Manual checks are in Settings > About. A newer release displays its notes on the home page and an indicator in the bottom bar. Download and installation require explicit actions; installation waits until games and active operations finish. Equal, older and prerelease versions are never offered. Downloads are checksum-verified before execution, failed/cancelled downloads can be retried, and a completed cached installer is revalidated on the next download attempt. User data stays outside the install directory.
+Install `GreenLauncher-Setup-<version>.exe` from [GitHub Releases](https://github.com/Despical/GreenLauncher/releases) once to receive future updates inside the launcher. Automatic checks run at startup and every six hours. Manual checks are in Settings > Launcher. A newer release displays its notes on the home page and an indicator in the bottom bar. Download and installation require explicit actions; installation waits until games and active operations finish. Equal, older and prerelease versions are never offered. Downloads are checksum-verified before execution, failed/cancelled downloads can be retried, and a completed cached installer is revalidated on the next download attempt. User data stays outside the install directory.
 
 ```powershell
 pnpm dist:setup

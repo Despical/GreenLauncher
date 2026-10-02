@@ -47,7 +47,7 @@ export class LauncherUpdater {
   private set(value: Partial<LauncherUpdate>) { this.state = { ...this.state, ...value }; this.changed(this.get()) }
   private fail(error: unknown) {
     const code = String((error as { code?: string })?.code ?? '')
-    this.set({ phase: 'error', error: /CHECKSUM|SIGNATURE/.test(code) ? 'checksum' : this.installing ? 'install' : 'network' })
+    this.set({ phase: 'error', error: /CHECKSUM|SIGNATURE/.test(code) ? 'checksum' : /CHANNEL_FILE_NOT_FOUND|INVALID_RELEASE_FEED|NO_PUBLISHED_VERSIONS/.test(code) ? 'metadata' : this.installing ? 'install' : 'network' })
   }
   check(): Promise<LauncherUpdate> {
     if (this.checking) return this.checking

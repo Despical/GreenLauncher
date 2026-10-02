@@ -268,6 +268,6 @@ export interface LauncherUpdate {
   transferred?: number
   total?: number
   bytesPerSecond?: number
-  error?: 'network' | 'checksum' | 'install' | 'busy'
+  error?: 'network' | 'metadata' | 'checksum' | 'install' | 'busy'
   portable: boolean
 }

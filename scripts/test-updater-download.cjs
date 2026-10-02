@@ -12,6 +12,7 @@ let mode = 'corrupt', installerRequests = 0, version = '0.18.0'
 const payload = Buffer.alloc(1024 * 1024, 77), hash = crypto.createHash('sha512').update(payload).digest('base64')
 fs.writeFileSync(path.join(root, 'app-update.yml'), 'updaterCacheDirName: isolated-updater-cache\n')
 const server = http.createServer((request, response) => {
+ if (request.url.startsWith('/latest.yml') && mode==='missing-metadata') { response.writeHead(404); response.end('Not Found'); return }
  if (request.url.startsWith('/latest.yml')) { response.end(`version: ${version}\nfiles:\n  - url: setup.exe\n    sha512: ${hash}\n    size: ${payload.length}\npath: setup.exe\nsha512: ${hash}\nreleaseDate: '2026-10-03T10:00:00Z'\nreleaseNotes: Verified test notes\n`); return }
  installerRequests++;response.setHeader('Content-Length',payload.length)
  if(mode==='corrupt'){response.end(Buffer.alloc(payload.length,19));return}
@@ -30,7 +31,8 @@ app.whenReady().then(async()=>{
  engine.on('error',error=>console.log('Expected network QA diagnostic:',error.code,error.message))
  engine.logger=null;engine.disableDifferentialDownload=true
  updater=new LauncherUpdater(engine,'0.17.0',true,false,()=>{},()=>false,async()=>{throw Error('No installation allowed')})
- assert.equal((await updater.check()).phase,'available');assert.equal(installerRequests,0)
+ mode='missing-metadata';assert.equal((await updater.check()).error,'metadata')
+ mode='corrupt';assert.equal((await updater.check()).phase,'available');assert.equal(installerRequests,0)
  assert.equal((await updater.download()).error,'checksum');assert.equal(engine.installerPath,null)
  mode='interrupted';assert.equal((await updater.download()).phase,'error');assert.equal(engine.installerPath,null)
  mode='slow';const promise=updater.download();while(updater.get().phase!=='downloading')await new Promise(r=>setTimeout(r,10));await new Promise(r=>setTimeout(r,90));await updater.cancel();assert.equal((await promise).phase,'available');assert.equal(engine.installerPath,null)

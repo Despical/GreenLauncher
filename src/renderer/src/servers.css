@@ -19,8 +19,10 @@
 .servers-table-head>span{padding:12px 14px;position:relative;min-width:0}
 .server-cell+.server-cell::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:1px;background:var(--border);pointer-events:none}
 .servers-list{padding:0;overflow:hidden}
+.servers-list-panel>.servers-list{border-radius:0 0 9px 9px}
 .server-row{position:relative;border:1px solid transparent;border-bottom-color:var(--border);border-radius:0;margin:0;padding-inline:8px;transition:background .15s,border-color .15s}
 .server-row:hover,.server-row.selected{background:#21262d;border-color:#414b55}
+.server-row:last-child{border-radius:0 0 9px 9px}
 .server-row.dragging{background:#292f37;border-color:#64717e;box-shadow:0 6px 20px #0005}
 .server-select{width:100%;min-height:66px;text-align:left;padding:0;align-items:stretch;background:none;border:0;color:var(--text);touch-action:none;cursor:pointer}
 .server-select:hover{background:none}
@@ -29,7 +31,7 @@
 .server-identity{display:flex;align-items:center;gap:10px;min-width:0}
 /* Keep the player/address tracks in place when merging the name and description. */
 .servers-table-head>span:first-child,.server-identity{grid-column:span 2}
-.servers-table-head>span:first-child{padding-left:14px}
+.servers-table-head>span:first-child{padding-left:0}
 .server-identity{padding:0 14px 0 0;gap:14px}
 .server-identity .server-icon{width:66px;height:66px;align-self:stretch}
 .server-identity .server-icon img{object-fit:cover;border-radius:0}

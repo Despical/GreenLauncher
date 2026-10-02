@@ -6,7 +6,7 @@ try {
  await call('Runtime.enable');await until("document.querySelector('.side-nav')")
  await evaluate("window.launcher.saveSettings({language:'tr',qaUpdate:{phase:'current',version:null,error:null}})");await call('Page.reload');await until("document.querySelector('.side-nav')")
  await key('1');assert.equal(await evaluate("!!document.querySelector('.statusbar-update')"),false)
- await key('9');await button('Hakkında');await until("document.querySelector('.launcher-update-panel')")
+ await key('9');await button('Hakkında');assert.equal(await evaluate("!!document.querySelector('.launcher-update-panel')"),false);await button('Launcher');await until("document.querySelector('.launcher-update-panel')")
  assert.match(await evaluate("document.querySelector('.launcher-update-panel').textContent"),/En son sürümü/)
  await button('Güncellemeleri kontrol et');await until("document.querySelector('.update-last-check')")
  const setUpdate=async value=>await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify(value)+'})')
