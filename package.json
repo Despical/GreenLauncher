@@ -1,6 +1,6 @@
 {
   "name": "green-launcher",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "description": "A custom Minecraft Java Edition launcher",
@@ -13,7 +13,7 @@
     "preview": "electron-vite preview",
     "dist:portable": "pnpm run build && node scripts/build_portable.mjs",
     "dist:win": "pnpm dist:portable",
-    "dist:setup": "pnpm dist:portable && electron-builder --win nsis --prepackaged release/win-unpacked"
+    "dist:setup": "pnpm run build && electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -25,6 +25,7 @@
     "@xmcl/core": "^2.16.2",
     "@xmcl/installer": "^6.3.4",
     "@xmcl/user": "^4.4.2",
+    "electron-updater": "6.8.9",
     "lucide-react": "^0.468.0",
     "prismarine-nbt": "2.8.0",
     "react": "^19.1.1",
@@ -58,6 +59,8 @@
     "appId": "com.greenlauncher.desktop",
     "productName": "GreenLauncher",
     "executableName": "GreenLauncher",
+    "publish": { "provider": "github", "owner": "Despical", "repo": "GreenLauncher" },
+    "releaseInfo": { "releaseNotesFile": "docs/releases/0.17.0.md" },
     "directories": {
       "output": "release"
     },
@@ -99,7 +102,10 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "GreenLauncher-Setup-${version}.exe",
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "Green Launcher"
     }
   }
 }

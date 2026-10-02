@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Copy, FolderOpen, Globe2, Info, KeyRound, LoaderCircle, Pencil, Play, Plus, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { CalendarDays, Copy, FolderOpen, Gamepad2, Globe2, HardDrive, Info, KeyRound, Layers3, LoaderCircle, Pencil, Play, Plus, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react'
 import type { LauncherState, LaunchRequest, RunningInstance, SavedWorld } from '../../shared/types'
 import { serverLaunchMode } from '../../shared/server-launch'
 import { profileLaunchVersion } from '../../shared/profile-version'
@@ -82,7 +82,7 @@ export function WorldsPage({ state, language, launchBusy, instances, isVisible, 
       </section>
       <aside className="server-details"><div className="server-details-heading"><h3>{t('Dünya bilgileri')}</h3><p>{t('Seçili dünyanı buradan yönet.')}</p></div>{world ? <>
         <div className="server-details-identity world-details-identity"><span className="server-icon"><img src={world.icon ?? defaultIcon} alt="" /></span><div><h3 title={world.name}>{world.name}</h3></div></div>
-        <dl className="server-facts"><div><dt>{t('Oyun modu')}</dt><dd>{mode(world)}</dd></div><div><dt>{t('Son oynanma')}</dt><dd>{date(world.lastPlayed)}</dd></div><div><dt>{t('Boyut')}</dt><dd>{size(world.size)}</dd></div><div><dt>{t('Minecraft sürümü')}</dt><dd>{world.version ?? '—'}</dd></div></dl>
+        <dl className="server-facts"><div><dt><Gamepad2 size={15} />{t('Oyun modu')}</dt><dd>{mode(world)}</dd></div><div><dt><CalendarDays size={15} />{t('Son oynanma')}</dt><dd>{date(world.lastPlayed)}</dd></div><div><dt><HardDrive size={15} />{t('Boyut')}</dt><dd>{size(world.size)}</dd></div><div><dt><Layers3 size={15} />{t('Minecraft sürümü')}</dt><dd>{world.version ?? '—'}</dd></div></dl>
         <div className="world-management-actions"><button className="secondary world-join" disabled={locked || !supported} onClick={() => join(world)}><Play size={16} fill="currentColor" />{t('Katıl')}</button>
           <button className="secondary world-action-pair" disabled={locked} onClick={() => { setError(''); setName(world.name); setRenaming(world) }}><Pencil size={16} /><span>{t('Adını değiştir')}</span></button>
           <button className="secondary world-action-pair" disabled={locked} onClick={() => void act(() => window.launcher.duplicateWorld(profileId, world.id, t('{name} (kopya)', { name: world.name })), 'Dünya kopyalandı.')}><Copy size={16} /><span>{t('Kopyala')}</span></button>

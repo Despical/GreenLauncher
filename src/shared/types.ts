@@ -148,6 +148,7 @@ export interface InstalledMod { provider?: ModProvider; projectId: string; title
 export interface LauncherErrorEntry { id: string; at: string; source: string; message: string; code: string }
 
 export interface LauncherEvents {
+  update: LauncherUpdate
   downloads: DownloadSnapshot
   skinUpdated: { accountId: string; skin: string | null }
   instances: RunningInstance[]
@@ -161,6 +162,11 @@ export interface LauncherEvents {
 }
 
 export interface LauncherApi {
+  getUpdate(): Promise<LauncherUpdate>
+  checkUpdate(): Promise<LauncherUpdate>
+  downloadUpdate(): Promise<LauncherUpdate>
+  cancelUpdate(): Promise<LauncherUpdate>
+  installUpdate(): Promise<LauncherUpdate>
   setPresenceContext(context: LauncherPresenceContext): Promise<void>
   getDownloads(): Promise<DownloadSnapshot>
   controlDownloads(action: 'pause-all' | 'resume-all' | 'pause' | 'resume' | 'prioritize' | 'reorder' | 'clear', id?: string, beforeId?: string): Promise<DownloadSnapshot>
@@ -250,3 +256,18 @@ export interface LauncherApi {
 }
 
 export interface SavedWorld { id: string; name: string; gameMode?: number; hardcore: boolean; lastPlayed?: number; size?: number; icon?: string; seed?: string; version?: string }
+
+export interface LauncherUpdate {
+  phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'ready' | 'error' | 'disabled'
+  currentVersion: string
+  version?: string
+  notes?: string
+  releasedAt?: string
+  checkedAt?: string
+  percent?: number
+  transferred?: number
+  total?: number
+  bytesPerSecond?: number
+  error?: 'network' | 'checksum' | 'install' | 'busy'
+  portable: boolean
+}

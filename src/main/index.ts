@@ -1,4 +1,6 @@
 import { WorldService } from './worlds'
+import { NsisUpdater } from 'electron-updater'
+import { LauncherUpdater } from './updater'
 import type { ServerJoinPreference, ResourcePackPolicy } from '../shared/types'
 import { clipboard, app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
@@ -264,6 +266,18 @@ else {
       })().catch(error => { logs.record('Kısayol', error); send('launcher:shortcutError', diagnoseError(error).message) })
     }
     const accountChangeAllowed = () => { if (downloads.pending || game.getLaunchState().preparing || modpacks.isInstalling || installingContent) throw new Error('İşlem tamamlanana kadar hesap değiştirilemez.') }
+    const updateEngine = new NsisUpdater({ provider: 'github', owner: 'Despical', repo: 'GreenLauncher' })
+    updateEngine.logger = null
+    const updater = new LauncherUpdater(updateEngine, app.getVersion(), app.isPackaged && process.platform === 'win32', !!process.env.PORTABLE_EXECUTABLE_FILE,
+      state => send('launcher:update', state),
+      () => downloads.pending || game.getLaunchState().preparing || game.getRunningInstances().length > 0 || modpacks.isInstalling || installingContent || signingIn,
+      async file => { const error = await shell.openPath(file); if (error) throw new Error(error); app.quit() },
+    )
+    const startupUpdate = setTimeout(() => void updater.check(), 2500)
+    startupUpdate.unref()
+    const periodicUpdate = setInterval(() => void updater.check(), 6 * 60 * 60 * 1000)
+    periodicUpdate.unref()
+    app.on('before-quit', () => { clearTimeout(startupUpdate); clearInterval(periodicUpdate); updater.dispose() })
     const handle = <T extends unknown[]>(channel: string, action: (...args: T) => Promise<unknown> | unknown) => {
       ipcMain.handle(channel, async (_event, ...args: T) => {
         try { return await action(...args) }
@@ -271,6 +285,11 @@ else {
       })
     }
 
+    handle('launcher:get-update', () => updater.get())
+    handle('launcher:check-update', () => updater.check())
+    handle('launcher:download-update', () => updater.download())
+    handle('launcher:cancel-update', () => updater.cancel())
+    handle('launcher:install-update', () => updater.install())
     handle('launcher:get-state', () => {
       if (pendingShortcut) setTimeout(() => dispatchShortcut?.(), 250)
       if (pendingNavigation) { const page = pendingNavigation; pendingNavigation = null; setTimeout(() => send('launcher:navigate', page), 250) }

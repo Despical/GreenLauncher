@@ -40,6 +40,15 @@ The core checks use isolated fixtures. Renderer QA helpers in `scripts/` also us
 
 ## Windows distribution
 
+Install `GreenLauncher-Setup-<version>.exe` from [GitHub Releases](https://github.com/Despical/GreenLauncher/releases) once to receive future updates inside the launcher. Automatic checks run at startup and every six hours. Manual checks are in Settings > About. A newer release displays its notes on the home page and an indicator in the bottom bar. Download and installation require explicit actions; installation waits until games and active operations finish. Equal, older and prerelease versions are never offered. Downloads are checksum-verified before execution, failed/cancelled downloads can be retried, and a completed cached installer is revalidated on the next download attempt. User data stays outside the install directory.
+
+```powershell
+pnpm dist:setup
+node scripts/verify-release.cjs
+```
+
+The setup, its blockmap and `latest.yml` must all be uploaded to the same stable GitHub release. The publisher settings in `package.json` generate the update metadata, including `docs/releases/<version>.md`. Use a draft until all assets are present and verified. A future website can serve the same NSIS installer and update metadata through a generic update provider.
+
 Portable packaging requires Visual Studio C++ Build Tools and the Windows SDK for the native splash helper.
 
 ```powershell
@@ -61,7 +70,7 @@ Offline accounts do not require Microsoft sign-in and can join only servers that
 
 Read [AGENTS.md](AGENTS.md) for UI conventions, validation and the delegated commit workflow. Significant verified changes use focused English commits on `main`; generated output, credentials and runtime data must stay out of commits.
 
-The Windows GitHub Actions workflow runs translations, core checks and a production build for pushes and pull requests.
+The Windows GitHub Actions workflow runs translations, core checks, update lifecycle checks and a production build for pushes and pull requests.
 
 ## License
 

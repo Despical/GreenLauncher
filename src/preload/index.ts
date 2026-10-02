@@ -4,6 +4,11 @@ import type { LauncherApi, LauncherEvents } from '../shared/types'
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(`launcher:${channel}`, ...args)
 
 const api: LauncherApi = {
+  getUpdate: () => invoke('get-update'),
+  checkUpdate: () => invoke('check-update'),
+  downloadUpdate: () => invoke('download-update'),
+  cancelUpdate: () => invoke('cancel-update'),
+  installUpdate: () => invoke('install-update'),
   setPresenceContext: context => invoke('set-presence-context', context),
   getDownloads: () => invoke('get-downloads'),
   controlDownloads: (action, id, beforeId) => invoke('control-downloads', action, id, beforeId),

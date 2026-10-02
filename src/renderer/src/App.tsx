@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { CleanupPreview, DownloadSnapshot, DiskUsage, GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherErrorEntry, LauncherProfile, LauncherSettings, LauncherState, OfflineStatus, ScreenshotItem, ScreenshotSort, VersionType, RunningInstance, LaunchRequest, LauncherPresenceContext } from '../../shared/types'
 import { screenshotPageSize } from '../../shared/types'
+import { HomeUpdate, UpdateDialog, UpdateIndicator, UpdatePanel, useLauncherUpdate } from './LauncherUpdates'
 import { profileLaunchVersion, profileVersionLabel } from '../../shared/profile-version'
 import { memoryGb } from '../../shared/memory'
 import { serverLaunchMode } from '../../shared/server-launch'
@@ -232,6 +233,8 @@ function ProfilePageButton({ index, active, language, onClick }: { index: number
 }
 
 function App() {
+  const updates = useLauncherUpdate()
+  const [updateOpen, setUpdateOpen] = useState(false)
   const [state, setState] = useState<LauncherState | null>(null)
   const [versions, setVersions] = useState<GameVersion[]>([])
   const [page, setPageState] = useState<Page>('home')
@@ -723,6 +726,7 @@ function App() {
           {state.settings.animateHero && <div className="hero-progress" key={heroIndex}><div className="hero-progress-fill" onAnimationEnd={() => setHeroIndex(current => (current + 1) % heroSlides.length)} /></div>}
         </div>
           {!online && <div className="offline-banner"><WifiOff size={19} /><div><strong>{t('Çevrimdışı görünüm')}</strong><span>{offlineStatus.accountReady && offlineStatus.versionReady ? t('Bu hesap ve kurulu sürümle oynayabilirsin.') : t('Çevrimdışı hesap veya doğrulanmış Microsoft oturumu ve kurulu sürüm gerekir.')}</span></div></div>}
+          <HomeUpdate controls={updates} language={language} />
           <div className="home-bottom">
             <section className="launch-panel">
               <div className="launch-panel-head"><div><h2>{t('Oyun profili')}</h2><p>{t('Macerana hangi profille devam edeceksin?')}</p></div>{profile && <button type="button" className="launch-profile-edit" aria-label={t('Profili düzenle')} title={t('Profili düzenle')} onClick={() => void profileAction(profile.id, 'edit')}><Pencil size={17} /></button>}</div>
@@ -815,11 +819,12 @@ function App() {
             <div className="launcher-files"><button className="folder-link" onClick={() => window.launcher.openFolder()}><FolderOpen size={17} /> {t('Launcher dosyalarını aç')} <ArrowRight size={16} /></button><small className="data-path">{state.dataPath}</small></div>
           </div>}
           {<div hidden={settingsTab !== 'logs'}><ErrorLogPanel entries={errorLogs} language={language} onOpenFile={() => run(() => window.launcher.openErrorLog())} onClear={() => run(async () => { setErrorLogs(await window.launcher.clearErrorLog()) }, t('Hata günlükleri temizlendi.'))} /></div>}
-          {settingsTab === 'about' && <AboutPanel version={packageJson.version} language={language} onOpen={url => run(() => window.launcher.openExternal(url))} />}
+          {settingsTab === 'about' && <><UpdatePanel controls={updates} language={language} compact /><AboutPanel version={packageJson.version} language={language} onOpen={url => run(() => window.launcher.openExternal(url))} /></>}
         </div></div>}
       </main>
     </div>
-    <div className="statusbar"><span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (activity.kind === 'idle' ? t('Başlatmaya hazır') : t(activity.label))}</span><div className="statusbar-end">{profile && <span className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${profile.name}`}>Minecraft {selectedVersionLabel} · {profile.name}</span>}<button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div>
+    <div className="statusbar"><span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (activity.kind === 'idle' ? t('Başlatmaya hazır') : t(activity.label))}</span><div className="statusbar-end">{profile && <span className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${profile.name}`}>Minecraft {selectedVersionLabel} · {profile.name}</span>}<UpdateIndicator controls={updates} language={language} onOpen={() => setUpdateOpen(true)} /><button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div>
+    {updateOpen && <UpdateDialog controls={updates} language={language} onClose={() => setUpdateOpen(false)} />}
     {changelogOpen && <Suspense fallback={null}><Changelog language={language} onClose={()=>setChangelogOpen(false)}/></Suspense>}
     {profileMenu && page === 'profiles' && state.profiles.some(item => item.id === profileMenu.id) && <ProfileMenu profile={state.profiles.find(item => item.id === profileMenu.id)!} x={profileMenu.x} y={profileMenu.y} language={language} pending={profileTasks.includes(profileMenu.id) || instances.some(item => item.profileId === profileMenu.id)} onClose={() => setProfileMenu(null)} onAction={action => void profileAction(profileMenu.id, action)} />}
     {profileInformationId && state.profiles.find(item => item.id === profileInformationId) && <ProfileInformation profile={state.profiles.find(item => item.id === profileInformationId)!} language={language} onClose={() => setProfileInformationId(null)} />}
