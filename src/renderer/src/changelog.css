@@ -1,6 +1,6 @@
 /* Release history: neutral Settings palette, flat version navigation. */
 .modal.account-dialog.changelog-dialog { display: flex; flex-direction: column; width: min(1060px,calc(100vw - 80px)); height: min(770px,calc(100vh - 116px)); max-height: calc(100vh - 116px); padding: 0; overflow: hidden; border-radius: 12px; background: #161b22; }
-.modal.changelog-dialog .dialog-heading { flex: none; margin: 0; padding: 24px; gap: 20px; }
+.modal.changelog-dialog .dialog-heading { flex: none; margin: 0; padding: 24px; gap: 20px; background: linear-gradient(90deg,#161b22ed,#161b22bc 48%,#161b223d),url('../assets/changelog-end-panorama.png') center/cover no-repeat; }
 .changelog-dialog .account-dialog-symbol, .changelog-dialog .account-dialog-symbol img { width: 42px; height: 42px; border: 0; background: transparent; object-fit: contain; }
 .changelog-dialog .release-history-layout { display: grid; grid-template-columns: 32% minmax(0,1fr); flex: 1; min-height: 0; }
 .changelog-dialog .release-history-navigation { display: flex; flex-direction: column; min-height: 0; padding: 20px 16px; border-right: 1px solid #34414e; background: #161b22; }
