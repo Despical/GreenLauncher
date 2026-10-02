@@ -5,7 +5,7 @@ const checks=String.raw`
 try{
  await call('Runtime.enable');await until("document.querySelector('.side-nav')")
  const notes='<h3>Playtime</h3><ul><li>Daily &amp; weekly history</li><li>Download fixes</li></ul><script>window.badNotes=true</script>'
- await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaUpdate:{phase:'available',currentVersion:'0.17.2',version:'0.18.0',notes,releasedAt:'2026-10-03T10:00:00Z',checkedAt:'2026-10-01T10:00:00Z',error:null}})+')')
+ await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',qaUpdate:{phase:'available',currentVersion:'0.17.3',version:'0.18.0',notes,releasedAt:'2026-10-03T10:00:00Z',checkedAt:'2026-10-01T10:00:00Z',error:null}})+')')
  await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1')
  assert.equal(await evaluate("document.querySelectorAll('.home-update,.main-content.page-home .launcher-update-panel').length"),0)
  await key('9');await button('Launcher');await until("document.querySelector('.update-last-check')")
@@ -24,7 +24,7 @@ try{
   await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
   await click('.statusbar-changelog');await until("document.querySelector('.release-current-badge')")
   assert.equal(await evaluate("document.querySelector('.release-latest-badge').previousElementSibling.textContent"),'v0.18.0')
-  assert.equal(await evaluate("document.querySelector('.release-current-badge').previousElementSibling.textContent"),'v0.17.2')
+  assert.equal(await evaluate("document.querySelector('.release-current-badge').previousElementSibling.textContent"),'v0.17.3')
   const text=await evaluate("document.querySelector('.release-history-detail').textContent")
   assert.match(text,/Daily & weekly history/);assert.doesNotMatch(text,/<h3>|<li>|window.badNotes/)
   assert.equal(await evaluate("window.badNotes===true"),false)

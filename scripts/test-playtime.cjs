@@ -21,7 +21,7 @@ try {
   tracker.start(instance('a')); clock = 65_000; tracker.checkpoint('a')
   check('checkpoint saves one real measured session', () => { assert.equal(store.get().playSessions.length, 1); assert.equal(store.get().playSessions[0].durationMs, 65_000) })
   store = new LauncherStore()
-  check('restart preserves only the last checkpoint without counting downtime', () => assert.equal(store.get().playSessions[0].durationMs, 65_000))
+  check('restart restores the selected profile and its measured history without counting downtime', () => { const state = store.get(); assert.equal(state.selectedProfileId, profile); assert.equal(state.selectedAccountId, owner); assert.equal(playtimeSummary(state.playSessions, state.selectedProfileId).total, 65_000) })
   tracker.start(instance('b')); clock = 100_000; tracker.finish('a'); tracker.finish('a')
   check('concurrent sessions are independent and duplicate exits do not double count', () => { assert.equal(store.get().playSessions.length, 2); assert.equal(store.get().playSessions.find(s => s.id === 'a').durationMs, 100_000) })
   const foreign = store.createOfflineAccount('PlayerTwo').selectedAccountId

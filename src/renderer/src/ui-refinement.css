@@ -241,7 +241,9 @@ button:not([aria-expanded]):active > svg.lucide-chevron-down { transform: rotate
 .launch-panel .dropdown-trigger { height: 72px; padding: 12px; }
 .launch-panel .dropdown-copy { gap: 9px; }
 .statusbar-end { min-width: 0; max-width: 65%; }
-.statusbar-profile { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.statusbar-profile { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.statusbar-profile:hover { color: #c9d1d9; }
+.statusbar-profile:focus-visible { outline: 1px solid #8b949e; outline-offset: 3px; border-radius: 2px; }
 .statusbar-changelog { flex: none; }
 .profile-information-empty-note { border-top: 1px solid #34414e; padding-top: 20px; display: flex; gap: 11px; align-items: flex-start; }
 .profile-information-empty-note > svg { flex: none; margin-top: 2px; color: #98a8b6; }
