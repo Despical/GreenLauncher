@@ -22,7 +22,9 @@ function defaultSettings(): LauncherSettings {
     downloadSpeedLimitKiB: 0,
     pauseDownloadsWhilePlaying: false,
     downloadConcurrency: 6,
-    savePlaytime: true
+    savePlaytime: true,
+    showPlaytime: true,
+    showTotalPlaytime: true
   }
 }
 
@@ -56,6 +58,8 @@ export class LauncherStore {
     settings.downloadConcurrency = bounded(settings.downloadConcurrency, 6, 1, 12)
     settings.pauseDownloadsWhilePlaying = settings.pauseDownloadsWhilePlaying === true
     settings.savePlaytime = settings.savePlaytime !== false
+    settings.showPlaytime = settings.showPlaytime !== false
+    settings.showTotalPlaytime = settings.showTotalPlaytime !== false
     const playHistory = (Array.isArray(saved.playHistory) && saved.playHistory.length > 0 ? saved.playHistory.slice(0, 100) : (saved.profiles ?? []).filter(profile => profile.lastPlayed).map(profile => ({ id: randomUUID(), profileId: profile.id, profileName: profile.name, versionId: profile.versionId, at: profile.lastPlayed! }))).sort((a, b) => String(b.at).localeCompare(String(a.at)))
     const lastPlayedVersion = playHistory.find(item => /^[a-zA-Z0-9._-]{1,90}$/.test(item.versionId))?.versionId
     this.state = {
@@ -158,6 +162,8 @@ export class LauncherStore {
     if (changes.downloadConcurrency !== undefined) settings.downloadConcurrency = bounded(changes.downloadConcurrency, settings.downloadConcurrency ?? 6, 1, 12)
     if (typeof changes.pauseDownloadsWhilePlaying === 'boolean') settings.pauseDownloadsWhilePlaying = changes.pauseDownloadsWhilePlaying
     if (typeof changes.savePlaytime === 'boolean') settings.savePlaytime = changes.savePlaytime
+    if (typeof changes.showPlaytime === 'boolean') settings.showPlaytime = changes.showPlaytime
+    if (typeof changes.showTotalPlaytime === 'boolean') settings.showTotalPlaytime = changes.showTotalPlaytime
     return this.save()
   }
 

@@ -1,4 +1,6 @@
 .profile-page-heading-actions { display: flex; gap: 10px; align-items: center; }
+.profiles-total-playtime { display: flex; align-items: center; gap: 8px; margin: -8px 0 20px; color: #b1bac4; font-size: 12px; }
+.profiles-total-playtime svg { flex: none; color: #8b949e; }
 .profile-import-button { background: #232c35; border-color: #46535e; }
 .profile-card { position: relative; isolation: isolate; overflow: hidden; }
 .profile-card-cover { position: absolute; z-index: -1; inset: 0 0 auto; height: 138px; opacity: .8; background: linear-gradient(145deg,color-mix(in srgb,var(--profile-color,#4c8862) 35%,#142028),#161b2200); pointer-events: none; }

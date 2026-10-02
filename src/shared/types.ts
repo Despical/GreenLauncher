@@ -62,6 +62,8 @@ export interface LauncherSettings {
   pauseDownloadsWhilePlaying?: boolean
   downloadConcurrency?: number
   savePlaytime?: boolean
+  showPlaytime?: boolean
+  showTotalPlaytime?: boolean
 }
 
 export interface GameAccount {

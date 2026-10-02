@@ -486,6 +486,11 @@ input[type=number] { appearance: textfield; -moz-appearance: textfield; }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .launcher-files { margin-top: 18px; padding-top: 13px; border-top: 1px solid #30363d; }
 .launcher-files .folder-link { margin-top: 0; }
+.playtime-settings { margin-top: 24px; padding-top: 20px; border-top: 1px solid #30363d; }
+.playtime-settings h4 { margin: 0 0 14px; color: #e6edf3; font-size: 14px; font-weight: 600; }
+.playtime-settings .setting-toggle { gap: 12px; }
+.playtime-settings .setting-toggle + .setting-toggle { border-top: 0; }
+.playtime-settings .setting-toggle small { line-height: 1.5; }
 .profile-modal { width: 590px; }
 .profile-modal .form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .profile-modal .form-grid label.full { grid-column: 1 / -1; }

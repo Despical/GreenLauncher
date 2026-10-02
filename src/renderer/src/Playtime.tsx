@@ -1,4 +1,5 @@
 import type { LauncherState } from '../../shared/types'
+import { Clock3 } from 'lucide-react'
 import { playtimeSummary } from '../../shared/playtime'
 import { translate, type Language } from './i18n'
 
@@ -10,7 +11,7 @@ export function playDuration(milliseconds: number, language: Language): string {
 }
 
 export function PlaytimeStatus({ state, language }: { state: LauncherState; language: Language }) {
-  if (!state.selectedProfileId) return null
+  if (state.settings.showPlaytime === false || !state.selectedProfileId) return null
   const summary = playtimeSummary(state.playSessions ?? [], state.selectedProfileId), last = summary.history[0]
   if (!last) return null
   const label = translate(language, 'Başlatmaya hazır, en son {date} tarihinde {duration} süreyle oynandı (toplam {total})', {
@@ -18,4 +19,11 @@ export function PlaytimeStatus({ state, language }: { state: LauncherState; lang
     duration: playDuration(last.durationMs, language), total: playDuration(summary.total, language)
   })
   return <span className="statusbar-download statusbar-playtime" title={label}>{label}</span>
+}
+
+export function TotalPlaytime({ state, language }: { state: LauncherState; language: Language }) {
+  if (state.settings.showTotalPlaytime === false || !state.profiles.length) return null
+  const profiles = new Set(state.profiles.map(profile => profile.id))
+  const total = (state.playSessions ?? []).reduce((sum, session) => sum + (profiles.has(session.profileId) ? session.durationMs : 0), 0)
+  return <div className="profiles-total-playtime" title={translate(language, 'Seçili hesaba ait tüm profillerde oynanan süre.')}><Clock3 size={16} /><span>{translate(language, 'Toplam oyun süresi: {duration}', { duration: playDuration(total, language) })}</span></div>
 }

@@ -4,7 +4,7 @@ const helpers = readFileSync('scripts/qa-servers-custom.mjs', 'utf8').split('try
 const checks = String.raw`
 try {
  await call('Runtime.enable');await until("document.querySelector('.side-nav')")
- await evaluate("window.launcher.saveSettings({language:'tr',qaPlaySessions:[],qaDownloads:[],qaActivity:{kind:'idle',label:'Hazır'},qaUpdate:{phase:'current',version:null,error:null}})");await evaluate("window.launcher.selectProfile('qa-profile')");await call('Page.reload');await until("document.querySelector('.statusbar-download')")
+ await evaluate("window.launcher.saveSettings({language:'tr',showPlaytime:true,showTotalPlaytime:true,savePlaytime:true,qaPlaySessions:[],qaDownloads:[],qaActivity:{kind:'idle',label:'Hazır'},qaUpdate:{phase:'current',version:null,error:null}})");await evaluate("window.launcher.selectProfile('qa-profile')");await call('Page.reload');await until("document.querySelector('.statusbar-download')")
  const appearance=()=>evaluate("(()=>{const s=getComputedStyle(document.querySelector('.statusbar-download'));return {font:s.font,color:s.color,background:s.backgroundColor,cursor:s.cursor,padding:s.padding,margin:s.margin}})()")
  const normal=await appearance();assert.equal(await evaluate("document.querySelector('.statusbar-download').textContent"),'Başlatmaya hazır')
  const end='2026-10-02T13:47:00.000Z'
@@ -38,10 +38,34 @@ try {
  await evaluate("window.launcher.saveSettings({qaDownloads:[{id:'qa-active',title:'Minecraft QA',phase:'downloading',downloadedBytes:100,totalBytes:1000,bytesPerSecond:10,priority:0,forLaunch:false}]})");await until("!document.querySelector('.statusbar-playtime')");assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Minecraft QA/)
  await evaluate("window.launcher.saveSettings({qaDownloads:[],qaActivity:{kind:'launching',label:'Oyun başlatılıyor'}})");await until("!document.querySelector('.statusbar-playtime')");assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Oyun başlatılıyor/)
  await evaluate("window.launcher.saveSettings({qaActivity:{kind:'idle',label:'Hazır'},qaUpdate:{phase:'downloading',percent:42}})");await until("!document.querySelector('.statusbar-playtime')");assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/Güncelleme indiriliyor.*42/)
- await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'current'}})");await key('9');await button('Launcher');await until("document.querySelector('.launcher-update-settings')")
+ await evaluate("window.launcher.saveSettings({qaUpdate:{phase:'current'}})");await key('9');await button('Launcher');await until("document.querySelector('.playtime-settings')")
+ assert.deepEqual(await evaluate("[...document.querySelectorAll('.playtime-settings [role=checkbox] strong')].map(e=>e.textContent)"),['Profillerde oynanan süreyi göster','Profillerde oynanan süreyi kaydet','Profiller arasında oynanan toplam süreyi göster'])
+ assert.equal(await evaluate("getComputedStyle(document.querySelector('.playtime-settings')).borderTopWidth"),'1px')
+ await evaluate("document.querySelector('.playtime-settings').scrollIntoView({block:'center'})");await shot('qa-playtime-settings')
+ await click('.playtime-settings [role=checkbox]:nth-of-type(1)');await click('.playtime-settings [role=checkbox]:nth-of-type(3)')
+ assert.equal(await evaluate("document.querySelector('.playtime-settings [role=checkbox]:nth-of-type(1)').getAttribute('aria-checked')"),'false')
+ assert.equal(await evaluate("window.launcher.getState().then(s=>s.settings.showPlaytime)"),true,'draft remains unapplied before Save')
+ await button('Değişiklikleri kaydet');await until("!document.querySelector('.statusbar-playtime')")
+ assert.equal(await evaluate("document.querySelector('.statusbar-download').textContent"),'Başlatmaya hazır')
+ await nav('Profillerim');assert.equal(await evaluate("!!document.querySelector('.profiles-total-playtime')"),false)
+ await key('9');await button('Launcher');await click('.playtime-settings [role=checkbox]:nth-of-type(3)');await button('Değişiklikleri kaydet')
+ const more=[...sessions,{...sessions[0],id:'second',profileId:'qa-profile-1',durationMs:61_000},{...sessions[0],id:'foreign',profileId:'foreign-profile',durationMs:999_000}]
+ await evaluate('window.launcher.saveSettings('+JSON.stringify({qaPlaySessions:more})+')');await nav('Profillerim');await until("document.querySelector('.profiles-total-playtime')")
+ assert.equal(await evaluate("document.querySelector('.profiles-total-playtime').textContent"),'Toplam oyun süresi: 2 dk 40 sn')
+ assert.equal(await evaluate("!!document.querySelector('.statusbar-playtime')"),false,'total display is independent from per-profile display')
+ await shot('qa-playtime-total-profiles')
+ for(const language of ['tr','en','de','fr','ru','pl']){
+  await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await click('.statusbar-profile');await until("document.querySelector('.profiles-total-playtime')")
+  assert.match(await evaluate("document.querySelector('.profiles-total-playtime').textContent"),/2.*40/)
+  await key('9');await button('Launcher');assert.equal(await evaluate("document.querySelectorAll('.playtime-settings [role=checkbox]').length"),3)
+  assert.equal(await evaluate("document.querySelector('.playtime-settings').textContent.includes('Profillerde oynanan süreyi göster')"),language==='tr')
+ }
+ await evaluate('window.launcher.saveSettings('+JSON.stringify({language:'tr',showPlaytime:true,showTotalPlaytime:true,qaPlaySessions:sessions})+')');await call('Page.reload');await until("document.querySelector('.statusbar-playtime')")
+ await call('Emulation.setDeviceMetricsOverride',{width:1080,height:700,deviceScaleFactor:1,mobile:false});await key('9');await button('Launcher');await evaluate("document.querySelector('.playtime-settings').scrollIntoView({block:'center'})");await shot('qa-playtime-settings-minimum')
+ assert.equal(await evaluate("[...document.querySelectorAll('.playtime-settings [role=checkbox]')].every(e=>e.getBoundingClientRect().right<=window.innerWidth)"),true)
  assert.equal(await evaluate("document.querySelector('.main-content.page-settings').textContent.includes('Oyun süresi istatistikleri')"),false)
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS exact plain footer text and unchanged font, no click/hover/menu, last selected profile restored on reload, profile shortcut, removed information entry, six languages and download/launch/update priority')
+ console.log('PASS plain footer, activity priority, three separated settings with Save behavior, independent profile/total visibility, totals across all owned profiles, foreign session exclusion, six languages and minimum-window layout')
 } finally {socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)
