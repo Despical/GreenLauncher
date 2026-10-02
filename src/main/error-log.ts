@@ -42,7 +42,10 @@ export class ErrorLog {
   }
 
   record(source: string, error: unknown): void {
-    const diagnosis = diagnoseError(error)
+    const diagnosis = source === 'Launcher güncellemesi' ? {
+      code: String((error as { code?: unknown })?.code ?? '').slice(0, 80) || 'UPDATE_ERROR',
+      message: (error instanceof Error ? error.message : String(error)).replace(/https?:\/\/\S+/gi, '[URL]').replace(/(authorization|token|password)\s*[:=]\s*\S+/gi, '$1=[redacted]').slice(0, 600),
+    } : diagnoseError(error)
     const entry = { id: randomUUID(), at: new Date().toISOString(), source: logSource(source), ...diagnosis }
     if (this.entries.some(previous => sameFailure(previous, entry))) return
     this.entries.unshift(entry)

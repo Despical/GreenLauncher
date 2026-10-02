@@ -10,10 +10,16 @@ export function useLauncherUpdate() {
   const [update, setUpdate] = useState<LauncherUpdate>({ phase: 'idle', currentVersion: packageJson.version, portable: false })
   const revision = useRef(0)
   const [checkResult, setCheckResult] = useState<{ value: LauncherUpdate } | null>(null)
+  const [failure, setFailure] = useState<{ value: LauncherUpdate } | null>(null)
+  const previous = useRef<LauncherUpdate | null>(null)
   useEffect(() => {
     const before = revision.current
     void window.launcher.getUpdate().then(value => { if (revision.current === before) setUpdate(value) }).catch(() => {})
-    return window.launcher.on('update', value => { revision.current++; setUpdate(value) })
+    return window.launcher.on('update', value => {
+      revision.current++; setUpdate(value)
+      if (value.error && ['download', 'install'].includes(value.operation ?? '') && (previous.current?.error !== value.error || previous.current?.phase !== value.phase)) setFailure({ value })
+      previous.current = value
+    })
   }, [])
   const action = async (kind: 'check' | 'download' | 'cancel' | 'install') => {
     try {
@@ -22,10 +28,21 @@ export function useLauncherUpdate() {
       if (kind === 'check') setCheckResult({ value })
     } catch (error) {
       if (kind === 'check') setCheckResult({ value: { ...update, phase: 'error', error: 'network' } })
+      else if (kind !== 'cancel') setFailure({ value: { ...update, phase: 'error', error: kind === 'install' ? 'install' : 'network', operation: kind } })
       throw error
     }
   }
-  return { update, action, checkResult }
+  return { update, action, checkResult, failure }
+}
+
+export function updateErrorText(update: LauncherUpdate) {
+  const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
+  return update.error === 'network' && update.operation === 'download' ? 'Güncelleme indirilemedi. Bağlantını kontrol edip yeniden dene.' : errors[update.error ?? 'network']
+}
+
+export function updateCheckDate(value: string) {
+  const date = new Date(value), two = (part: number) => String(part).padStart(2, '0')
+  return `${two(date.getDate())}.${two(date.getMonth() + 1)}.${date.getFullYear()} ${two(date.getHours())}:${two(date.getMinutes())}`
 }
 type Controls = ReturnType<typeof useLauncherUpdate>
 const hasRelease = (update: LauncherUpdate) => !!update.version && ['available', 'downloading', 'ready', 'error', 'checking'].includes(update.phase)
@@ -39,24 +56,22 @@ export function UpdatePanel({ controls: { update, action }, language, compact = 
     finally { setPending(false) }
   }
   const checking = update.phase === 'checking', downloading = update.phase === 'downloading', ready = update.phase === 'ready'
-  const errors = { network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.', metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.' }
-  const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'error' ? t('Kontrol tamamlanamadı') : update.phase === 'current' ? t('En son sürüm yüklü') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Yeni sürümleri takip et')
+  const headline = checking ? t('Güncellemeler kontrol ediliyor...') : downloading ? t('Güncelleme indiriliyor...') : ready ? t('Güncelleme kurulmaya hazır') : update.phase === 'error' ? t(update.operation === 'download' ? 'Güncelleme indirilemedi' : 'Kontrol tamamlanamadı') : update.phase === 'current' ? t('En son sürüm yüklü') : hasRelease(update) ? t('Yeni bir güncelleme var') : t('Yeni sürümleri takip et')
   return <div className="launcher-update-area"><section className={`launcher-update-panel ${compact ? 'compact' : ''}`} aria-label={t('Launcher güncellemeleri')}>
     <div className={`update-heading ${update.phase}`}><h3>{headline}</h3></div>
     {update.phase === 'disabled' ? <p className="update-description">{t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.')}</p> : <>
       {update.phase === 'idle' && <p className="update-description">{t('Launcher açıldığında yeni sürümler otomatik kontrol edilir.')}</p>}
       {update.phase === 'current' && <p className="update-description">{t('Yeni bir sürüm çıktığında burada göreceksin.')}</p>}
-      {update.error && <p className="update-error" role="status">{t(errors[update.error])}</p>}
+      {update.error && <p className="update-error" role="status">{t(updateErrorText(update))}</p>}
       {downloading && <div className="update-progress"><progress max={100} value={update.percent ?? 0} aria-label={t('Güncelleme indiriliyor...')} /><span>{Math.floor(update.percent ?? 0)}% · {((update.transferred ?? 0) / 1048576).toFixed(1)} / {((update.total ?? 0) / 1048576).toFixed(1)} MB</span></div>}
       {hasRelease(update) && <p className="update-description"><span className="update-release-version">v{update.version}</span>{t(update.portable ? 'Bir kez kurulum yap; sonraki güncellemeler launcher içinden gelecek.' : 'Profillerin, hesapların ve dünyaların korunur.')}</p>}
-      {!compact && update.notes && hasRelease(update) && <div className="update-notes"><h4>{t('Bu sürümde neler yeni?')}</h4><p>{update.notes}</p></div>}
       <div className="update-actions">
         {ready ? <button className="update-primary" disabled={pending} onClick={() => void run('install')}>{t(update.portable ? 'Kurulumu başlat' : 'Yeniden başlat ve güncelle')}</button> : downloading ? <button onClick={() => void run('cancel')}>{t('İndirmeyi iptal et')}</button> : hasRelease(update) && !checking ? <button className="update-primary" disabled={pending} onClick={() => void run('download')}>{t('Güncellemeyi indir')}</button> : null}
         <button className="update-check" disabled={pending || checking || downloading || ready} onClick={() => void run('check')}>{checking && <RefreshCw size={15} className="spin" />}{t('Kontrol et')}</button>
       </div>
     </>}
   </section>
-    {update.checkedAt && !checking && <small className="update-last-check">{t('Son kontrol')} · <time dateTime={update.checkedAt}>{new Intl.DateTimeFormat(language, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(update.checkedAt))}</time></small>}
+    {update.checkedAt && <small className="update-last-check">{t('Son kontrol')} · <time dateTime={update.checkedAt}>{updateCheckDate(update.checkedAt)}</time></small>}
   </div>
 }
 
@@ -68,9 +83,5 @@ export function UpdateIndicator({ controls, language, onOpen }: { controls: Cont
 }
 
 export function UpdateDialog({ controls, language, onClose }: { controls: Controls; language: Language; onClose(): void }) {
-  return <AccountDialog title={translate(language, 'Launcher güncellemeleri')} description={translate(language, 'Bu sürümde neler yeni?')} closeLabel={translate(language, 'Kapat')} onClose={onClose}><UpdatePanel controls={controls} language={language} /></AccountDialog>
-}
-
-export function HomeUpdate({ controls, language }: { controls: Controls; language: Language }) {
-  return hasRelease(controls.update) ? <div className="home-update"><UpdatePanel controls={controls} language={language} /></div> : null
+  return <AccountDialog title={translate(language, 'Launcher güncellemeleri')} description={translate(language, 'Profillerin, hesapların ve dünyaların korunur.')} closeLabel={translate(language, 'Kapat')} onClose={onClose}><UpdatePanel controls={controls} language={language} /></AccountDialog>
 }

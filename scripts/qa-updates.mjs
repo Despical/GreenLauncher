@@ -11,14 +11,15 @@ try {
  await button('Kontrol et');await until("document.querySelector('.update-last-check')")
  const setUpdate=async value=>await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify(value)+'})')
  await setUpdate({phase:'available',version:'0.18.0',notes:'New release notes\nWorlds and servers improved.'})
- await key('1');await until("document.querySelector('.home-update')")
- assert.match(await evaluate("document.querySelector('.home-update .update-notes').textContent"),/New release notes/)
+ await key('1');assert.equal(await evaluate("!!document.querySelector('.home-update')"),false)
+ assert.equal(await evaluate("document.querySelectorAll('.update-notes').length"),0)
  await shot('qa-update-home')
  await click('.statusbar-update');await until("document.querySelector('.account-dialog .launcher-update-panel')")
  await button('Güncellemeyi indir');await until("document.querySelector('.account-dialog progress')")
  assert.equal(await evaluate("document.querySelector('.account-dialog progress').value"),42)
  await button('İndirmeyi iptal et');await until("window.launcher.getUpdate().then(s=>s.phase==='available')")
- await setUpdate({phase:'error',error:'network'});assert.match(await evaluate("document.querySelector('.account-dialog .update-error').textContent"),/Bağlantını/)
+ await setUpdate({phase:'error',error:'network',operation:'download'});assert.match(await evaluate("document.querySelector('.account-dialog .update-error').textContent"),/Bağlantını/)
+ await until("document.querySelector('.toast')");assert.match(await evaluate("document.querySelector('.toast').textContent"),/Güncelleme indirilemedi/)
  await button('Güncellemeyi indir');await setUpdate({phase:'ready',percent:100,error:null})
  await until("[...document.querySelectorAll('.account-dialog button')].some(b=>b.textContent.includes('Yeniden başlat ve güncelle'))")
  await button('Yeniden başlat ve güncelle');await until("document.querySelector('.account-dialog .update-error')")
@@ -26,9 +27,9 @@ try {
  await shot('qa-update-ready')
  await click('.account-dialog button[aria-label="Kapat"]');await until("!document.querySelector('.account-dialog')")
  for(const language of ['tr','en','de','fr','ru','pl']){
-   await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1');await until("document.querySelector('.home-update')")
+   await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('1');assert.equal(await evaluate("!!document.querySelector('.home-update')"),false);await key('9');await button('Launcher')
    await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
-   assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth&&[...document.querySelectorAll('.home-update button')].every(b=>b.scrollWidth<=b.clientWidth+1)"),language)
+   assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth&&[...document.querySelectorAll('.launcher-update-settings button')].every(b=>b.scrollWidth<=b.clientWidth+1)"),language)
  }
  for(const page of ['4','5']){
    await key(page);await until("document.querySelector('.retained-page:not([hidden]) .server-row')")
@@ -38,7 +39,7 @@ try {
    assert.equal(await evaluate("getComputedStyle(document.querySelectorAll('.retained-page:not([hidden]) .server-row')[1]).backgroundColor"),'rgb(33, 38, 45)')
  }
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS manual current-version check, home release notes, bottom-bar dialog, progress, cancel/retry, busy install notice and six-language layout')
+ console.log('PASS manual current-version check, no homepage notes, bottom-bar dialog, progress, download error toast, cancel/retry, busy install notice and six-language layout')
 } finally {socket.close()}
 `
 await new Function('assert', 'writeFileSync', 'return (async()=>{' + helpers + checks + '})()')(assert, writeFileSync)

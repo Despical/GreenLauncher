@@ -39,8 +39,10 @@ jobs:
             'scripts/test-playtime.cjs',
             'scripts/test-servers-custom.cjs',
             'scripts/test-profile-server-sync.cjs',
-            'scripts/test-worlds.cjs'
-            'scripts/test-updater.cjs'
+            'scripts/test-worlds.cjs',
+            'scripts/test-updater.cjs',
+            'scripts/test-release-notes.cjs',
+            'scripts/test-error-log.cjs'
           )
           foreach ($check in $checks) {
             node $check

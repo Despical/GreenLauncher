@@ -273,6 +273,7 @@ else {
       state => send('launcher:update', state),
       () => downloads.pending || game.getLaunchState().preparing || game.getRunningInstances().length > 0 || modpacks.isInstalling || installingContent || signingIn,
       async file => { const error = await shell.openPath(file); if (error) throw new Error(error); app.quit() },
+      error => logs.record('Launcher güncellemesi', error),
     )
     const startupUpdate = setTimeout(() => void updater.check(), 2500)
     startupUpdate.unref()

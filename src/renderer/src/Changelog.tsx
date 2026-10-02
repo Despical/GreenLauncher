@@ -5,6 +5,8 @@ import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
 import './changelog.css'
 import packageJson from '../../../package.json'
+import type { LauncherUpdate } from '../../shared/types'
+import { releaseNotesText } from '../../shared/release-notes'
 
 interface ReleaseNotes {
   version: string
@@ -71,14 +73,20 @@ const releases: ReleaseNotes[] = [
   { version: '0.12.2', date: '2026-09-29', title: 'Hesaplar ve oyun oturumları', changes: ['Profiller ve masaüstü kısayolları hesaplara bağlandı.', 'Çalışan oyunları görüntüleme ve onayla tekrar başlatma eklendi.', 'Hesap menüleri, yazı boyutları ve bildirimler yenilendi.', 'Windows simgesi ve hızlı erişim kısayolları iyileştirildi.'] }
 ]
 
-export function Changelog({ language, onClose }: { language: Language; onClose: () => void }) {
+export function Changelog({ language, update, onUpdate, onClose }: { language: Language; update: LauncherUpdate; onUpdate(): void; onClose: () => void }) {
   const t = (text: string, values?: Record<string, string | number>) => translate(language, text, values)
-  const [selectedVersion, setSelectedVersion] = useState(releases[0].version)
+  const available = !!update.version && ['available', 'checking', 'downloading', 'ready', 'error'].includes(update.phase)
+  const incoming: ReleaseNotes | null = available && !releases.some(release => release.version === update.version) ? {
+    version: update.version!, date: (update.releasedAt ?? new Date().toISOString()).slice(0, 10), title: 'Yeni bir güncelleme var',
+    changes: [], sections: [{ title: 'Sürüm notları', changes: [releaseNotesText(update.notes ?? '') || t('Sürüm notları henüz yayımlanmadı.')] }],
+  } : null
+  const history = incoming ? [incoming, ...releases] : releases
+  const [selectedVersion, setSelectedVersion] = useState(history[0].version)
   const [query, setQuery] = useState('')
   const search = useRef<HTMLInputElement>(null)
-  const shown = releases.filter(release => `v${release.version} ${release.title} ${release.changes.join(' ')}`.toLocaleLowerCase(language).includes(query.toLocaleLowerCase(language)))
+  const shown = history.filter(release => `v${release.version} ${release.title} ${release.changes.join(' ')} ${release.sections?.flatMap(section => section.changes).join(' ') ?? ''}`.toLocaleLowerCase(language).includes(query.toLocaleLowerCase(language)))
   const [closing, setClosing] = useState(false)
-  const selected = releases.find(release => release.version === selectedVersion) ?? releases[0]
+  const selected = history.find(release => release.version === selectedVersion) ?? history[0]
   const content = useRef<HTMLElement>(null)
   const navigation = useRef<HTMLElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -118,7 +126,7 @@ export function Changelog({ language, onClose }: { language: Language; onClose: 
     <div className="release-history-layout">
       <nav className="release-history-navigation" aria-label={t('Sürümler')} ref={navigation} onKeyDown={navigate}>
         <label className="release-history-search"><Search size={17} /><input ref={search} value={query} onChange={event => setQuery(event.target.value)} placeholder={t('Geçmiş sürümlerde ara...')} aria-label={t('Geçmiş sürümlerde ara...')} /><kbd>Ctrl + F</kbd></label>
-        <div className="release-history-count">{t('Toplam {count} sürüm', { count: releases.length })}</div>
+        <div className="release-history-count">{t('Toplam {count} sürüm', { count: history.length })}</div>
         <div className="release-history-versions">{shown.map(release => <button
           type="button"
           className="release-history-version"
@@ -127,10 +135,10 @@ export function Changelog({ language, onClose }: { language: Language; onClose: 
           aria-controls="release-history-detail"
           onClick={() => setSelectedVersion(release.version)}
         >
-          <span className="release-history-version-top"><span className="release-history-version-label"><strong>v{release.version}</strong>{release.version === releases[0].version && <span className="release-latest-badge">{t('En son')}</span>}</span><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
+          <span className="release-history-version-top"><span className="release-history-version-label"><strong>v{release.version}</strong>{release.version === history[0].version && <span className="release-latest-badge">{t('En son')}</span>}{history[0].version !== update.currentVersion && release.version === update.currentVersion && <span className="release-current-badge">{t('Kullandığın sürüm')}</span>}</span><time dateTime={release.date}>{date(release.date, true)}</time><ChevronRight size={14} aria-hidden="true" /></span>
           <span className="release-history-version-title">{t(release.title)}</span>
         </button>)}{!shown.length && <p className="release-history-no-results">{t('Sürüm bulunamadı.')}</p>}</div>
-        <footer className="release-history-build"><strong>Green Launcher · v{packageJson.version}</strong></footer>
+        <footer className="release-history-build"><strong>Green Launcher · v{update.currentVersion || packageJson.version}</strong>{available && <button className="release-update-link" onClick={onUpdate}>{t('Güncellemek için şimdi tıkla')}</button>}</footer>
       </nav>
       <section className="release-history-detail" id="release-history-detail" aria-labelledby="release-history-title" tabIndex={0} ref={content}>
         <div className="release-history-article" key={selected.version}>

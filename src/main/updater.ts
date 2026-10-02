@@ -18,6 +18,7 @@ export class LauncherUpdater {
   private cancelled = false
   private files: string[] = []
   private installing = false
+  private failureReported = false
   constructor(
     private engine: NsisUpdater,
     version: string,
@@ -26,6 +27,7 @@ export class LauncherUpdater {
     private changed: (state: LauncherUpdate) => void,
     private busy: () => boolean,
     private installPortable: (file: string) => Promise<void>,
+    private reportFailure: (error: unknown) => void = () => {},
   ) {
     this.state = { phase: enabled ? 'idle' : 'disabled', currentVersion: version, portable }
     engine.autoDownload = false
@@ -33,6 +35,8 @@ export class LauncherUpdater {
     engine.allowDowngrade = false
     engine.allowPrerelease = false
     engine.disableWebInstaller = true
+    // A portable build has no previously installed setup to patch against.
+    if (portable) engine.disableDifferentialDownload = true
     engine.on('error', error => {
       if (!this.cancelled) this.fail(error)
     })
@@ -46,13 +50,17 @@ export class LauncherUpdater {
   get(): LauncherUpdate { return { ...this.state } }
   private set(value: Partial<LauncherUpdate>) { this.state = { ...this.state, ...value }; this.changed(this.get()) }
   private fail(error: unknown) {
+    if (this.failureReported) return
+    this.failureReported = true
+    this.reportFailure(error)
     const code = String((error as { code?: string })?.code ?? '')
-    this.set({ phase: 'error', error: /CHECKSUM|SIGNATURE/.test(code) ? 'checksum' : /CHANNEL_FILE_NOT_FOUND|INVALID_RELEASE_FEED|NO_PUBLISHED_VERSIONS/.test(code) ? 'metadata' : this.installing ? 'install' : 'network' })
+    this.set({ phase: 'error', error: /CHECKSUM|SIGNATURE/.test(code) ? 'checksum' : /CHANNEL_FILE_NOT_FOUND|INVALID_RELEASE_FEED|NO_PUBLISHED_VERSIONS/.test(code) ? 'metadata' : this.installing ? 'install' : 'network', ...(this.state.operation === 'check' && { checkedAt: new Date().toISOString() }) })
   }
   check(): Promise<LauncherUpdate> {
     if (this.checking) return this.checking
     if (this.state.phase === 'disabled' || this.downloading || this.state.phase === 'ready' || this.installing) return Promise.resolve(this.get())
-    this.set({ phase: 'checking', error: undefined })
+    this.failureReported = false
+    this.set({ phase: 'checking', error: undefined, operation: 'check' })
     this.checking = (async () => {
       try {
         const result = await this.engine.checkForUpdates()
@@ -77,8 +85,9 @@ export class LauncherUpdater {
     // A cancelled token cannot be reused. Recheck the release before retrying.
     this.downloading = (async () => {
       this.cancelled = false
+      this.failureReported = false
       try {
-        this.set({ phase: 'checking', error: undefined })
+        this.set({ phase: 'checking', error: undefined, operation: 'download' })
         const result = await this.engine.checkForUpdates()
         if (!result || !newerRelease(result.updateInfo.version, this.state.currentVersion)) {
           this.set({ phase: 'current', version: undefined }); return this.get()
@@ -107,9 +116,10 @@ export class LauncherUpdater {
   }
   async install(): Promise<LauncherUpdate> {
     if (this.installing || this.state.phase !== 'ready' || !this.files.length || !newerRelease(this.state.version, this.state.currentVersion)) return this.get()
-    if (this.busy()) { this.set({ error: 'busy' }); return this.get() }
+    if (this.busy()) { this.set({ error: 'busy', operation: 'install' }); return this.get() }
     this.installing = true
-    this.set({ error: undefined })
+    this.failureReported = false
+    this.set({ error: undefined, operation: 'install' })
     try {
       if (this.state.portable) await this.installPortable(this.files[0])
       else this.engine.quitAndInstall(false, true)

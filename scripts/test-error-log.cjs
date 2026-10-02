@@ -36,6 +36,11 @@ try {
   assert.equal(reopened.get().length,6)
   reopened.clear();assert.equal(reopened.get().length,0)
   assert.deepEqual(JSON.parse(fs.readFileSync(reopened.path)),[])
+  const updateError=Object.assign(new Error('Download reset https://example.com/file?token=secret token=credential'),{code:'ECONNRESET'})
+  reopened.record('Launcher güncellemesi',updateError)
+  assert.equal(reopened.get()[0].code,'ECONNRESET');assert.equal(reopened.get()[0].source,'Launcher güncellemesi')
+  assert.match(reopened.get()[0].message,/Download reset/);assert.doesNotMatch(reopened.get()[0].message,/secret|credential|https:/)
+  assert.equal(new ErrorLog(root,()=>{}).get()[0].code,'ECONNRESET','update diagnostics persist with their original code')
   console.log('PASS historical activity/IPC duplicates, interleaved events, distinct messages/sources, later retries, persistence and clearing')
 } finally {
   const relative=path.relative(os.tmpdir(),root)

@@ -26,6 +26,7 @@ try {
  const after=await evaluate("window.launcher.getState().then(s=>JSON.stringify({settings:s.settings,accounts:s.accounts,profiles:s.profiles,selectedProfileId:s.selectedProfileId,selectedAccountId:s.selectedAccountId}))")
  assert.equal(after,before,'existing preferences, accounts and profiles are preserved')
  assert.deepEqual(errors,[])
+ await evaluate("document.querySelector('.launcher-update-settings').scrollIntoView({block:'end',behavior:'instant'})")
  const screenshot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false})
  writeFileSync('build/qa-latest-portable.png',Buffer.from(screenshot.data,'base64'))
  writeFileSync('build/qa-latest-portable.json',JSON.stringify({passed:true,window:tab.title,liveUpdateCheck:update.phase,version:update.currentVersion,lastCheckOutsideCard:true,userDataPreserved:true,rendererExceptions:errors},null,2))

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import type { CleanupPreview, DownloadSnapshot, DiskUsage, GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherErrorEntry, LauncherProfile, LauncherSettings, LauncherState, OfflineStatus, ScreenshotItem, ScreenshotSort, VersionType, RunningInstance, LaunchRequest, LauncherPresenceContext } from '../../shared/types'
 import { screenshotPageSize } from '../../shared/types'
-import { HomeUpdate, UpdateDialog, UpdateIndicator, UpdatePanel, useLauncherUpdate } from './LauncherUpdates'
+import { UpdateDialog, UpdateIndicator, UpdatePanel, useLauncherUpdate, updateErrorText } from './LauncherUpdates'
 import { PlaytimeDialog, PlaytimeStatus } from './Playtime'
 import { profileLaunchVersion, profileVersionLabel } from '../../shared/profile-version'
 import { memoryGb } from '../../shared/memory'
@@ -487,9 +487,9 @@ function App() {
   useEffect(() => {
     const result = updates.checkResult?.value
     if (!result) return
-    const errorCopy = { metadata: 'Bu sürümün güncelleme dosyaları eksik. Daha sonra yeniden dene.', checksum: 'İndirme doğrulanamadı. Yeniden indir.', install: 'Güncelleme kurulamadı. Yeniden dene.', busy: 'Güncellemeden önce oyunu ve devam eden işlemleri tamamla.', network: 'Güncellemeye ulaşılamadı. Bağlantını kontrol edip yeniden dene.' }
-    notifyCape(result.error ? t(errorCopy[result.error]) : result.phase === 'current' ? t('En son sürümü kullanıyorsun.') : result.phase === 'available' ? `${t('Yeni bir güncelleme var')} · v${result.version}` : t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.'))
+    notifyCape(result.error ? t(updateErrorText(result)) : result.phase === 'current' ? t('En son sürümü kullanıyorsun.') : result.phase === 'available' ? `${t('Yeni bir güncelleme var')} · v${result.version}` : t('Güncellemeler kurulu Windows uygulamasında kullanılabilir.'))
   }, [updates.checkResult])
+  useEffect(() => { if (updates.failure) notifyCape(t(updateErrorText(updates.failure.value))) }, [updates.failure])
   const localVersionLabels: Record<VersionType, string> = { release: t('Kararlı sürüm'), snapshot: 'Snapshot', old_beta: t('Eski Beta'), old_alpha: t('Eski Alpha') }
   const busy = launchPending || ['installing', 'launching'].includes(activity.kind)
   const launchBusy = launchPending || activity.kind === 'launching'
@@ -736,7 +736,6 @@ function App() {
           {state.settings.animateHero && <div className="hero-progress" key={heroIndex}><div className="hero-progress-fill" onAnimationEnd={() => setHeroIndex(current => (current + 1) % heroSlides.length)} /></div>}
         </div>
           {!online && <div className="offline-banner"><WifiOff size={19} /><div><strong>{t('Çevrimdışı görünüm')}</strong><span>{offlineStatus.accountReady && offlineStatus.versionReady ? t('Bu hesap ve kurulu sürümle oynayabilirsin.') : t('Çevrimdışı hesap veya doğrulanmış Microsoft oturumu ve kurulu sürüm gerekir.')}</span></div></div>}
-          <HomeUpdate controls={updates} language={language} />
           <div className="home-bottom">
             <section className="launch-panel">
               <div className="launch-panel-head"><div><h2>{t('Oyun profili')}</h2><p>{t('Macerana hangi profille devam edeceksin?')}</p></div>{profile && <button type="button" className="launch-profile-edit" aria-label={t('Profili düzenle')} title={t('Profili düzenle')} onClick={() => void profileAction(profile.id, 'edit')}><Pencil size={17} /></button>}</div>
@@ -837,7 +836,7 @@ function App() {
     <div className="statusbar">{!downloadStatus && !instances.length && updates.update.phase !== 'downloading' && activity.kind === 'idle' && state.playSessions?.some(session => session.profileId === state.selectedProfileId && session.durationMs > 0) ? <PlaytimeStatus state={state} language={language} onOpen={() => { setPlaytimeProfileId(state.selectedProfileId); setPlaytimeOpen(true) }} /> : <span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (updates.update.phase === 'downloading' ? `${t('Güncelleme indiriliyor...')} ${Math.floor(updates.update.percent ?? 0)}%` : activity.kind === 'idle' ? t(instances.length ? 'Oyun çalışıyor' : 'Başlatmaya hazır') : t(activity.label))}</span>}<div className="statusbar-end">{profile && <span className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${profile.name}`}>Minecraft {selectedVersionLabel} · {profile.name}</span>}<UpdateIndicator controls={updates} language={language} onOpen={() => setUpdateOpen(true)} /><button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div>
     {playtimeOpen && <PlaytimeDialog state={state} language={language} initialProfileId={playtimeProfileId} onClose={() => setPlaytimeOpen(false)} />}
     {updateOpen && <UpdateDialog controls={updates} language={language} onClose={() => setUpdateOpen(false)} />}
-    {changelogOpen && <Suspense fallback={null}><Changelog language={language} onClose={()=>setChangelogOpen(false)}/></Suspense>}
+    {changelogOpen && <Suspense fallback={null}><Changelog language={language} update={updates.update} onUpdate={() => { setChangelogOpen(false); setUpdateOpen(true) }} onClose={()=>setChangelogOpen(false)}/></Suspense>}
     {profileMenu && page === 'profiles' && state.profiles.some(item => item.id === profileMenu.id) && <ProfileMenu profile={state.profiles.find(item => item.id === profileMenu.id)!} x={profileMenu.x} y={profileMenu.y} language={language} pending={profileTasks.includes(profileMenu.id) || instances.some(item => item.profileId === profileMenu.id)} onClose={() => setProfileMenu(null)} onAction={action => void profileAction(profileMenu.id, action)} />}
     {profileInformationId && state.profiles.find(item => item.id === profileInformationId) && <ProfileInformation profile={state.profiles.find(item => item.id === profileInformationId)!} language={language} onClose={() => setProfileInformationId(null)} onPlaytime={() => { setPlaytimeProfileId(profileInformationId); setProfileInformationId(null); setPlaytimeOpen(true) }} />}
     {coverProfileId && state.profiles.some(item => item.id === coverProfileId) && <ProfileCoverEditor profile={state.profiles.find(item => item.id === coverProfileId)!} language={language} onClose={() => setCoverProfileId(null)} onNotice={notifyCape} onSaved={async cover => { setState(await window.launcher.saveProfileCover(coverProfileId, cover)); notifyCape(t('Profil kapağı güncellendi.')) }} />}

@@ -51,6 +51,12 @@ async function main() {
   await stopped.check(); await stopped.download(); await stopped.install(); assert.equal(stopped.get().phase, 'disabled'); assert.equal(stoppedEngine.checks, 0)
   const changing = new Engine(), changed = new LauncherUpdater(changing, '0.17.0', true, false, () => {}, () => false, async () => {})
   await changed.check(); changing.version = '0.16.0'; assert.equal((await changed.download()).phase, 'current'); assert.equal(changing.downloads, 0); await changed.install(); assert.equal(changing.installs, 0)
+  assert.equal(portableEngine.disableDifferentialDownload,true)
+  const logged=[],failingEngine=new Engine(),loggedUpdater=new LauncherUpdater(failingEngine,'0.17.1',true,true,()=>{},()=>false,async()=>{},error=>logged.push(error))
+  await loggedUpdater.check();failingEngine.mode='interrupted';await loggedUpdater.download();assert.equal(logged.length,1);assert.equal(loggedUpdater.get().operation,'download')
+  failingEngine.emit('error',logged[0]);assert.equal(logged.length,1,'engine event and rejected promise report the same failure once')
+  await loggedUpdater.download();assert.equal(logged.length,2,'a separate retry can produce its own diagnostic')
+  failingEngine.mode='offline';await loggedUpdater.check();assert.equal(loggedUpdater.get().operation,'check');assert.ok(loggedUpdater.get().checkedAt)
   service.dispose(); portable.dispose(); stopped.dispose(); changed.dispose()
   console.log('PASS stable version ordering, downgrade prevention, check/download coalescing, offline recovery, checksum/interruption failure, cancellation/retry, progress, operation guards, explicit installation, portable transition and disabled development checks')
 }
