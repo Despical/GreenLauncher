@@ -10,7 +10,7 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
-  "Güncelsin.": ["You’re up to date.", "Du bist auf dem neuesten Stand.", "Tout est à jour.", "Всё обновлено.", "Wszystko aktualne."],
+  "En son sürüm yüklü": ["Latest version installed", "Neueste Version installiert", "Dernière version installée", "Установлена последняя версия", "Najnowsza wersja zainstalowana"],
   "Yeni bir sürüm çıktığında burada göreceksin.": ["You’ll see new releases here as they become available.", "Neue Versionen erscheinen hier, sobald sie verfügbar sind.", "Les nouvelles versions apparaîtront ici dès leur sortie.", "Новые версии появятся здесь по мере выхода.", "Nowe wersje pojawią się tutaj, gdy będą dostępne."],
   "Kontrol et": ["Check now", "Jetzt prüfen", "Vérifier", "Проверить", "Sprawdź"],
   "Kontrol tamamlanamadı": ["Check could not be completed", "Prüfung konnte nicht abgeschlossen werden", "Vérification impossible", "Не удалось завершить проверку", "Nie udało się zakończyć sprawdzania"],

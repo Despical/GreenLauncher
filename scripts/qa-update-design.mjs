@@ -19,7 +19,8 @@ try {
  await evaluate("window.launcher.saveSettings({language:'tr',qaUpdate:{phase:'current',version:null,error:null}})");await call('Page.reload');await until("document.querySelector('.side-nav')")
  await call('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false});await key('9');await button('Launcher');await until("document.querySelector('.launcher-update-settings')")
  const section = '.launcher-update-settings .launcher-update-panel'
- assert.equal(await evaluate("document.querySelector('.launcher-update-settings .update-heading h3').textContent"),'Güncelsin.')
+ assert.equal(await evaluate("document.querySelector('.launcher-update-settings .update-heading h3').textContent"),'En son sürüm yüklü')
+ assert.equal(await evaluate("document.querySelectorAll('.update-version').length"),0,'no current-version badge')
  assert.equal(await evaluate("document.querySelectorAll('.launcher-update-settings .update-heading svg,.launcher-update-settings .update-eyebrow,.launcher-update-settings .update-status-icon').length"),0)
  assert.doesNotMatch(await evaluate("document.querySelector('.launcher-update-settings .update-heading').textContent"),/Launcher güncellemeleri/)
  assert.match(await evaluate("getComputedStyle(document.querySelector('.launcher-update-settings .launcher-update-panel'),'::before').backgroundImage"),/update-night-coast/)
@@ -27,6 +28,15 @@ try {
  const card=await evaluate("(()=>{const r=document.querySelector('.launcher-update-settings .launcher-update-panel').getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,scale:1}})()")
  const picture=await call('Page.captureScreenshot',{format:'png',clip:card});writeFileSync('build/qa-update-night-design.png',Buffer.from(picture.data,'base64'))
  await button('Kontrol et');await until("document.querySelector('.toast')");assert.match(await evaluate("document.querySelector('.toast').textContent"),/En son sürümü/)
+ assert.equal(await evaluate("(()=>{const stamp=document.querySelector('.launcher-update-settings .update-last-check'),card=document.querySelector('.launcher-update-settings .launcher-update-panel');return !card.contains(stamp)&&stamp.getBoundingClientRect().top>=card.getBoundingClientRect().bottom&&getComputedStyle(stamp).textAlign==='right'})()"),true,'last check is outside the card at its lower right')
+ for(const language of ['tr','en','de','fr','ru','pl']){
+  await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await wait(120)
+  for(const width of [960,1080,1280,1440]){
+   await call('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:false});await wait(80)
+   assert.equal(await evaluate("(()=>{const area=document.querySelector('.launcher-update-settings .launcher-update-area');return area.scrollWidth<=area.clientWidth})()"),true,'update card and timestamp fit in '+language+' at '+width)
+  }
+ }
+ await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false});await wait(100)
  for(const phase of ['available','downloading','ready','error','disabled']){
   await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify({phase,version:phase==='disabled'?null:'0.18.0',error:phase==='error'?'network':null,percent:42,total:1000000,transferred:420000,notes:'Test release notes.'})+'})')
   await wait(100)

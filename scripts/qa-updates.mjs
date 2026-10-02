@@ -7,7 +7,7 @@ try {
  await evaluate("window.launcher.saveSettings({language:'tr',qaUpdate:{phase:'current',version:null,error:null}})");await call('Page.reload');await until("document.querySelector('.side-nav')")
  await key('1');assert.equal(await evaluate("!!document.querySelector('.statusbar-update')"),false)
  await key('9');await button('Hakkında');assert.equal(await evaluate("!!document.querySelector('.launcher-update-panel')"),false);await button('Launcher');await until("document.querySelector('.launcher-update-panel')")
- assert.match(await evaluate("document.querySelector('.launcher-update-panel').textContent"),/Güncelsin/)
+ assert.match(await evaluate("document.querySelector('.launcher-update-panel').textContent"),/En son sürüm yüklü/)
  await button('Kontrol et');await until("document.querySelector('.update-last-check')")
  const setUpdate=async value=>await evaluate('window.launcher.saveSettings({qaUpdate:'+JSON.stringify(value)+'})')
  await setUpdate({phase:'available',version:'0.18.0',notes:'New release notes\nWorlds and servers improved.'})
