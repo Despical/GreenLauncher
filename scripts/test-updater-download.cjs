@@ -10,7 +10,9 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/updater.ts', 'ut
 const { LauncherUpdater } = moduleFixture.exports
 let mode = 'corrupt', installerRequests = 0, version = '0.18.0'
 const payload = Buffer.alloc(1024 * 1024, 77), hash = crypto.createHash('sha512').update(payload).digest('base64')
-fs.writeFileSync(path.join(root, 'app-update.yml'), 'updaterCacheDirName: isolated-updater-cache\n')
+// Use the shipped configuration instead of inventing a fixture that hides a
+// missing portable resource. The adapter's base cache path is still isolated.
+fs.copyFileSync('src/main/app-update.yml', path.join(root, 'app-update.yml'))
 const server = http.createServer((request, response) => {
  if (request.url.startsWith('/latest.yml') && mode==='missing-metadata') { response.writeHead(404); response.end('Not Found'); return }
  if (request.url.startsWith('/latest.yml')) { response.end(`version: ${version}\nfiles:\n  - url: setup.exe\n    sha512: ${hash}\n    size: ${payload.length}\npath: setup.exe\nsha512: ${hash}\nreleaseDate: '2026-10-03T10:00:00Z'\nreleaseNotes: Verified test notes\n`); return }

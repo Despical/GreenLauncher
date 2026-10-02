@@ -2,6 +2,10 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const folder=fs.readdirSync('node_modules/.pnpm').find(n=>n.startsWith('@electron+asar@'))
 const asar=require(path.resolve('node_modules/.pnpm',folder,'node_modules/@electron/asar'))
 const archive='release/win-unpacked/resources/app.asar'
+const { createRequire } = require('node:module')
+const yaml = createRequire(require.resolve('electron-updater'))('js-yaml')
+const updateConfig = yaml.load(fs.readFileSync('release/win-unpacked/resources/app-update.yml', 'utf8'))
+assert.deepEqual(updateConfig, yaml.load(fs.readFileSync('src/main/app-update.yml', 'utf8')), 'every portable runtime must contain the public feed and download cache configuration')
 let verifiedFiles = 0
 function verifyDirectory(directory) {
   for (const entry of fs.readdirSync(directory, {withFileTypes:true})) {
