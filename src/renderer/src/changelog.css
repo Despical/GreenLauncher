@@ -1,0 +1,37 @@
+/* Release history: neutral Settings palette, flat version navigation. */
+.modal.account-dialog.changelog-dialog { display: flex; flex-direction: column; width: min(1060px,calc(100vw - 80px)); height: min(770px,calc(100vh - 116px)); max-height: calc(100vh - 116px); padding: 0; overflow: hidden; border-radius: 12px; background: #161b22; }
+.modal.changelog-dialog .dialog-heading { flex: none; margin: 0; padding: 24px; gap: 20px; }
+.changelog-dialog .account-dialog-symbol, .changelog-dialog .account-dialog-symbol img { width: 42px; height: 42px; border: 0; background: transparent; object-fit: contain; }
+.changelog-dialog .release-history-layout { display: grid; grid-template-columns: 32% minmax(0,1fr); flex: 1; min-height: 0; }
+.changelog-dialog .release-history-navigation { display: flex; flex-direction: column; min-height: 0; padding: 20px 16px; border-right: 1px solid #34414e; background: #161b22; }
+.changelog-dialog .release-history-search { display: flex; align-items: center; flex: none; height: 42px; gap: 10px; padding: 0 12px; margin-bottom: 18px; background: #0d1117; border: 1px solid #34414e; border-radius: 6px; color: #9aabb9; }
+.changelog-dialog .release-history-search:focus-within { border-color: #8b949e; }
+.changelog-dialog .release-history-search input { flex: 1; min-width: 0; width: 0; border: 0; outline: 0; box-shadow: none; background: transparent; color: #e1e7ed; padding: 0; font-size: 13px; }
+.changelog-dialog .release-history-search kbd { display: none; }
+.release-history-count { flex: none; margin: -4px 3px 12px; color: #99a9b6; font-size: 12px; }
+.changelog-dialog .release-history-versions { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; gap: 5px; padding: 1px; }
+.changelog-dialog .release-history-version { position: relative; flex: none; display: flex; flex-direction: column; gap: 8px; width: 100%; min-height: 80px; padding: 15px 13px; border: 0; border-radius: 6px; background: transparent; text-align: left; color: #aebbc7; transition: background .15s; }
+.changelog-dialog .release-history-version:hover { background: #21262d; }
+.changelog-dialog .release-history-version[aria-current] { background: #30363d; box-shadow: none; }
+.release-history-version-top { display: flex; align-items: center; gap: 10px; }
+.release-history-version-top strong { flex: 1; font-size: 15px; font-weight: 600; color: #e4eaf0; }
+.release-history-version-top time { color: #9aa8b6; font-size: 12px; }
+.release-history-version-top > svg { position: absolute; right: 13px; top: 47px; }
+.release-history-version-title { padding-right: 14px; font-size: 13px; line-height: 1.55; color: #aebbc7; }
+.release-history-build { flex: none; margin: 16px 0 0; padding: 16px 0 0; text-align: center; border-top: 1px solid #34414e; }
+.release-history-build strong { color: #98a8b6; font-size: 12px; font-weight: 500; }
+.release-history-no-results { padding: 12px; color: #99a9b6; font-size: 13px; }
+.changelog-dialog .release-history-detail { min-width: 0; overflow-y: auto; padding: 28px; background: #161b22; outline: 0; }
+.release-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.release-history-heading h3 { flex: 1; margin: 0; font-size: 25px; line-height: 1.3; font-weight: 650; letter-spacing: -.6px; }
+.release-history-heading > time { display: flex; align-items: center; gap: 7px; color: #9daebb; font-size: 12px; white-space: nowrap; }
+.release-history-intro, .release-history-section p { color: #b7c5d1; font-size: 14px; line-height: 1.65; }
+.release-history-intro { margin: 15px 0 0; padding-bottom: 22px; border-bottom: 1px solid #34414e; }
+.changelog-dialog .release-history-section { margin-top: 30px; padding: 0; border: 0; }
+.release-history-section h4 { margin: 0 0 12px; font-size: 19px; font-weight: 650; }
+.release-history-section p { margin: 0 0 9px; }
+.changelog-dialog .release-history-versions, .changelog-dialog .release-history-detail { scrollbar-width: thin; scrollbar-color: #484f58 transparent; }
+.changelog-dialog .release-history-version:focus-visible, .changelog-dialog .release-history-detail:focus-visible { outline: 2px solid #b1bac4; outline-offset: -3px; }
+@media (max-height: 750px) { .changelog-dialog .release-history-version { min-height: 72px; padding-block: 11px; } .changelog-dialog .release-history-version-top > svg { top: 41px; } }
+@media (max-width: 900px) { .modal.account-dialog.changelog-dialog { width: calc(100vw - 40px); } .changelog-dialog .release-history-layout { grid-template-columns: 31% minmax(0,1fr); } .release-history-heading h3 { font-size: 23px; } .release-history-heading { flex-wrap: wrap; } }
+@media (max-width: 650px) { .changelog-dialog .release-history-layout { grid-template-columns: 150px minmax(0,1fr); } .changelog-dialog .release-history-navigation { padding-inline: 8px; } .release-history-version-top { flex-wrap: wrap; } .release-history-version-top strong { flex-basis: 100%; } .release-history-version-title { display: none; } .changelog-dialog .release-history-detail { padding: 20px 17px; } }

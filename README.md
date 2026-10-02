@@ -1,0 +1,68 @@
+# Green Launcher
+
+An independent Windows launcher for Minecraft: Java Edition, built with Electron, React and TypeScript.
+
+## Features
+
+- Minecraft releases, snapshots and historical versions, with automatic dependency and Java runtime installation.
+- Microsoft accounts and local offline accounts, account switching, cached skins and account cosmetics.
+- Separate profiles with their own Minecraft version, game directory, worlds, mods, Java and memory settings.
+- Mod and modpack catalogs, compatible loader installation, and profile import/export.
+- Profile-specific server lists synchronized with Minecraft’s `servers.dat`, cached server icons and connection information.
+- Profile-specific worlds with icons, game mode, last-played time and size; import, rename, duplicate, recycle-bin deletion, icon reset, exact seed copying and folder opening.
+- World seed support for legacy saves, Minecraft 1.16+ `WorldGenSettings`, and the separate `data/minecraft/world_gen_settings.dat` format used by Minecraft 26.1+.
+- Direct world launch on Minecraft versions that support Quick Play Singleplayer (1.20+); direct server launch on supported versions.
+- Screenshot gallery, download manager, storage tools, logs, Discord activity and Windows shortcuts.
+- Turkish, English, German, French, Russian and Polish interfaces.
+
+## Development
+
+Use Windows, Node.js 22 and pnpm 10.28.2 (the version declared in `package.json`).
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Build and check the application:
+
+```powershell
+pnpm run build
+node scripts/check-i18n.mjs
+node scripts/test-accounts.cjs
+node scripts/test-profile-sessions.cjs
+node scripts/test-servers-custom.cjs
+node scripts/test-profile-server-sync.cjs
+node scripts/test-worlds.cjs
+```
+
+The core checks use isolated fixtures. Renderer QA helpers in `scripts/` also use a separate fixture directory under `build/`; do not run destructive checks against real launcher or Minecraft data.
+
+## Windows distribution
+
+Portable packaging requires Visual Studio C++ Build Tools and the Windows SDK for the native splash helper.
+
+```powershell
+pnpm dist:portable
+node scripts/qa-accounts-package.cjs
+```
+
+The executable is written to `release/GreenLauncher.exe`. The packaging check compares the bundled application files with the final build, including lazy renderer chunks.
+
+Source artwork and packaging icons live under `build/` and `src/renderer/assets/`. Generated output, extracted runtimes, dependencies and QA captures are ignored by Git. The custom XMCL installer patch in `patches/` is required and is applied by pnpm.
+
+## Accounts and saved data
+
+Settings, profiles and cached data live under `%APPDATA%/GreenLauncher`, outside this repository. Each profile normally uses `profiles/<profile-id>` as its game directory; a custom game directory can be selected in the profile settings. Existing vanilla Minecraft installations are detected without relocating their files.
+
+Offline accounts do not require Microsoft sign-in and can join only servers that permit offline accounts. Microsoft launch requires a licensed Minecraft: Java Edition account and successful authentication. Authentication tokens are stored using Windows secure storage; live sign-in availability also depends on the configured OAuth application. CurseForge access requires an approved API key and is not supplied by this repository.
+
+## Contributions and commits
+
+Read [AGENTS.md](AGENTS.md) for UI conventions, validation and the delegated commit workflow. Significant verified changes use focused English commits on `main`; generated output, credentials and runtime data must stay out of commits.
+
+The Windows GitHub Actions workflow runs translations, core checks and a production build for pushes and pull requests.
+
+## License
+
+[GNU GPL v3](LICENSE). Green Launcher is an independent project and is not affiliated with Mojang Studios or Microsoft.

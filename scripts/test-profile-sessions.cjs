@@ -1,0 +1,197 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const os = require('node:os')
+const vm = require('node:vm')
+const { spawn } = require('node:child_process')
+const { once, EventEmitter } = require('node:events')
+const ts = require('typescript')
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'green-profile-sessions-'))
+let directory = root, checks = 0
+const electron = { app: {getPath: () => directory}, screen: {getPrimaryDisplay: () => ({bounds:{width:1920,height:1080}})} }
+function load(file, mocks = {}) {
+  const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+  const mod = {exports:{}}
+  vm.runInNewContext(source, {module:mod,exports:mod.exports,require:n=>({electron,'./download-manager':{getDownloadManager:()=>undefined},...mocks})[n] || (n.startsWith('.') && fs.existsSync(path.resolve(path.dirname(file), n + '.ts')) ? load(path.resolve(path.dirname(file), n + '.ts')) : require(n)),structuredClone,Buffer,URL,AbortSignal,console,process,setTimeout,clearTimeout,setInterval,clearInterval})
+  return mod.exports
+}
+function check(name, test) { test(); checks++; console.log('PASS', name) }
+const profile = (name, versionId='1.21.1') => ({name,versionId,javaPath:'',memoryMb:2048,width:1280,height:720})
+const { LauncherStore } = load('src/main/store.ts')
+let store = new LauncherStore()
+check('account required for profile creation',()=>assert.throws(()=>store.saveProfile(profile('No owner'))))
+const first = store.createOfflineAccount('PlayerOne').selectedAccountId
+const a = store.saveProfile(profile('First world')).selectedProfileId
+const b = store.saveProfile(profile('Second world','1.20.4')).selectedProfileId
+check('profile version cannot be overridden by global selection',()=>assert.throws(()=>store.selectVersion('1.20.4-OptiFine_HD_U_I7'),/yalnızca/))
+const marker = path.join(store.profilePath(a),'world-preservation.txt')
+fs.writeFileSync(marker,'world stays here')
+const second = store.createOfflineAccount('PlayerTwo').selectedAccountId
+check('new account has an empty profile and history list',()=>{assert.equal(store.get().profiles.length,0);assert.equal(store.get().selectedProfileId,null);assert.equal(store.get().playHistory.length,0)})
+const c = store.saveProfile({...profile('First world'),accountId:first}).selectedProfileId
+check('profile ownership cannot be supplied by caller',()=>assert.equal(store.get().profiles[0].accountId,second))
+for (const action of [()=>store.selectProfile(a),()=>store.deleteProfile(a),()=>store.toggleProfilePin(a),()=>store.saveProfile({...profile('Intruder'),id:a}),()=>store.setModLoader(a,'1.21.1','fabric','fabric-test'),()=>store.setModpack(a,{}),()=>store.reorderProfiles([a])]) check('foreign profile operation rejected',()=>assert.throws(action))
+store.markPlayed(c,'1.21.1')
+store.selectAccount(first)
+check('account selection restores the bound profile version',()=>{assert.equal(store.get().selectedProfileId,b);assert.equal(store.get().selectedVersionId,'1.20.4');assert.equal(store.get().profiles.length,2);assert.equal(store.get().playHistory.length,0)})
+store.selectProfile(a)
+check('selecting another profile restores its version',()=>assert.equal(store.get().selectedVersionId,'1.21.1'))
+store.reorderProfiles([b,a])
+check('reordering keeps other accounts profiles',()=>assert.equal(store.allProfiles().find(p=>p.id===c).accountId,second))
+store = new LauncherStore()
+check('ownership persists across restart',()=>{assert.equal(store.get().selectedAccountId,first);assert.equal(store.get().profiles.length,2);assert.equal(store.allProfiles().length,3)})
+store.removeAccount(first)
+check('account removal preserves worlds and profiles',()=>{assert.equal(fs.readFileSync(marker,'utf8'),'world stays here');assert.equal(store.allProfiles().length,3);assert.equal(store.get().profiles[0].id,c)})
+store.createOfflineAccount('PlayerOne')
+check('same account re-add restores own profiles',()=>{assert.equal(store.get().profiles.length,2);assert.equal(store.get().selectedProfileId,a)})
+const {parseShortcut,shortcutArguments}=load('src/main/shortcuts.ts')
+check('shortcut round trip binds account profile version',()=>{const result=parseShortcut(shortcutArguments(first,a,'1.21.1').split(' '));assert.equal(result.accountId,first);assert.equal(result.profileId,a);assert.equal(result.versionId,'1.21.1')})
+check('legacy profile shortcut can resolve its owner',()=>assert.equal(parseShortcut([`--launch-profile=${a}`]).profileId,a))
+check('invalid shortcut rejected',()=>assert.equal(parseShortcut([`--launch-profile=${a}`,'--launch-account=bad']),null))
+directory = path.join(root,'legacy')
+fs.mkdirSync(directory)
+const legacy={...store.get(),profiles:store.allProfiles().filter(p=>p.accountId===first).map(({accountId,...p})=>p)}
+fs.writeFileSync(path.join(directory,'launcher.json'),JSON.stringify(legacy))
+const migrated=new LauncherStore()
+check('legacy migration keeps ids paths and selected account',()=>{assert.equal(migrated.get().profiles[0].id,b);assert.ok(migrated.allProfiles().every(p=>p.accountId===first));assert.ok(fs.existsSync(path.join(directory,'launcher.json.before-account-profiles')))})
+directory = path.join(root,'unowned')
+fs.mkdirSync(directory)
+fs.writeFileSync(path.join(directory,'launcher.json'),JSON.stringify({...legacy,accounts:[],selectedAccountId:null}))
+const unowned=new LauncherStore()
+check('legacy unowned profiles hidden until account added',()=>assert.equal(unowned.get().profiles.length,0))
+unowned.createOfflineAccount('FirstOwner')
+check('first added account claims unowned legacy profiles',()=>assert.equal(unowned.get().profiles.length,2))
+directory=root
+
+const children=[], options=[], activities=[], updates=[]
+let launchMode='real', releaseGate
+const core = require('@xmcl/core')
+const {GameService}=load('src/main/game.ts',{'@xmcl/core':{...core,Version:{parse:async(_,id)=>({id,minecraftVersion:id.split('-')[0]})},launch:async opts=>{
+  options.push(opts)
+  if(launchMode==='failure') throw Error('simulated spawn failure')
+  if(launchMode==='exited') return Object.assign(new EventEmitter(),{pid:12345,exitCode:1,signalCode:null})
+  if(launchMode==='gate') await new Promise(resolve=>{releaseGate=resolve})
+  const floodMarker=path.join(root,'startup-after-heavy-output.txt')
+  const code=launchMode==='flood' ? "let left=2;const done=()=>{if(--left===0)require('node:fs').writeFileSync(process.argv[1],'startup completed')};process.stdout.write(Buffer.alloc(2*1024*1024,65),done);process.stderr.write(Buffer.alloc(2*1024*1024,66),done);setInterval(()=>{},1000)" : 'setInterval(()=>{},1000)'
+  const child=spawn(process.execPath,['-e',code,floodMarker],{windowsHide:true,stdio:launchMode==='flood'?'pipe':'ignore'})
+  children.push(child); await once(child,'spawn'); return child
+}}})
+const game = new GameService(store,{},()=>null,activity=>activities.push(activity),sessions=>updates.push(sessions))
+game.installedVersion=()=>({folder:{root}})
+game.findJava=async()=>process.execPath
+const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
+;(async()=>{
+ try {
+  assert.equal((await game.play(a)).status,'started')
+  check('actual child PID recorded',()=>{assert.equal(game.getRunningInstances()[0].pid,children[0].pid);assert.equal(game.getRunningInstances()[0].accountId,first);assert.equal(game.getLaunchState().preparing,false)})
+  const confirmation=await game.play(a)
+  check('second launch requires confirmation and spawns nothing',()=>{assert.equal(confirmation.status,'confirmation-required');assert.equal(confirmation.instances.length,1);assert.equal(children.length,1)})
+  assert.equal((await game.play(a,undefined,true)).status,'started')
+  check('confirmed second launch tracks two distinct processes',()=>{assert.equal(game.getRunningInstances().length,2);assert.notEqual(children[0].pid,children[1].pid)})
+  await stop(children[0])
+  check('exiting one child preserves other active session',()=>{assert.equal(game.getRunningInstances().length,1);assert.equal(game.getRunningInstances()[0].pid,children[1].pid)})
+  launchMode='failure'
+  await assert.rejects(()=>game.play(a,undefined,true))
+  check('failed new launch preserves running session and unlocks launcher',()=>{assert.equal(game.getRunningInstances().length,1);assert.equal(game.getLaunchState().preparing,false)})
+  await stop(children[1])
+  check('last process exit clears sessions',()=>assert.equal(game.getRunningInstances().length,0))
+  launchMode='exited';await assert.rejects(()=>game.play(a))
+  check('already exited process is never counted as running',()=>{assert.equal(game.getRunningInstances().length,0);assert.equal(activities.at(-1).kind,'error')})
+  launchMode='gate';const pending=game.play(a)
+  while(!releaseGate) await new Promise(r=>setTimeout(r,5))
+  await assert.rejects(()=>game.play(a,undefined,true))
+  check('concurrent preparation is locked',()=>assert.equal(game.getLaunchState().preparing,true))
+  releaseGate();await pending;await stop(children.at(-1))
+  check('every process removal sends exact remaining instances',()=>assert.equal(updates.at(-1).length,0))
+  launchMode='real'
+  const beforeStandalone=store.get()
+  await game.play(null,'1.20.4')
+  check('standalone version launches in its own directory without changing profiles or selection',()=>{
+    assert.equal(options.at(-1).gamePath,path.join(store.dataPath,'standalone','1.20.4'))
+    assert.deepEqual(store.get(),beforeStandalone)
+    assert.equal(game.getRunningInstances()[0].profileId,'standalone:1.20.4')
+  })
+  await stop(children.at(-1))
+  await assert.rejects(()=>game.play(a,'1.20.4'),/yalnızca/)
+  check('ordinary profile also rejects a different version',()=>assert.equal(game.getRunningInstances().length,0))
+  check('ordinary profile version can be edited while preserving its world directory',()=>{
+    store.saveProfile({...profile('First world','1.20.4'),id:a})
+    assert.equal(store.get().profiles.find(p=>p.id===a).versionId,'1.20.4')
+    assert.equal(fs.readFileSync(marker,'utf8'),'world stays here')
+    store.saveProfile({...profile('First world','1.21.1'),id:a})
+  })
+  check('loader cannot move profile to another base version',()=>assert.throws(()=>store.setModLoader(a,'1.20.4','fabric','fabric-test'),/uyumlu/))
+  check('standalone shortcut has an account and version without a profile',()=>{
+    const result=parseShortcut(shortcutArguments(first,null,'1.20.4').split(' '))
+    assert.equal(result.accountId,first);assert.equal(result.versionId,'1.20.4');assert.equal(result.profileId,undefined)
+  })
+  store.setModpack(a,{projectId:'fixture',versionId:'v1',title:'Locked fixture',fileCount:1})
+  const spawnCount=children.length
+  await assert.rejects(()=>game.play(a,'1.20.4'),/yalnızca/)
+  check('modpack version overrides are rejected before a process or launch preparation starts',()=>{assert.equal(children.length,spawnCount);assert.equal(game.getLaunchState().preparing,false)})
+  for (const [versionId,expected] of [['1.21.1',{quickPlayMultiplayer:'play.example.org:25567'}],['1.12.2',{server:{ip:'play.example.org',port:25567}}],['b1.7.3',{}]]) {
+    store.saveProfile({...store.get().profiles.find(p=>p.id===b),versionId,modLoader:undefined,modLoaderVersion:undefined,serverAddress:'play.example.org:25567'})
+    await game.play(b)
+    check('actual launch options use correct server arguments for '+versionId,()=>assert.deepEqual(JSON.parse(JSON.stringify({...(options.at(-1).quickPlayMultiplayer?{quickPlayMultiplayer:options.at(-1).quickPlayMultiplayer}:{}),...(options.at(-1).server?{server:options.at(-1).server}:{})})),expected))
+    await stop(children.at(-1))
+  }
+  store.saveProfile({...store.get().profiles.find(p=>p.id===b),versionId:'1.21.1',serverAddress:'saved.example.org:25565'})
+  await game.play(b,undefined,false,'selected.example.org:25570',{name:'Selected server',resourcePacks:'enabled'})
+  check('Servers page address overrides only this launch',()=>{assert.equal(options.at(-1).quickPlayMultiplayer,'selected.example.org:25570');assert.equal(store.get().profiles.find(p=>p.id===b).serverAddress,'saved.example.org:25565')})
+  check('server join writes the resource preference into the actual profile game directory before launch',()=>{const entry=require('prismarine-nbt').parseUncompressed(fs.readFileSync(path.join(options.at(-1).gamePath,'servers.dat'))).value.servers.value.value[0];assert.equal(entry.ip.value,'selected.example.org:25570');assert.equal(entry.acceptTextures.value,1)})
+  await stop(children.at(-1))
+  await game.play(null,'1.12.2',false,'127.0.0.1:25567',{name:'Local server',resourcePacks:'disabled'})
+  check('standalone server join passes legacy address without creating a profile',()=>{assert.deepEqual(JSON.parse(JSON.stringify(options.at(-1).server)),{ip:'127.0.0.1',port:25567});assert.equal(store.get().profiles.length,beforeStandalone.profiles.length)})
+  await stop(children.at(-1))
+  check('standalone join saves resource preference in its own game directory',()=>assert.equal(require('prismarine-nbt').parseUncompressed(fs.readFileSync(path.join(options.at(-1).gamePath,'servers.dat'))).value.servers.value.value[0].acceptTextures.value,0))
+  await assert.rejects(()=>game.play(null,'b1.7.3',false,'localhost'),/desteklemiyor/)
+  check('unsupported direct server join never spawns a process',()=>assert.equal(game.getRunningInstances().length,0))
+  await assert.rejects(()=>game.play(b,undefined,false,'https://example.org'),/Geçerli/)
+  check('invalid server launch address is rejected and leaves launcher unlocked',()=>assert.equal(game.getLaunchState().preparing,false))
+  const worldDir=path.join(store.gamePath(store.get().profiles.find(p=>p.id===b)),'saves','World With Spaces')
+  fs.mkdirSync(worldDir,{recursive:true})
+  fs.writeFileSync(path.join(worldDir,'level.dat'),require('node:zlib').gzipSync(require('prismarine-nbt').writeUncompressed({type:'compound',name:'',value:{Data:{type:'compound',value:{LevelName:{type:'string',value:'World With Spaces'}}}}})))
+  await game.play(b,undefined,false,undefined,undefined,undefined,'World With Spaces')
+  check('world launch uses its save folder as Quick Play Singleplayer and suppresses profile auto-connect server',()=>{assert.equal(options.at(-1).quickPlaySingleplayer,'World With Spaces');assert.equal(options.at(-1).quickPlayMultiplayer,undefined);assert.equal(options.at(-1).server,undefined);assert.equal(options.at(-1).gamePath,path.dirname(path.dirname(worldDir)))})
+  await assert.rejects(()=>game.play(b,undefined,true,undefined,undefined,undefined,'World With Spaces'),/Dünya açıkken/)
+  await stop(children.at(-1))
+  const concurrentWorlds=await Promise.allSettled([game.play(b,undefined,false,undefined,undefined,undefined,'World With Spaces'),game.play(b,undefined,false,undefined,undefined,undefined,'World With Spaces')])
+  check('concurrent world validation yields still allow only one preparation and game process',()=>{assert.equal(concurrentWorlds.filter(r=>r.status==='fulfilled').length,1);assert.equal(game.getRunningInstances().length,1)})
+  await stop(children.at(-1))
+  await assert.rejects(()=>game.play(b,undefined,false,undefined,undefined,undefined,'../other'))
+  await assert.rejects(()=>game.play(b,undefined,false,'localhost',undefined,undefined,'World With Spaces'))
+  await assert.rejects(()=>game.play(null,'1.21.1',false,undefined,undefined,undefined,'World With Spaces'))
+  store.saveProfile({...store.get().profiles.find(p=>p.id===b),versionId:'1.12.2'})
+  await assert.rejects(()=>game.play(b,undefined,false,undefined,undefined,undefined,'World With Spaces'),/1.20/)
+  check('legacy world launch, traversal, simultaneous server target and duplicate profile sessions never spawn a game',()=>{assert.equal(game.getRunningInstances().length,0);assert.equal(game.getLaunchState().preparing,false)})
+  store.saveProfile({...store.get().profiles.find(p=>p.id===b),versionId:'1.21.1'})
+  const beforeTemporary = store.get(), beforeFile = fs.readFileSync(path.join(root,'launcher.json'),'utf8')
+  await game.play(null,'1.8.9',false,'localhost:25567',{name:'Legacy server',resourcePacks:'prompt'},'TemporaryQA')
+  check('temporary server join uses the supplied offline name and Minecraft UUID with legacy 1.8.9 arguments',()=>{
+    assert.equal(options.at(-1).gameProfile.name,'TemporaryQA')
+    assert.equal(options.at(-1).gameProfile.id,load('src/main/offline-account.ts').offlineAccount('TemporaryQA').id)
+    assert.equal(options.at(-1).accessToken,undefined)
+    assert.deepEqual(JSON.parse(JSON.stringify(options.at(-1).server)),{ip:'localhost',port:25567})
+    assert.equal(game.getRunningInstances()[0].accountName,'TemporaryQA')
+  })
+  await stop(children.at(-1))
+  check('temporary account never changes persisted accounts, profiles, selection or launcher file',()=>{assert.deepEqual(store.get(),beforeTemporary);assert.equal(fs.readFileSync(path.join(root,'launcher.json'),'utf8'),beforeFile)})
+  for(const name of ['','ab','bad name','x'.repeat(17)]) await assert.rejects(()=>game.play(null,'1.8',false,'localhost',undefined,name))
+  await assert.rejects(()=>game.play(b,undefined,false,'localhost',undefined,'TemporaryQA'))
+  await assert.rejects(()=>game.play(null,'1.8',false,undefined,undefined,'TemporaryQA'))
+  check('invalid temporary names and non-server/profile use never spawn a process',()=>assert.equal(game.getRunningInstances().length,0))
+  const noAccountStore = { ...store, dataPath:store.dataPath, minecraftPath:store.minecraftPath, get:()=>({...beforeTemporary,accounts:[],selectedAccountId:null,profiles:[]}) }
+  const temporaryOnlyGame = new GameService(noAccountStore,{},()=>null,()=>{},()=>{})
+  temporaryOnlyGame.installedVersion=()=>({folder:{root}});temporaryOnlyGame.findJava=async()=>process.execPath
+  await temporaryOnlyGame.play(null,'1.8',false,'localhost',undefined,'GuestPlayer')
+  check('temporary offline server join also works with no saved accounts or profiles',()=>assert.equal(options.at(-1).gameProfile.name,'GuestPlayer'))
+  await stop(children.at(-1))
+  launchMode='flood'
+  await game.play(b)
+  const floodMarker=path.join(root,'startup-after-heavy-output.txt')
+  for(let attempt=0;attempt<100&&!fs.existsSync(floodMarker);attempt++)await new Promise(resolve=>setTimeout(resolve,20))
+  check('verbose game startup drains stdout and stderr without blocking on pipe capacity',()=>assert.equal(fs.readFileSync(floodMarker,'utf8'),'startup completed'))
+  await stop(children.at(-1))
+  console.log(`${checks} profile/shortcut/process checks passed. Real OS child processes used; Minecraft launch preparation stubbed. Data: ${root}`)
+ } finally {for(const child of children) if(child.exitCode===null && child.signalCode===null) child.kill()}
+})().catch(error=>{console.error(error);process.exitCode=1})

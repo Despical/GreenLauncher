@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Green Launcher slime bloğu simgesi">
+  <defs>
+    <clipPath id="top"><path d="M128 18 232 77 128 136 24 77Z"/></clipPath>
+    <clipPath id="left"><path d="M24 77 128 136v101L24 178Z"/></clipPath>
+    <clipPath id="right"><path d="M232 77 128 136v101l104-59Z"/></clipPath>
+  </defs>
+  <g transform="translate(128 128) scale(.91 .97) translate(-128 -128)">
+  <path d="M128 11 239 73v109l-111 63L17 182V73Z" fill="#15351b"/>
+  <path d="M24 77 128 136v101L24 178Z" fill="#70b943"/>
+  <path d="M232 77 128 136v101l104-59Z" fill="#4b9b38"/>
+  <path d="M128 18 232 77 128 136 24 77Z" fill="#9cda61"/>
+  <g clip-path="url(#top)" shape-rendering="crispEdges">
+    <path d="m24 77 104 59 22-13L46 64Z" fill="#b8ee7b"/>
+    <path d="m128 18 104 59-23 13L105 32Z" fill="#7cc34b"/>
+    <path d="m58 67 24-14 22 13-24 14Zm69-33 22-12 22 13-22 12Zm30 45 24-14 24 13-24 14Z" fill="#d0f79b"/>
+    <path d="m96 92 23-13 23 13-23 13Zm48 15 24-13 24 13-24 14Z" fill="#78b947"/>
+    <path d="m43 78 15-9 18 10-15 9Zm86-24 14-8 19 10-15 9Z" fill="#6faa3f"/>
+  </g>
+  <g clip-path="url(#left)" shape-rendering="crispEdges">
+    <path d="m24 77 104 59v19L24 96Z" fill="#c4f289"/>
+    <path d="m24 99 15 9v69l-15-8Zm15 9 17 10v20l-17-10Zm17 10 17 10v18l-17-10Z" fill="#a5e36a"/>
+    <path d="m41 147 19 11v18l-19-11Zm34-5 20 11v18l-20-11Zm23 43 20 11v18l-20-11Z" fill="#8dd051"/>
+    <path d="m58 165 18 10v18l-18-10Zm28-32 16 9v15l-16-9Zm20 43 15 9v17l-15-9Z" fill="#5aa43c"/>
+    <path d="m31 163 14 8v16l-14-8Zm39 35 17 10v17l-17-10Z" fill="#b0e778"/>
+  </g>
+  <g clip-path="url(#right)" shape-rendering="crispEdges">
+    <path d="m128 136 104-59v20l-104 59Z" fill="#8bd258"/>
+    <path d="m216 107 16-9v72l-16 9Zm-19 11 19-11v20l-19 11Z" fill="#5db247"/>
+    <path d="m140 162 20-11v19l-20 11Zm39-23 20-11v19l-20 11Zm21 44 21-12v18l-21 12Z" fill="#76c14b"/>
+    <path d="m158 182 20-11v19l-20 11Zm29-12 18-10v18l-18 10Zm-49 42 18-10v18l-18 10Z" fill="#39882f"/>
+    <path d="m163 213 21-12v17l-21 12Z" fill="#66b446"/>
+  </g>
+  <path d="M128 18 232 77v101l-104 59L24 178V77Z" fill="none" stroke="#244e28" stroke-width="7" stroke-linejoin="round"/>
+  <path d="m24 77 104 59 104-59M128 136v101" fill="none" stroke="#285e2a" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+</svg>

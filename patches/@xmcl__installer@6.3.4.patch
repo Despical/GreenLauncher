@@ -1,0 +1,44 @@
+diff --git a/dist/index.js b/dist/index.js
+index 2c56597f1f02fd9855d0f93bf36d3ac43b4287bb..0fbd15ead3636f71e31b49721ae04b8bd3d29757 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -3023,7 +3023,7 @@ module.exports = __toCommonJS(index_exports);
+ 
+ // assets.ts
+ var import_core2 = require("@xmcl/core");
+-var import_utils2 = require("@xmcl/core/utils");
++var import_utils2 = { isNotNull: (value) => value != null };
+ var import_promises3 = require("fs/promises");
+ 
+ // diagnose.ts
+@@ -3530,7 +3530,7 @@ async function getForgeVersionList(options = {}) {
+ }
+ 
+ // libraries.ts
+-var import_utils7 = require("@xmcl/core/utils");
++var import_utils7 = { isNotNull: (value) => value != null };
+ var import_unzip = require("@xmcl/unzip");
+ var import_promises5 = require("fs/promises");
+ var import_path = require("path");
+diff --git a/dist/index.mjs b/dist/index.mjs
+index c8c4dbfb7f10fc46ec5ae67db5b9bbe989e6e751..527426322b8c8b3d43316d440b51cb6f63500c29 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -2912,7 +2912,7 @@ var require_yazl = __commonJS({
+ 
+ // assets.ts
+ import { MinecraftFolder } from "@xmcl/core";
+-import { isNotNull } from "@xmcl/core/utils";
++const isNotNull = (value) => value != null;
+ import { readFile, stat as stat3 } from "fs/promises";
+ 
+ // diagnose.ts
+@@ -3419,7 +3419,7 @@ async function getForgeVersionList(options = {}) {
+ }
+ 
+ // libraries.ts
+-import { isNotNull as isNotNull2 } from "@xmcl/core/utils";
++const isNotNull2 = (value) => value != null;
+ import { open, walkEntriesGenerator } from "@xmcl/unzip";
+ import { stat as stat4 } from "fs/promises";
+ import { join } from "path";

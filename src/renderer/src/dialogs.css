@@ -1,0 +1,44 @@
+:root {
+  --dialog-title: 21px;
+  --dialog-body: 14px;
+  --dialog-control: 14px;
+  --dialog-help: 13px;
+}
+.modal { font-size: var(--dialog-body); line-height: 1.55; scrollbar-width: thin; scrollbar-color: #4b5d6a transparent; }
+.modal .modal-head h2, .modal .account-dialog-heading h2 { font-family: 'Inter Variable', 'Segoe UI', sans-serif; font-size: var(--dialog-title); line-height: 1.3; font-weight: 650; }
+.modal .modal-intro, .modal.confirm-modal > p, .modal .account-intro, .modal .account-dialog-heading p { font-size: var(--dialog-body); line-height: 1.6; color: #abbac6; }
+.modal .form-grid label, .modal .offline-account-name { font-size: var(--dialog-body); font-weight: 600; }
+.modal .form-grid input, .modal .offline-name-field input { height: 42px; font-size: 14px; }
+.modal .form-grid .optional, .modal .modal-note, .modal .offline-name-help, .modal .offline-skin-note p, .modal .offline-name-field > span { font-size: var(--dialog-help); line-height: 1.6; }
+.modal .modal-primary, .modal .secondary, .modal .delete-button, .modal .danger-link, .modal .account-dialog-footer button { min-height: 40px; font-size: var(--dialog-control); font-weight: 600; }
+.modal .modal-close { width: 32px; height: 32px; display: grid; place-items: center; flex: none; border-radius: 7px; }
+.modal .modal-close:hover { background: #2b3945; color: #eef5f8; }
+.modal .form-grid .full small, .modal .cleanup-kind { font-size: var(--dialog-help); }
+.modal .account-provider-button small, .modal .account-security-note, .modal .account-remove-confirm p { font-size: var(--dialog-help); line-height: 1.55; }
+.modal .account-remove-confirm button { font-size: var(--dialog-help); min-height: 38px; }
+.modal .account-identity strong { font-size: 14px; }
+.modal .account-identity small { font-size: 13px; }
+.dropdown-menu .dropdown-options button, .dropdown-search input, .version-context-menu button, .screenshot-context-menu button { font-size: var(--dialog-control); }
+.dropdown-menu .dropdown-options button small, .dropdown-recent, .version-filter-copy small, .version-context-label { font-size: var(--dialog-help); }
+.version-filter-copy strong { font-size: var(--dialog-control); }
+.modal .cleanup-preview-list small, .modal .cleanup-preview-list b, .modal .profile-fullscreen-toggle small { font-size: var(--dialog-help); }
+.modal .cleanup-preview-list strong, .modal .dropdown-copy strong { font-size: var(--dialog-body); }
+.mods-detail-description, .mods-detail-text { font-size: var(--dialog-body); line-height: 1.6; }
+.mods-detail-top small, .mods-detail-meta, .mods-detail-footer > small { font-size: var(--dialog-help); }
+.mods-detail-actions button { min-height: 40px; font-size: var(--dialog-control); }
+.play-button.has-running-games, .profile-play.has-running-games { background: #245b70; border-color: #43859d; color: #e8f6ff; }
+.play-button.has-running-games:hover, .profile-play.has-running-games:hover { background: #2c718b; border-color: #66a5bc; }
+.running-game-count { display: inline-grid; place-items: center; min-width: 23px; height: 23px; padding: 0 6px; border-radius: 6px; background: #122f4399; font-size: 12px; font-variant-numeric: tabular-nums; }
+.running-games-popover { position: fixed; z-index: 60; width: 340px; max-height: 340px; padding: 13px; border: 1px solid #46616f; border-radius: 11px; background: #182630; box-shadow: 0 14px 40px #0009; animation: account-dialog-enter .15s ease-out; }
+.running-games-popover h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #bdd3df; }
+.running-instance-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow: auto; scrollbar-width: thin; scrollbar-color: #496676 transparent; }
+.running-instance { display: flex; align-items: center; gap: 11px; min-height: 74px; padding: 10px; border: 1px solid #354e5c; border-radius: 8px; background: #20343f; }
+.running-instance > img { width: 36px; height: 36px; flex: none; object-fit: contain; image-rendering: auto; border-radius: 5px; }
+.running-instance > div { min-width: 0; flex: 1; }
+.running-instance strong, .running-instance small, .running-instance div > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.running-instance strong { font-size: 13px; line-height: 19px; font-weight: 650; color: #e2f0f7; }
+.running-instance div > span { margin-top: 2px; font-size: 12px; line-height: 18px; color: #acc4d0; }
+.running-instance small { font-size: 12px; line-height: 18px; color: #90abb9; }
+.running-indicator { width: 7px; height: 7px; flex: none; border-radius: 50%; background: #7cd998; box-shadow: 0 0 0 3px #7cd99812; }
+.launch-confirm-dialog .running-instance-list { max-height: min(280px, 32vh); }
+@media (prefers-reduced-motion: reduce) { .running-games-popover { animation: none; } }

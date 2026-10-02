@@ -1,0 +1,106 @@
+.download-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 25px 0 14px; }
+.download-section-head h3 { margin: 0; font-size: 16px; }
+.download-text-action { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #b8cbd5; font-size: 13px; }
+.download-text-action:hover { background: #26343e; color: #eef6f9; }
+.download-jobs { display: flex; flex-direction: column; gap: 14px; }
+.download-job { position: relative; display: grid; grid-template-columns: minmax(190px, .8fr) minmax(0, 1.5fr); align-items: center; gap: 24px; padding: 21px 23px; border: 1px solid #3c505b; border-radius: 9px; background: #16222b; }
+.download-job.paused, .download-job.queued { border-color: #34434e; background: #141e27; }
+.download-job.sortable { cursor: grab; touch-action: pan-y; }
+.download-job.dragging { z-index: 10; cursor: grabbing; border-color: #89bd99; background: #1d302b; box-shadow: 0 14px 35px #0007; }
+.download-job-identity { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.download-job-icon { display: grid; place-items: center; flex: none; width: 43px; height: 43px; border-radius: 8px; background: #243d35; color: #97d3ae; }
+.download-job-title { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+.download-job-title strong { font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.download-job-title small { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #a0b4c1; font-size: 13px; }
+.download-priority { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px; background: #294538; color: #afe2bc; font-size: 12px; }
+.download-drag-handle { display: grid; place-items: center; flex: none; width: 25px; height: 36px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #8ba49a; cursor: grab; touch-action: none; }
+.download-drag-handle:hover { background: #294038; color: #c5e3ce; }
+.download-job-transfer { min-width: 0; padding-left: 24px; border-left: 1px solid #30414a; }
+.download-job-metrics { display: flex; align-items: center; gap: 34px; margin-bottom: 17px; }
+.download-job-metrics > div { display: flex; align-items: flex-start; gap: 8px; }
+.download-job-metrics svg { margin-top: 2px; flex: none; color: #8cbea0; }
+.download-job-metrics span { display: flex; flex-direction: column; gap: 5px; }
+.download-job-metrics small { color: #a3b7c4; font-size: 12px; }
+.download-job-metrics strong { font-size: 15px; font-weight: 650; color: #e7f2ec; font-variant-numeric: tabular-nums; }
+.download-job-progress-copy { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px 12px; font-size: 12px; line-height: 1.45; color: #c8d8df; }
+.download-job-progress-copy > strong { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.download-job-progress-copy em { color: #a9c8b3; font-style: normal; font-weight: 500; }
+.download-job-progress { height: 5px; overflow: hidden; margin: 8px 0 12px; border-radius: 4px; background: #31414a; }
+.download-job-progress span { display: block; height: 100%; border-radius: inherit; background: #77c791; transition: width .3s; }
+.download-job.paused .download-job-progress span { background: #7b929f; }
+.download-job-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; }
+.download-job-bottom > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #9db2bf; font-size: 12px; }
+.download-job-actions { display: flex; align-items: center; flex: none; gap: 8px; }
+.download-job-actions button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid #425b4c; border-radius: 6px; background: #294b37; color: #e2f6e7; }
+.download-job-actions button:hover { border-color: #91b79b; background: #356247; }
+.download-job-actions button.download-to-top { width: 28px; height: 30px; border-color: transparent; background: transparent; color: #a4bdae; }
+.download-job-actions button.download-to-top:hover { background: #2a4036; color: #effbf1; }
+.download-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 270px; border: 1px dashed #3b4b57; border-radius: 9px; background: #111b24; text-align: center; }
+.download-empty svg { color: #7ea58f; }
+.download-empty h3 { margin: 17px 0 7px; color: #dbe7ed; font-size: 17px; }
+.download-empty p { margin: 0; padding: 0 20px; color: #98aebc; font-size: 14px; }
+.download-history { border: 1px solid #34434f; border-radius: 8px; background: #141d26; overflow: hidden; }
+.download-history > div { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #2e3b45; }
+.download-history > div:last-child { border-bottom: 0; }
+.download-history > div > span { color: #8ac59d; }
+.download-history .failed > span { color: #e99c9c; }
+.download-history > div > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.download-history strong { font-size: 13px; }
+.download-history small { color: #9cacb9; font-size: 12px; overflow-wrap: anywhere; }
+.download-history em { color: #9facb8; font-size: 12px; font-style: normal; }
+.download-game-note { display: flex; align-items: center; gap: 9px; padding: 12px 15px; border: 1px solid #4a5964; border-radius: 7px; background: #22303a; color: #c2d0d9; font-size: 13px; }
+.download-settings-dialog { width: min(520px,calc(100vw - 40px)); max-height: calc(100vh - 80px); overflow-y: auto; }
+.download-settings-dialog .modal-head { align-items: flex-start; }
+.download-settings-dialog .modal-head h2 { font-size: 22px; line-height: 1.3; }
+.download-settings-dialog .modal-head p { margin: 9px 0 0; color: #a3b4c1; font-size: 13px; line-height: 1.55; }
+.download-speed-field { display: flex; flex-direction: column; gap: 10px; margin: 26px 0; color: #dce7ed; font-size: 14px; }
+.download-speed-field > span { font-weight: 600; }
+.download-speed-field > div { display: flex; align-items: center; overflow: hidden; border: 1px solid #455a69; border-radius: 6px; background: #111c25; transition: border-color .15s; }
+.download-speed-field > div:focus-within { border-color: #85b494; box-shadow: 0 0 0 1px #85b49433; }
+.download-settings-dialog .download-speed-field input, .download-settings-dialog .download-speed-field input:focus-visible { display: block; min-width: 0; flex: 1; width: 0; padding: 12px 14px; border: 0; outline: 0; box-shadow: none; background: transparent; color: #eef6f9; font-size: 15px; font-family: inherit; caret-color: #a5d7b3; }
+.download-speed-field > div > span { flex: none; padding-right: 15px; color: #a4bac8; font-size: 13px; }
+.download-speed-field small { color: #a2b7c4; font-size: 13px; line-height: 1.6; }
+.download-settings-dialog button.setting-toggle { width: 100%; min-height: 98px; padding: 17px; gap: 20px; border: 1px solid #465d50; border-radius: 7px; background: #14221d; text-align: left; }
+.download-settings-dialog button.setting-toggle:hover { border-color: #658c72; background: #1a2d24; }
+.download-settings-dialog .setting-toggle > span:first-child { min-width: 0; gap: 9px; }
+.download-settings-dialog .setting-toggle strong { font-size: 14px; line-height: 1.45; }
+.download-settings-dialog .setting-toggle small { color: #a4b9ad; font-size: 13px; line-height: 1.6; }
+.download-settings-dialog .switch { flex: none; }
+.download-resume-note { margin: 19px 0 26px; color: #a0b4c1; font-size: 13px; line-height: 1.6; }
+.download-settings-dialog .modal-actions { justify-content: flex-end; gap: 9px; }
+.download-settings-dialog .modal-actions button { min-height: 39px; font-size: 14px; }
+.download-job-actions button:focus-visible, .download-drag-handle:focus-visible, .download-text-action:focus-visible { outline: 2px solid #91c8a0; outline-offset: 2px; }
+@media (max-width: 1100px) { .download-job { grid-template-columns: minmax(180px,.75fr) minmax(0,1.5fr); gap: 16px; padding: 19px; } .download-job-transfer { padding-left: 16px; } .download-job-metrics { gap: 22px; } }
+@media (max-width: 850px) { .download-job { grid-template-columns: minmax(0,1fr); gap: 18px; } .download-job-transfer { padding-left: 0; padding-top: 17px; border-left: 0; border-top: 1px solid #30414a; } }
+
+.download-job.sortable { touch-action: none; }
+.download-job-icon img { width: 31px; height: 31px; object-fit: contain; border-radius: 3px; }
+.download-drag-handle { opacity: 0; transition: opacity .15s; }
+.download-job:hover .download-drag-handle, .download-job:focus-within .download-drag-handle, .download-job.dragging .download-drag-handle { opacity: 1; }
+.download-job-metrics { gap: clamp(14px, 2vw, 30px); flex-wrap: wrap; }
+.download-job-metrics small { font-size: 12px; }
+.download-limit-note { margin: -5px 0 13px; font-size: 12px; color: #80958f; }
+.download-settings-dialog .modal-head { margin-bottom: 0; padding-bottom: 20px; border-bottom: 1px solid #34464d; }
+.download-speed-field { margin: 0 0 20px; padding: 22px 0; border-bottom: 1px solid #34464d; }
+.download-resume-note { margin: 13px 0 22px; }
+
+/* Transfer surfaces use the same neutral palette as Storage; action buttons keep their accent. */
+.download-job, .download-job.paused, .download-job.queued { background: #151c25; border-color: #34414e; }
+.download-job.dragging { background: #202e3a; border-color: #8b949e; }
+.download-job-icon { background: #21262d; color: #b1bac4; }
+.download-job-title small, .download-job-bottom > span, .download-job-metrics small, .download-limit-note { color: #9eafbd; }
+.download-priority { background: #26313c; color: #c9d1d9; }
+.download-job-transfer { border-color: #2f3b47; }
+.download-job-metrics svg { color: #9eafbd; }
+.download-job-metrics strong { color: #e6edf3; }
+.download-job-progress-copy, .download-job-progress-copy em { color: #b1bac4; }
+.download-job-progress { background: #30363d; }
+.download-job-progress span { background: #9eb4c5; }
+.download-empty, .download-history { background: #151c25; border-color: #34414e; }
+.download-empty svg, .download-history > div > span { color: #9eafbd; }
+.download-history > div { border-color: #2f3b47; }
+.download-game-note { background: #21262d; border-color: #34414e; color: #b1bac4; }
+.download-settings-dialog .download-speed-field > div { background: #0d1117; border-color: #484f58; }
+.download-settings-dialog .download-speed-field > div:focus-within { border-color: #8b949e; box-shadow: 0 0 0 1px #8b949e33; }
+.download-settings-dialog .download-speed-field input { caret-color: #c9d1d9; }
+.download-settings-dialog .modal-head, .download-speed-field { border-color: #30363d; }

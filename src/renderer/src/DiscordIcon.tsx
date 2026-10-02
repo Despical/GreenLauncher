@@ -1,0 +1,3 @@
+export function DiscordIcon({ size = 24, className }: { size?: number; className?: string }) {
+  return <svg width={size} height={size} className={className} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.3 4.6a19.4 19.4 0 0 0-4.8-1.5l-.6 1.2a18.1 18.1 0 0 0-5.8 0l-.6-1.2a19.4 19.4 0 0 0-4.8 1.5C.7 9.1-.2 13.4.3 17.6a19.6 19.6 0 0 0 5.9 3l1.2-1.9-1.8-.9.4-.3a14 14 0 0 0 12 0l.4.3-1.8.9 1.2 1.9a19.6 19.6 0 0 0 5.9-3c.6-4.8-1-9.1-3.4-13ZM8.2 15.3c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4Zm7.6 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4Z" /></svg>
+}

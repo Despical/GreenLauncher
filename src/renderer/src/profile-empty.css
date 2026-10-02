@@ -1,0 +1,17 @@
+.profile-onboarding { min-height: clamp(350px, calc(100vh - 285px), 590px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 46px 28px; border: 1px solid #33433e; border-radius: 11px; background: radial-gradient(ellipse at 50% 22%, #24413244, transparent 65%), #151d24; text-align: center; }
+.profile-onboarding-art { position: relative; width: 126px; height: 105px; margin-bottom: 8px; }
+.profile-ghost-card { position: absolute; width: 66px; height: 76px; top: 10px; border: 1px solid #496256; border-radius: 9px; background: #1b2b27; }
+.profile-ghost-card.first { left: 7px; transform: rotate(-13deg); opacity: .65; }
+.profile-ghost-card.second { right: 7px; transform: rotate(13deg); opacity: .65; }
+.profile-onboarding-icon { position: absolute; left: 24px; top: 8px; width: 78px; height: 84px; display: grid; place-items: center; border: 1px solid #587563; border-radius: 11px; background: #263c31; }
+.profile-onboarding-icon img { display: block; width: 51px; height: 51px; object-fit: contain; image-rendering: auto; }
+.profile-onboarding-plus { position: absolute; right: 14px; bottom: 1px; width: 28px; height: 28px; display: grid; place-items: center; border: 3px solid #19242a; border-radius: 50%; background: #79a586; color: #10231a; }
+.profile-onboarding h3 { margin: 0; color: #e7f0ec; font: 650 25px 'Space Grotesk Variable', sans-serif; letter-spacing: -.6px; }
+.profile-onboarding p { max-width: 435px; margin: 0; color: #9aaeb3; font-size: 13px; line-height: 1.9; }
+.profile-onboarding-create { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 41px; margin-top: 9px; padding: 0 16px; border: 1px solid #608c6b; border-radius: 6px; background: #315f40; color: #f0f7f1; font-size: 13px; font-weight: 700; }
+.profile-onboarding-create > svg:last-child { margin-left: 12px; }
+.profile-onboarding-create:hover { border-color: #719b79; background: #294f36; }
+@media (max-width: 850px) {
+  .profile-onboarding { min-height: 350px; padding: 34px 22px; }
+  .profile-onboarding h3 { max-width: 350px; font-size: 22px; }
+}

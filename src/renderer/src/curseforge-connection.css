@@ -1,0 +1,12 @@
+.curseforge-connect-form { display:grid; gap:18px; padding:0 26px 25px; }
+.curseforge-connect-note { margin:0; color:#a8bac6; font-size:13px; line-height:1.65; }
+.curseforge-connect-actions { display:flex; justify-content:space-between; gap:12px; }
+.curseforge-connect-actions button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 15px; border:1px solid #405463; border-radius:7px; color:#d7e4ec; background:#24323d; cursor:pointer; transition:background .15s,border-color .15s; }
+.curseforge-connect-actions button:hover { background:#304553; }
+.curseforge-connect-actions button.primary { background:#408750; border-color:#59a56a; color:white; }
+.curseforge-connect-actions button.primary:hover { background:#367443; }
+.curseforge-connect-actions button:focus-visible { outline:2px solid #9fdab0; outline-offset:3px; }
+.curseforge-connect-actions button:disabled { opacity:.5; cursor:default; }
+.provider-connect-dialog .provider-connect-error { margin:0; }
+.provider-connection-state .provider-browse-link { background:none; border:none; color:#aec3d0; font-size:13px; cursor:pointer; padding:7px; }
+.provider-connection-state .provider-browse-link:hover { color:#eef7fb; }

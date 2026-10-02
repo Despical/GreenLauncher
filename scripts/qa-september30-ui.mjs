@@ -1,0 +1,117 @@
+import assert from 'node:assert/strict'
+import { writeFileSync } from 'node:fs'
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
+let tab
+for (let i = 0; i < 100; i++) { try { tab = (await (await fetch('http://127.0.0.1:9225/json/list')).json()).find(item => item.type === 'page'); if (tab) break } catch {} await wait(100) }
+assert.ok(tab)
+const socket = new WebSocket(tab.webSocketDebuggerUrl)
+await new Promise(resolve => socket.onopen = resolve)
+let id = 0
+const pending = new Map(), errors = [], checks = []
+socket.onmessage = event => { const message = JSON.parse(event.data); if (message.method === 'Runtime.exceptionThrown') errors.push(message.params); const request = pending.get(message.id); if (request) { pending.delete(message.id); message.error ? request.reject(Error(message.error.message)) : request.resolve(message.result) } }
+const send = (method, params = {}) => new Promise((resolve, reject) => { const key = ++id; pending.set(key, { resolve, reject }); socket.send(JSON.stringify({ id: key, method, params })) })
+const evaluate = async expression => { const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (result.exceptionDetails) throw Error(JSON.stringify(result.exceptionDetails)); return result.result.value }
+const until = async expression => { for (let i = 0; i < 100; i++) { if (await evaluate(expression)) return; await wait(60) } throw Error(expression) }
+const click = async selector => { await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`); await wait(160) }
+const nav = async text => { await evaluate(`[...document.querySelectorAll('.side-nav button')].find(e=>e.textContent.trim()===${JSON.stringify(text)}).click()`); await wait(180) }
+const shot = async name => { const result = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }); writeFileSync(`build/${name}.png`, Buffer.from(result.data, 'base64')) }
+const input = async (selector, value) => evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));return true})()`)
+
+const button = async text => { await evaluate(`(()=>{const b=[...document.querySelectorAll('button')].find(e=>e.getClientRects().length&&e.textContent.trim()===${JSON.stringify(text)});if(!b)throw Error('Missing button '+${JSON.stringify(text)});b.click()})()`); await wait(160) }
+const key = async (key, code=key, extra={}) => { await send('Input.dispatchKeyEvent',{type:'keyDown',key,code,...extra}); await send('Input.dispatchKeyEvent',{type:'keyUp',key,code,...extra}); await wait(160) }
+const drag = async (source,target) => {
+  await evaluate(`document.querySelector(${JSON.stringify(source)}).scrollIntoView({block:'center'})`); await wait(100)
+  const p=await evaluate(`(()=>{const a=document.querySelector(${JSON.stringify(source)}).getBoundingClientRect(),b=document.querySelector(${JSON.stringify(target)}).getBoundingClientRect();return{x:a.x+90,y:a.y+a.height/2,to:b.y+b.height/2}})()`)
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1})
+  for(let i=1;i<=16;i++){await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x,y:p.y+(p.to-p.y)*i/16,buttons:1,button:'left'});await wait(20)}
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.to,button:'left',clickCount:1}); await wait(250)
+}
+try {
+  await send('Runtime.enable');await send('Page.enable')
+  assert.match(await evaluate('window.launcher.getState().then(s=>s.dataPath)'),/qa-ui-refresh-/,'Only the in-memory fixture may be modified')
+  await evaluate("window.launcher.saveSettings({language:'tr',downloadSpeedLimitKiB:512})"); await send('Page.reload'); await until("!!document.querySelector('.side-nav')")
+  await nav('İndirmeler');await until("!!document.querySelector('[data-job-id=qa-active]')")
+  const metrics=await evaluate("[...document.querySelector('[data-job-id=qa-active]').querySelectorAll('.download-job-metrics small')].map(e=>e.textContent)")
+  assert.deepEqual(metrics,['Aktarım hızı','En Yüksek','Kalan tahmini süre'])
+  assert.match(await evaluate("document.querySelector('[data-job-id=qa-active] .download-limit-note').textContent"),/512 KB\/sn/)
+  assert.ok(await evaluate("document.querySelector('[data-job-id=qa-active] .download-job-icon img').naturalWidth>0"))
+  assert.equal(await evaluate("!!document.querySelector('.download-to-top')"),false)
+  assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/MB.*MB\/sn.*2 indirme kuyrukta/)
+  await click('[data-job-id=qa-active] .download-pause');assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/İndirme duraklatıldı\./)
+  await click('[data-job-id=qa-active] .download-pause');assert.match(await evaluate("document.querySelector('.statusbar-download').textContent"),/İndiriliyor\./)
+  checks.push('Ordered metrics, content logo, dim per-download limit and live/paused footer')
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});await wait(180)
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('[data-job-id=qa-active] .download-drag-handle')).opacity"),'0')
+  const hover=await evaluate("(()=>{const r=document.querySelector('[data-job-id=qa-active]').getBoundingClientRect();return {x:r.x+70,y:r.y+60}})()")
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',...hover});await wait(180)
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('[data-job-id=qa-active] .download-drag-handle')).opacity"),'1')
+  await drag('[data-job-id=qa-active]','[data-job-id=qa-queued]')
+  const order=await evaluate("[...document.querySelectorAll('.download-job')].map(e=>e.dataset.jobId)")
+  assert.ok(order.indexOf('qa-active')>order.indexOf('qa-queued'),JSON.stringify(order))
+  assert.equal(await evaluate("window.launcher.getDownloads().then(s=>s.jobs.find(j=>j.id==='qa-active').phase)"),'downloading')
+  checks.push('Whole-card drag works for active first card; grip appears only on hover; active installation continues')
+  await click('.download-settings-trigger')
+  assert.equal(await evaluate("document.querySelector('.download-speed-field input').value"),'512')
+  assert.equal(await evaluate("document.querySelector('.download-speed-field > div > span').textContent"),'KB/sn')
+  assert.equal(await evaluate("document.querySelector('.download-settings-dialog .modal-actions button:last-child svg')"),null)
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.download-resume-note')).fontSize"),await evaluate("getComputedStyle(document.querySelector('.download-speed-field small')).fontSize"))
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.download-settings-dialog .modal-head')).borderBottomWidth"),'1px')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.download-speed-field')).borderBottomWidth"),'1px')
+  await input('.download-speed-field input','2048');await click('.download-settings-dialog .modal-actions button:last-child');await until("!document.querySelector('.download-settings-dialog')")
+  assert.equal(await evaluate('window.launcher.getDownloads().then(s=>s.speedLimitKiB)'),2048)
+  await shot('qa-september30-downloads');checks.push('KB/sn saving, separate stacked settings, matched help typography, icon-free Save')
+  await nav('Modlar');await until("!!document.querySelector('.mods-source-nav')");await click('.mods-source-nav button:nth-of-type(2)');await until("!!document.querySelector('.mods-favorite')")
+  // Clear saved fixture projects before verifying both notification paths.
+  await evaluate("window.launcher.getModFavorites().then(items=>Promise.all(items.map(item=>window.launcher.setModFavorite(item,false))))")
+  await send('Page.reload');await until("!!document.querySelector('.side-nav')");await nav('Modlar');await until("!!document.querySelector('.mods-source-nav')");await click('.mods-source-nav button:nth-of-type(2)');await until("!!document.querySelector('.mods-favorite')")
+  await click('.mods-favorite');assert.match(await evaluate("document.querySelector('.toast').textContent"),/Favorilere eklendi\./)
+  await click('.mods-favorite');assert.match(await evaluate("document.querySelector('.toast').textContent"),/Favorilerden kaldırıldı\./)
+  await click('.mods-type-tabs button:last-child');await until("!!document.querySelector('.mods-favorites-empty')")
+  assert.ok(await evaluate("document.querySelector('.mods-setup').getBoundingClientRect().height>0"));assert.equal(await evaluate("!!document.querySelector('.mods-browser-body')"),false)
+  await click('.mods-favorites-empty button');await until("!!document.querySelector('.mods-favorite')")
+  await click('.mods-type-tabs button:nth-child(2)');await until("document.querySelector('.mods-detail h3')?.textContent==='World Explorer Pack'")
+  assert.match(await evaluate("document.querySelector('.mods-detail-footer .dropdown-trigger').textContent"),/1\.0\.0.*•.*•.*for 1\.21\.1/)
+  const align=await evaluate("(()=>{const a=document.querySelector('.mods-install-row>small').getBoundingClientRect(),b=document.querySelector('.mods-detail-actions').getBoundingClientRect();return Math.abs(a.y+a.height/2-b.y-b.height/2)})()")
+  assert.ok(align<1,align)
+  await click('.mods-detail-footer .dropdown-trigger');await click('.mods-detail-footer .dropdown-menu-action');await until("!!document.querySelector('.mods-favorite')")
+  await click('.mods-detail-footer .dropdown-trigger');await until("!!document.querySelector('.mods-detail-footer .dropdown-menu')")
+  assert.match(await evaluate("document.querySelector('.mods-detail-footer .dropdown-menu').textContent"),/for 26\.3/)
+  await evaluate("document.querySelector('.mods-detail-footer [role=option]:last-child').click()");await wait(180)
+  assert.equal(await evaluate("document.querySelector('.mods-detail-actions button').disabled"),true)
+  await shot('qa-september30-mod-versions')
+  await input('.mods-search input','world');await wait(400)
+  const selected=await evaluate("({source:document.querySelector('.mods-source-nav .active').textContent,title:document.querySelector('.mods-detail h3')?.textContent,query:document.querySelector('.mods-search input').value})")
+  await evaluate("document.querySelector('.main-content').scrollTop=180");await wait(100)
+  const scroll=await evaluate("document.querySelector('.main-content').scrollTop")
+  await nav('Ana Sayfa');await nav('Modlar')
+  assert.deepEqual(await evaluate("({source:document.querySelector('.mods-source-nav .active').textContent,title:document.querySelector('.mods-detail h3')?.textContent,query:document.querySelector('.mods-search input').value})"),selected)
+  assert.ok(Math.abs(await evaluate("document.querySelector('.main-content').scrollTop")-scroll)<1)
+  checks.push('Favorite popups, loader remains above empty favorites, version game tags and other-version browsing, aligned install row, remembered mod selection/search/scroll')
+  await nav('Ayarlar');await click('.settings-tabs button:nth-child(4)');await input('.log-search input','Oturum');await wait(100)
+  await nav('Ana Sayfa');await nav('Ayarlar');assert.equal(await evaluate("document.querySelector('.log-search input').value"),'Oturum')
+  await click('.settings-tabs button:nth-child(3)');await click('.settings-tabs button:nth-child(4)');assert.equal(await evaluate("document.querySelector('.log-search input').value"),'Oturum')
+  await click('.account-tile');await button('Profilim');await until("!!document.querySelector('#capes-tab')");await click('#capes-tab')
+  await nav('Ana Sayfa');await click('.account-tile');await button('Profilim');assert.equal(await evaluate("document.querySelector('#capes-tab').getAttribute('aria-selected')"),'true')
+  await nav('Ekran görüntüleri');await until("!!document.querySelector('.screenshot-open img')")
+  await until("document.querySelector('.screenshot-open img').naturalWidth===128")
+  await nav('Ana Sayfa');await nav('Ekran görüntüleri');assert.equal(await evaluate("document.querySelector('.screenshot-open img').naturalWidth"),128)
+  checks.push('Account subtab, log filters and decoded screenshot previews survive page navigation')
+  await click('.statusbar-changelog');await until("!!document.querySelector('.changelog-dialog')")
+  const fit=await evaluate("(()=>{const root=document.querySelector('.changelog-dialog'),nav=document.querySelector('.release-history-versions'),article=document.querySelector('.release-history-detail');return{cards:nav.querySelectorAll('button').length,height:root.clientHeight,leftOverflow:nav.scrollHeight-nav.clientHeight,rightScroll:article.scrollHeight>article.clientHeight,banner:getComputedStyle(root.querySelector('.account-dialog-heading')).backgroundImage.includes('green-landscape'),count:root.querySelector('.release-history-count').textContent,badge:!!root.querySelector('.release-history-version-pill')}})()")
+  assert.equal(fit.cards,4);assert.ok(fit.leftOverflow<=1,JSON.stringify(fit));assert.ok(fit.banner);assert.equal(await evaluate("getComputedStyle(document.querySelector('.release-history-detail')).overflowY"),'auto');
+  assert.ok(await evaluate("(()=>{const e=document.querySelector('.release-history-detail'),extra=document.createElement('p');extra.style.height='1000px';e.append(extra);const scroll=e.scrollHeight>e.clientHeight;extra.remove();return scroll})()"));assert.equal(fit.badge,false);assert.match(fit.count,/Toplam 4 sürüm/)
+  await shot('qa-september30-changelog')
+  await input('.release-history-search input','0.13.1');assert.equal(await evaluate("document.querySelectorAll('.release-history-version').length"),1)
+  await click('.release-history-version');assert.equal(await evaluate("document.querySelector('.release-history-title')?.textContent ?? document.querySelector('#release-history-title').textContent"),'Küçük dokunuşlar, daha iyi bir deneyim')
+  await key('f','KeyF',{modifiers:2});assert.equal(await evaluate("document.activeElement===document.querySelector('.release-history-search input')"),true)
+  await input('.release-history-search input','');await key('ArrowDown','ArrowDown')
+  await send('Emulation.setDeviceMetricsOverride',{width:1080,height:700,deviceScaleFactor:1,mobile:false});await wait(160)
+  assert.ok(await evaluate("(()=>{const r=document.querySelector('.changelog-dialog').getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight})()"))
+  const navigation=await evaluate("(()=>{const e=document.querySelector('.release-history-versions');return{overflow:getComputedStyle(e).overflowY,height:e.clientHeight,contents:e.scrollHeight}})()")
+  assert.equal(navigation.overflow,'auto');assert.ok(navigation.contents<=navigation.height+1,JSON.stringify(navigation))
+  const fifth=await evaluate("(()=>{const list=document.querySelector('.release-history-versions');list.append(list.firstElementChild.cloneNode(true));return list.scrollHeight>list.clientHeight})()")
+  assert.equal(fifth,true);await evaluate("document.querySelector('.release-history-versions').lastElementChild.remove()")
+  checks.push('Reference-style changelog, search and shortcut, independent scrolling, build footer and compact-window fit')
+  assert.deepEqual(errors,[])
+  writeFileSync('build/qa-september30-results.json',JSON.stringify({passed:true,checks,changelog:fit,compactNavigation:navigation,exceptions:errors},null,2));console.log('PASS',checks.join('\nPASS '))
+} finally { await Promise.race([evaluate("window.launcher.windowAction('close')").catch(()=>{}),wait(300)]);socket.close() }

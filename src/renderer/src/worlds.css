@@ -1,0 +1,27 @@
+.worlds-page .servers-list-panel{--world-columns:minmax(200px,1fr) 110px 128px 74px}
+.worlds-table-head,.world-select{display:grid;grid-template-columns:var(--world-columns);align-items:center}
+.worlds-table-head{align-items:stretch;border-inline:1px solid transparent;min-height:43px;margin:0 8px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600}
+.worlds-table-head>span{padding:12px 10px;align-content:center}
+.world-select{min-height:66px;width:100%;padding:0;background:transparent;border:0;text-align:left;color:var(--text);font:500 12px 'Inter Variable',sans-serif;cursor:pointer;align-items:stretch}
+.world-select:hover{background:transparent}
+.world-select>span{position:relative;min-height:66px;align-content:center;padding:10px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.world-select>span+span::before,.worlds-table-head>span+span::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none}
+.worlds-table-head>span{position:relative}
+.world-select .world-identity{display:flex;align-items:center;gap:14px;padding:0 10px 0 0}
+.world-identity .server-icon{height:66px;width:66px;align-self:stretch}
+.world-identity .server-icon img{object-fit:cover;border-radius:0}
+.world-identity strong{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.world-details-identity{grid-template-columns:42px minmax(0,1fr)}
+.world-management-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.worlds-page .world-management-actions .secondary{padding:0 8px;font-size:12px;min-width:0}
+.worlds-page .world-management-actions .world-action-pair{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;padding-inline:10px;min-height:42px}
+.world-action-pair>svg{justify-self:start}
+.world-action-pair>span{min-width:0;text-align:center;line-height:1.4;overflow-wrap:anywhere}
+.world-management-actions .world-join,.world-management-actions .world-wide{grid-column:1/-1}
+.world-launch-note{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.7;color:var(--muted);margin:18px 0 0}
+.world-launch-note svg{flex:none;margin-top:3px}
+.worlds-profile-required{min-height:340px}
+@media(max-width:1150px){.worlds-page .servers-list-panel{--world-columns:minmax(170px,1fr) 80px 112px 65px}.world-select{font-size:11px}.world-select>span,.worlds-table-head>span{padding-inline:8px}.worlds-page .world-management-actions .secondary{font-size:12px}.world-identity .server-icon{width:66px}.world-select .world-identity{gap:10px}}
+
+.worlds-page .server-facts{display:flex;flex-direction:column;gap:19px}
+.worlds-page .server-facts dd{font-size:13px}

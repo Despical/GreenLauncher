@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Green Launcher slime bloğu tepsi simgesi">
+  <path d="M32 2 61 18v28L32 62 3 46V18Z" fill="#12351d"/>
+  <path d="M32 6 57 20 32 34 7 20Z" fill="#a2e969"/>
+  <path d="M7 22 30 35v22L7 44Z" fill="#75c54a"/>
+  <path d="M57 22 34 35v22l23-13Z" fill="#43973e"/>
+  <path d="m16 19 7-4 6 4-7 4Zm23-7 7 4-7 4-7-4Z" fill="#d9ff9b"/>
+  <path d="m11 29 7 4v7l-7-4Zm11 14 6 3v8l-6-3Z" fill="#b8f17a"/>
+  <path d="m43 36 9-5v8l-9 5Z" fill="#66b84d"/>
+  <path d="M32 5 58 20v25L32 59 6 45V20Z" fill="none" stroke="#204f2a" stroke-width="3" stroke-linejoin="round"/>
+  <path d="m6 20 26 15 26-15M32 35v24" fill="none" stroke="#245a2e" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>
