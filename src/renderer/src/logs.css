@@ -41,3 +41,5 @@
 .journal-footer { display: flex; justify-content: flex-end; padding-top: 20px; margin-top: 24px; border-top: 1px solid #39434e; }
 .journal-clear { color: #e4a8a5; }
 @media (max-width: 850px) { .journal-panel .settings-panel-head { flex-wrap: wrap; } .journal-entry-detail { padding-left: 8px; } }
+
+.journal-repeat{flex:none;padding:3px 7px;border:1px solid #414a54;border-radius:5px;color:#bbc5cf;font-size:11px;white-space:nowrap}

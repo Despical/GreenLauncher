@@ -148,7 +148,8 @@ export interface ModSearchResult { hits: ModSearchHit[]; total: number }
 export interface ModProject { id: string; slug: string; title: string; description: string; body: string; iconUrl: string | null; downloads: number; license: string; sourceUrl: string | null; projectType: ModContentType }
 export interface ModVersion { id: string; name: string; versionNumber: string; type: string; published: string; downloads: number; gameVersions: string[]; loaders: string[] }
 export interface InstalledMod { provider?: ModProvider; projectId: string; title: string; versionId: string; versionNumber: string; filename: string; sourceUrl?: string }
-export interface LauncherErrorEntry { id: string; at: string; source: string; message: string; code: string }
+export interface LauncherErrorEntry {
+  count?: number; firstAt?: string; lastAt?: string; level?: 'error' | 'info'; id: string; at: string; source: string; message: string; code: string }
 
 export interface LauncherEvents {
   update: LauncherUpdate

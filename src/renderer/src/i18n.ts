@@ -10,6 +10,11 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  "Başarılı": ["Successful", "Erfolgreich", "Réussi", "Успешно", "Pomyślnie"],
+  "{count} kez": ["{count} times","{count} Mal","{count} fois","{count} раз","{count} razy"],
+  "İlk görülme": ["First seen","Erstmals gesehen","Première occurrence","Первое появление","Pierwsze wystąpienie"],
+  "Son görülme": ["Last seen","Zuletzt gesehen","Dernière occurrence","Последнее появление","Ostatnie wystąpienie"],
+  "Kayıt kodu": ["Entry code","Eintragscode","Code du journal","Код записи","Kod wpisu"],
   "Güncellemelere daha kolay ulaş": ["Easier access to updates","Updates leichter erreichen","Accéder plus facilement aux mises à jour","Более удобный доступ к обновлениям","Łatwiejszy dostęp do aktualizacji"],
   "Taşınabilir launcher paketine eksik güncelleme yapılandırması eklendi; indirme sırasında görülen app-update.yml hatası düzeltildi.": ["Added the missing updater configuration to portable packages, fixing the app-update.yml error during downloads.","Die fehlende Update-Konfiguration wurde den portablen Paketen hinzugefügt; der app-update.yml-Fehler beim Herunterladen wurde behoben.","La configuration de mise à jour manquante a été ajoutée aux paquets portables, corrigeant l’erreur app-update.yml lors du téléchargement.","В переносные пакеты добавлена отсутствующая конфигурация обновлений, исправлена ошибка app-update.yml при загрузке.","Dodano brakującą konfigurację aktualizacji do pakietów przenośnych, naprawiając błąd app-update.yml podczas pobierania."],
   "Alt çubuktaki güncelleme bağlantısı sürümle aynı ayırıcı grubuna taşındı ve doğrudan değişiklik günlüğünü açar.": ["The status bar update link now shares the version separator group and opens the changelog directly.","Der Update-Link in der Statusleiste steht jetzt mit der Version hinter dem gleichen Trenner und öffnet direkt das Änderungsprotokoll.","Le lien de mise à jour de la barre d’état rejoint le groupe de version après le séparateur et ouvre directement le journal.","Ссылка обновления в строке состояния перенесена в одну группу с версией и открывает журнал изменений.","Odnośnik aktualizacji na pasku stanu jest teraz w grupie wersji za separatorem i otwiera dziennik zmian."],

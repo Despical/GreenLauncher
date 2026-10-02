@@ -13,6 +13,7 @@ const sameFailure = (entry: LauncherErrorEntry, candidate: LauncherErrorEntry) =
 export class ErrorLog {
   readonly path: string
   private entries: LauncherErrorEntry[] = []
+  private recent = new Map<string, { source: string; at: number }>()
 
   constructor(dataPath: string, private readonly changed: (entries: LauncherErrorEntry[]) => void) {
     this.path = join(dataPath, 'error-log.json')
@@ -23,7 +24,9 @@ export class ErrorLog {
           for (const item of saved) {
             if (!item || typeof item.message !== 'string' || typeof item.code !== 'string' || typeof item.source !== 'string' || typeof item.at !== 'string') continue
             const entry = { ...item, source: logSource(item.source) } as LauncherErrorEntry
-            if (!this.entries.some(previous => sameFailure(previous, entry))) this.entries.push(entry)
+            const previous = this.entries.find(old => old.source === entry.source && old.code === entry.code && old.message === entry.message)
+            if (previous) { if (!sameFailure(previous, entry)) { previous.count = (previous.count ?? 1) + (entry.count ?? 1); previous.firstAt = [previous.firstAt ?? previous.at, entry.firstAt ?? entry.at].sort()[0]; previous.lastAt = [previous.lastAt ?? previous.at, entry.lastAt ?? entry.at].sort().at(-1); previous.at = previous.lastAt! } }
+            else this.entries.push({ ...entry, count: Math.max(1, Math.floor(Number(entry.count) || 1)), firstAt: entry.firstAt ?? entry.at, lastAt: entry.lastAt ?? entry.at })
             if (this.entries.length === 100) break
           }
         }
@@ -37,6 +40,7 @@ export class ErrorLog {
   clear(): LauncherErrorEntry[] {
     writeFileSync(this.path, '[]', 'utf8')
     this.entries = []
+    this.recent.clear()
     this.changed([])
     return []
   }
@@ -47,11 +51,23 @@ export class ErrorLog {
       message: (error instanceof Error ? error.message : String(error)).replace(/https?:\/\/\S+/gi, '[URL]').replace(/(authorization|token|password)\s*[:=]\s*\S+/gi, '$1=[redacted]').slice(0, 600),
     } : diagnoseError(error)
     const entry = { id: randomUUID(), at: new Date().toISOString(), source: logSource(source), ...diagnosis }
-    if (this.entries.some(previous => sameFailure(previous, entry))) return
-    this.entries.unshift(entry)
+    const key = JSON.stringify([entry.source, entry.code, entry.message]), recent = this.recent.get(key)
+    if (recent && Date.now() - recent.at < 5000 && source !== recent.source && /^(?:Oyun|play|play-version)$/i.test(source) && /^(?:Oyun|play|play-version)$/i.test(recent.source)) return
+    this.recent.set(key, { source, at: Date.now() })
+    const previous = this.entries.find(item => item.source === entry.source && item.code === entry.code && item.message === entry.message && item.level !== 'info')
+    if (previous) {
+      previous.count = (previous.count ?? 1) + 1; previous.firstAt ??= previous.at; previous.at = entry.at; previous.lastAt = entry.at
+      this.entries = [previous, ...this.entries.filter(item => item !== previous)]
+    } else this.entries.unshift({ ...entry, count: 1, firstAt: entry.at, lastAt: entry.at, level: 'error' })
     this.entries = this.entries.slice(0, 100)
     this.persist()
     this.changed(this.get())
+  }
+
+  info(source: string, message: string, code = 'UPDATE_SUCCESS'): void {
+    const at = new Date().toISOString()
+    this.entries.unshift({ id: randomUUID(), at, firstAt: at, lastAt: at, count: 1, source, message: message.slice(0, 600), code, level: 'info' })
+    this.entries = this.entries.slice(0, 100); this.persist(); this.changed(this.get())
   }
 
   private persist(): void {

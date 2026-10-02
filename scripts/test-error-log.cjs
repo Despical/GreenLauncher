@@ -29,11 +29,14 @@ try {
   assert.equal(log.get().length,5)
   now += 6000
   log.record('play-version',message)
-  assert.equal(log.get().length,6)
-  const copy=log.get();copy.length=0;assert.equal(log.get().length,6)
-  assert.equal(notifications,4)
+  assert.equal(log.get().length,5)
+  const grouped=log.get().find(e=>e.source==='Oyun'&&e.message===message);assert.equal(grouped.count,3);assert.equal(grouped.firstAt,new Date(now-6000).toISOString());assert.equal(grouped.lastAt,new Date(now).toISOString());
+  const copy=log.get();copy.length=0;assert.equal(log.get().length,5)
+  assert.equal(notifications,5)
   const reopened=new ErrorLog(root,()=>{})
-  assert.equal(reopened.get().length,6)
+  assert.equal(reopened.get().length,5)
+  assert.equal(reopened.get().find(e=>e.source==='Oyun'&&e.message===message).count,3);
+  reopened.info('Launcher güncellemesi','v0.17.5 güncellemesi başarıyla tamamlandı.');assert.equal(reopened.get()[0].level,'info');
   reopened.clear();assert.equal(reopened.get().length,0)
   assert.deepEqual(JSON.parse(fs.readFileSync(reopened.path)),[])
   const updateError=Object.assign(new Error('Download reset https://example.com/file?token=secret token=credential'),{code:'ECONNRESET'})

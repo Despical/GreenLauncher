@@ -30,7 +30,7 @@ export function ErrorLogPanel({ entries, language, onOpenFile, onClear }: Props)
   const formatter = useMemo(() => new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'medium' }), [language])
   const groupDate = (at: string) => Number.isFinite(Date.parse(at)) ? new Date(at).toLocaleDateString(language, { day: 'numeric', month: 'long', year: 'numeric' }) : at
   const shortTime = (at: string) => Number.isFinite(Date.parse(at)) ? new Date(at).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' }) : '—'
-  const category = (entry: LauncherErrorEntry) => t(/import|export|clone|repair|profile/.test(entry.source) ? 'Profil işlemi' : /install|download/.test(entry.source) ? 'Kurulum' : /oturum|hesap|giriş|sign|account|auth|xbox|microsoft/i.test(entry.source) ? 'Oturum' : /play|game|oyun/i.test(entry.source) ? 'Oyun' : 'Uygulama')
+  const category = (entry: LauncherErrorEntry) => t(entry.level === 'info' ? 'Başarılı' : /import|export|clone|repair|profile/.test(entry.source) ? 'Profil işlemi' : /install|download/.test(entry.source) ? 'Kurulum' : /oturum|hesap|giriş|sign|account|auth|xbox|microsoft/i.test(entry.source) ? 'Oturum' : /play|game|oyun/i.test(entry.source) ? 'Oyun' : 'Uygulama')
   const formatTime = (at: string) => Number.isFinite(Date.parse(at)) ? formatter.format(new Date(at)) : at
 
   useEffect(() => {
@@ -62,8 +62,8 @@ export function ErrorLogPanel({ entries, language, onOpenFile, onClear }: Props)
       {filtered.map((entry, index) => <Fragment key={entry.id}>
         {(index === 0 || groupDate(entry.at) !== groupDate(filtered[index - 1].at)) && <div className="journal-day"><span>{groupDate(entry.at)}</span></div>}
         <article className={expandedIds.has(entry.id) ? 'journal-entry expanded' : 'journal-entry'}>
-          <button className="log-record journal-entry-trigger" aria-expanded={expandedIds.has(entry.id)} onClick={() => setExpandedIds(current => { const next = new Set(current); if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); return next })}><span className="journal-time">{shortTime(entry.at)}</span><span className="journal-entry-copy"><strong>{category(entry)}</strong><span>{entry.message}</span></span><ChevronDown size={17} /></button>
-          {expandedIds.has(entry.id) && <div className="journal-entry-detail"><time dateTime={entry.at}>{formatTime(entry.at)}</time><p>{entry.message}</p><dl><div><dt>{t('Kaynak')}</dt><dd>{entry.source}</dd></div><div><dt>{t('Hata kodu')}</dt><dd><code>{entry.code}</code></dd></div></dl></div>}
+          <button className="log-record journal-entry-trigger" aria-expanded={expandedIds.has(entry.id)} onClick={() => setExpandedIds(current => { const next = new Set(current); if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); return next })}><span className="journal-time">{shortTime(entry.at)}</span><span className="journal-entry-copy"><strong>{category(entry)}</strong><span>{entry.message}</span></span>{(entry.count ?? 1) > 1 && <span className="journal-repeat">{t('{count} kez', { count: entry.count! })}</span>}<ChevronDown size={17} /></button>
+          {expandedIds.has(entry.id) && <div className="journal-entry-detail"><time dateTime={entry.at}>{formatTime(entry.at)}</time><p>{entry.message}</p><dl><div><dt>{t('Kaynak')}</dt><dd>{entry.source}</dd></div><div><dt>{t(entry.level === 'info' ? 'Kayıt kodu' : 'Hata kodu')}</dt><dd><code>{entry.code}</code></dd></div>{(entry.count ?? 1) > 1 && <><div><dt>{t('İlk görülme')}</dt><dd>{formatTime(entry.firstAt ?? entry.at)}</dd></div><div><dt>{t('Son görülme')}</dt><dd>{formatTime(entry.lastAt ?? entry.at)}</dd></div></>}</dl></div>}
         </article>
       </Fragment>)}
     </div>
