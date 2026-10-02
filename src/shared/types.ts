@@ -138,6 +138,7 @@ export interface ModFavorite extends ModSearchHit { provider: ModProvider; conte
 export type DownloadPhase = 'queued' | 'preparing' | 'downloading' | 'verifying' | 'installing' | 'retrying' | 'paused' | 'completed' | 'failed'
 export interface DownloadContent { title: string; iconUrl: string | null }
 export interface DownloadJob {
+  launcherVersion?: string
   id: string; title: string; profileId?: string; profileName?: string; forLaunch: boolean; phase: DownloadPhase; detail: string
   downloadedBytes: number; totalBytes: number; bytesPerSecond: number; filesDone: number; filesTotal: number
   peakBytesPerSecond?: number; estimatedSeconds?: number; iconUrl?: string
@@ -262,6 +263,9 @@ export interface LauncherApi {
 export interface SavedWorld { id: string; name: string; gameMode?: number; hardcore: boolean; lastPlayed?: number; size?: number; icon?: string; seed?: string; version?: string }
 
 export interface LauncherUpdate {
+  downloadedAt?: string
+  peakBytesPerSecond?: number
+  estimatedSeconds?: number
   lastInstalled?: { version: string; at: string }
   operation?: 'check' | 'download' | 'install'
   phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'ready' | 'installing' | 'error' | 'disabled'

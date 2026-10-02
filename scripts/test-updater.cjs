@@ -42,6 +42,7 @@ async function main() {
   while (!engine.hold) await settle()
   await service.cancel(); assert.equal((await downloading).phase, 'available'); assert.equal(service.get().error, undefined)
   engine.mode = 'ok'; assert.equal((await service.download()).phase, 'ready'); assert.ok(events.some(item => item.percent === 42)); assert.equal(engine.installs, 0)
+  assert.ok(service.get().downloadedAt);assert.equal(service.get().bytesPerSecond,0);assert.ok(events.some(item=>item.peakBytesPerSecond===100&&item.estimatedSeconds===6))
   const downloads = engine.downloads; await service.download(); assert.equal(engine.downloads, downloads)
   busy = true; assert.equal((await service.install()).error, 'busy'); assert.equal(engine.installs, 0); assert.equal(service.get().phase, 'ready')
   busy = false; await service.install(); assert.equal(engine.installs, 1); assert.equal(portableInstalls, 0)

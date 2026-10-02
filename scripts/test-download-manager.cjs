@@ -11,6 +11,16 @@ const load = file => {
 const { DownloadManager } = load('src/main/download-manager.ts')
 const { ModFavorites } = load('src/main/mod-favorites.ts')
 const settings = { language: 'tr', downloadSpeedLimitKiB: 0, pauseDownloadsWhilePlaying: false, downloadConcurrency: 4 }
+const updateHistoryPath=path.join(root,'update-history.json'),updateHistory=new DownloadManager(settings,()=>{},updateHistoryPath)
+updateHistory.recordLauncherUpdate('0.17.6','2026-10-02T18:00:00Z',115000000)
+updateHistory.recordLauncherUpdate('0.17.6','2026-10-02T18:00:00Z',115000000)
+assert.equal(updateHistory.snapshot().jobs.length,1);assert.equal(updateHistory.pending,false)
+updateHistory.recordLauncherUpdate('0.17.6','2026-10-02T18:01:00Z',0,true)
+assert.equal(updateHistory.snapshot().jobs[0].totalBytes,115000000);assert.equal(updateHistory.snapshot().jobs[0].detail,'Güncelleme başarıyla tamamlandı.')
+updateHistory.recordLauncherUpdate('0.17.5','2026-10-02T17:00:00Z',0,true);updateHistory.dispose()
+const restoredUpdates=new DownloadManager(settings,()=>{},updateHistoryPath);assert.equal(restoredUpdates.snapshot().jobs.length,2)
+restoredUpdates.control('clear');assert.equal(restoredUpdates.snapshot().jobs.length,0);restoredUpdates.dispose()
+console.log('PASS downloaded/installed launcher updates persist once in recent history, preserve byte totals, support legacy receipts without byte totals and clear correctly without active queue entries')
 const payload = Buffer.alloc(192 * 1024); for (let i = 0; i < payload.length; i++) payload[i] = i % 251
 const sha1 = createHash('sha1').update(payload).digest('hex')
 const requests = [], counts = new Map(), results = []

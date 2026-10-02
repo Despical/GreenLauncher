@@ -174,7 +174,7 @@ else {
     const logs = new ErrorLog(store.dataPath, entries => send('launcher:errorLog', entries))
     let lastInstalled: { version: string; at: string } | undefined
     mainWindow!.once('ready-to-show', () => {
-      lastInstalled = confirmUpdate(store.dataPath, app.getVersion(), process.env.PORTABLE_EXECUTABLE_FILE || process.execPath, logs)
+      lastInstalled = confirmUpdate(store.dataPath, app.getVersion(), process.env.PORTABLE_EXECUTABLE_FILE || process.execPath, logs, result => downloads.recordLauncherUpdate(result.version, result.at, 0, true))
       send('launcher:update', { ...updater.get(), lastInstalled })
       if (process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT) setTimeout(() => app.quit(), 2000)
     })
@@ -277,7 +277,7 @@ else {
     const updateEngine = new NsisUpdater({ provider: 'github', owner: 'Despical', repo: 'GreenLauncher' })
     updateEngine.logger = null
     const updater = new LauncherUpdater(updateEngine, app.getVersion(), app.isPackaged && process.platform === 'win32', !!process.env.PORTABLE_EXECUTABLE_FILE,
-      state => send('launcher:update', { ...state, lastInstalled }),
+      state => { if (state.phase === 'ready' && state.version && state.downloadedAt) downloads.recordLauncherUpdate(state.version, state.downloadedAt, state.total); send('launcher:update', { ...state, lastInstalled }) },
       () => downloads.pending || game.getLaunchState().preparing || game.getRunningInstances().length > 0 || modpacks.isInstalling || installingContent || signingIn,
       async file => { const error = await shell.openPath(file); if (error) throw new Error(error); app.quit() },
       error => logs.record('Launcher güncellemesi', error),
@@ -311,7 +311,7 @@ else {
       if (!context || !['home', 'versions', 'profiles', 'servers', 'worlds', 'mods', 'gallery', 'downloads', 'storage', 'settings', 'account'].includes(context.page)) throw new Error('Geçersiz etkinlik sayfası.')
       discord.setLauncherContext({ page: context.page, section: typeof context.section === 'string' ? context.section.slice(0, 40) : undefined, contentType: context.contentType === 'modpack' ? 'modpack' : 'mod', favorites: context.favorites === true })
     })
-    handle('launcher:control-downloads', (action: string, id?: string, beforeId?: string) => { if (!['pause-all', 'resume-all', 'pause', 'resume', 'prioritize', 'reorder', 'clear'].includes(action)) throw new Error('Geçersiz indirme işlemi.'); return downloads.control(action, id, beforeId) })
+    handle('launcher:control-downloads', (action: string, id?: string, beforeId?: string) => { if (!['pause-all', 'resume-all', 'pause', 'resume', 'prioritize', 'reorder', 'clear'].includes(action)) throw new Error('Geçersiz indirme işlemi.'); const update = updater.get(); return downloads.control(action, action === 'clear' && update.downloadedAt && update.version ? `launcher-update-${update.version}` : id, beforeId) })
     handle('launcher:get-mod-favorites', () => favorites.get())
     handle('launcher:set-mod-favorite', (favorite: ModFavorite, saved: boolean) => favorites.set(favorite, saved === true))
     handle('launcher:get-running-instances', () => game.getRunningInstances())

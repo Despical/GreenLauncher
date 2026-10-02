@@ -56,17 +56,18 @@ export class PortableUpdateTransport {
   child.unref();this.quit()
  }
 }
-export function confirmUpdate(dataPath:string,version:string,target:string,logs:ErrorLog):{version:string;at:string}|undefined{
+export function confirmUpdate(dataPath:string,version:string,target:string,logs:ErrorLog,onConfirmed?:(result:{version:string;at:string})=>void):{version:string;at:string}|undefined{
  const path=join(dataPath,'update-result.json');if(!existsSync(path))return
  try {
   const raw=readFileSync(path,'utf8');if(raw.length>4096)return
-  const result=JSON.parse(raw) as {status:string;from:string;version:string;target:string;error?:number;logged?:boolean;completedAt?:string}
+  const result=JSON.parse(raw) as {status:string;from:string;version:string;target:string;error?:number;logged?:boolean;completedAt?:string;historyRecorded?:boolean}
   if(!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(result.version)||typeof result.target!=='string')return
   if(resolve(result.target).toLowerCase()!==resolve(target).toLowerCase())return
   if(result.status==='applied'&&result.version===version){result.status='confirmed';result.completedAt=new Date().toISOString();logs.info('Launcher güncellemesi',`v${result.from} → v${version}: güncelleme başarıyla tamamlandı.`);result.logged=true}
   else if(result.status==='failed'&&!result.logged){logs.record('Launcher güncellemesi',Object.assign(new Error(`Güncelleme uygulanamadı; önceki sürüm korundu. Windows hata kodu: ${result.error??0}`),{code:'UPDATE_APPLY_FAILED'}));result.logged=true}
-  else if(result.status==='confirmed'&&result.completedAt)return {version:result.version,at:result.completedAt}
+  else if(result.status==='confirmed'&&result.completedAt){if(result.historyRecorded||!onConfirmed)return {version:result.version,at:result.completedAt}}
   else return
+  if(result.status==='confirmed'&&result.completedAt&&!result.historyRecorded&&onConfirmed){onConfirmed({version:result.version,at:result.completedAt});result.historyRecorded=true}
   const temporary=path+'.confirm';writeFileSync(temporary,JSON.stringify(result),'utf8');renameSync(temporary,path)
   if(result.status==='confirmed')return {version:result.version,at:result.completedAt!}
  }catch(error){logs.record('Launcher güncellemesi',error)}

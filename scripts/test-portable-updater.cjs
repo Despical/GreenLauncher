@@ -24,6 +24,9 @@ async function main(){
  assert.equal(confirmUpdate(root,'0.17.5',path.join(root,'Other.exe'),logs),undefined)
  assert.equal(confirmUpdate(root,'0.17.5',target,logs).version,'0.17.5');assert.equal(log.length,1);assert.equal(JSON.parse(fs.readFileSync(receipt)).status,'confirmed')
  confirmUpdate(root,'0.17.5',target,logs);assert.equal(log.length,1,'success logged once across launches')
+ let imported=0
+ confirmUpdate(root,'0.17.5',target,logs,()=>imported++);confirmUpdate(root,'0.17.5',target,logs,()=>imported++)
+ assert.equal(imported,1,'installed update migrates to history once and will not return after history is cleared')
  fs.writeFileSync(receipt,JSON.stringify({status:'failed',from:'0.17.4',version:'0.17.5',target,error:193}));confirmUpdate(root,'0.17.4',target,logs);confirmUpdate(root,'0.17.4',target,logs);assert.equal(log.length,2,'failure logged once')
  console.log('PASS trusted HTTPS redirects, manifest validation, checksum/size verification, cancellation, verified cache reuse, rechecking install payload, exact version/target confirmation and once-only result logs')
 }

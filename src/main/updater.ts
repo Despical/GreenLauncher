@@ -51,7 +51,14 @@ export class LauncherUpdater {
     })
   }
   get(): LauncherUpdate { return { ...this.state } }
-  private set(value: Partial<LauncherUpdate>) { this.state = { ...this.state, ...value }; this.changed(this.get()) }
+  private set(value: Partial<LauncherUpdate>) {
+    this.state = { ...this.state, ...value }
+    if (this.state.phase === 'downloading' && value.bytesPerSecond !== undefined) {
+      this.state.peakBytesPerSecond = Math.max(this.state.peakBytesPerSecond ?? 0, value.bytesPerSecond)
+      this.state.estimatedSeconds = value.bytesPerSecond > 0 && this.state.total && this.state.total > (this.state.transferred ?? 0) ? Math.ceil((this.state.total - (this.state.transferred ?? 0)) / value.bytesPerSecond) : undefined
+    }
+    this.changed(this.get())
+  }
   private fail(error: unknown) {
     if (this.failureReported) return
     this.failureReported = true
@@ -97,7 +104,7 @@ export class LauncherUpdater {
         }
         this.token = result.cancellationToken
         const notes = result.updateInfo.releaseNotes
-        this.set({ phase: 'downloading', version: result.updateInfo.version, percent: 0, transferred: 0, total: 0,
+        this.set({ phase: 'downloading', version: result.updateInfo.version, percent: 0, transferred: 0, total: 0, downloadedAt: undefined, peakBytesPerSecond: undefined, estimatedSeconds: undefined,
           notes: (typeof notes === 'string' ? notes : notes?.map(item => item.note).join('\n\n'))?.slice(0, 32000),
         })
         if (this.cancelled) this.token?.cancel()
@@ -105,7 +112,7 @@ export class LauncherUpdater {
           this.abort = new AbortController(); if (this.cancelled) this.abort.abort()
           this.files = await this.portableTransport.download(result.updateInfo.version, progress => { if (!this.cancelled) this.set(progress) }, this.abort.signal)
         } else this.files = await this.engine.downloadUpdate(result.cancellationToken)
-        if (!this.cancelled && this.files.length) this.set({ phase: 'ready', percent: 100 })
+        if (!this.cancelled && this.files.length) this.set({ phase: 'ready', percent: 100, bytesPerSecond: 0, estimatedSeconds: undefined, downloadedAt: new Date().toISOString() })
         else this.set({ phase: 'available', percent: undefined })
       } catch (error) {
         this.files = []

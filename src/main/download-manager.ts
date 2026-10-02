@@ -32,7 +32,7 @@ export class DownloadManager {
     if (historyPath) {
       try {
         const saved = JSON.parse(readFileSync(historyPath, 'utf8'))
-        if (Array.isArray(saved)) this.history = saved.filter((job: DownloadJob) => job && typeof job.id === 'string' && typeof job.title === 'string' && ['completed', 'failed'].includes(job.phase) && typeof job.createdAt === 'string' && job.downloadedBytes > 0).slice(0, 5)
+        if (Array.isArray(saved)) this.history = saved.filter((job: DownloadJob) => job && typeof job.id === 'string' && typeof job.title === 'string' && ['completed', 'failed'].includes(job.phase) && typeof job.createdAt === 'string' && (job.downloadedBytes > 0 || typeof job.launcherVersion === 'string' && /^\d+\.\d+\.\d+$/.test(job.launcherVersion))).slice(0, 5)
       } catch { /* A missing or damaged history never blocks downloads. */ }
     }
     shared = this
@@ -77,6 +77,16 @@ export class DownloadManager {
       renameSync(`${this.historyPath}.tmp`, this.historyPath)
     } catch { /* Keep the active transfer usable if history cannot be saved. */ }
   }
+  recordLauncherUpdate(version: string, at: string, totalBytes = 0, installed = false) {
+    if (!/^\d+\.\d+\.\d+$/.test(version) || !Number.isFinite(Date.parse(at))) return
+    const id = `launcher-update-${version}`, previous = this.history.find(job => job.id === id)
+    const detail = installed ? 'Güncelleme başarıyla tamamlandı.' : 'Yeniden başlatmaya hazır'
+    if (previous?.detail === detail && previous.finishedAt === at) return
+    const size = Math.max(0, Number.isFinite(totalBytes) ? totalBytes : 0, previous?.totalBytes ?? 0)
+    const job: DownloadJob = { id, launcherVersion: version, title: `Green Launcher · v${version}`, phase: 'completed', detail, downloadedBytes: size, totalBytes: size, bytesPerSecond: 0, filesDone: 1, filesTotal: 1, paused: false, priority: 0, forLaunch: false, createdAt: previous?.createdAt ?? at, finishedAt: at }
+    this.history = [job, ...this.history.filter(item => item.id !== id)].slice(0, 5)
+    this.saveHistory(); this.publish()
+  }
   private finishHistory(job: Job) {
     job.finishedAt = new Date().toISOString()
     if (job.transferredBytes <= 0) return
@@ -111,7 +121,7 @@ export class DownloadManager {
       if (next) this.jobs.splice(this.jobs.indexOf(next), 0, job)
       else this.jobs.push(job)
     }
-    else if (action === 'clear') { this.jobs = this.jobs.filter(item => !['completed', 'failed'].includes(item.phase)); this.history = []; this.saveHistory() }
+    else if (action === 'clear') { this.jobs = this.jobs.filter(item => !['completed', 'failed'].includes(item.phase)); this.history = this.history.filter(item => item.launcherVersion && item.id === id); this.saveHistory() }
     this.interruptBlocked(); this.publish(); this.pump()
     return this.snapshot()
   }
