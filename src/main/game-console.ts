@@ -159,3 +159,17 @@ export async function uploadMinecraftLog(content: string, request: typeof fetch 
     return result.url
   } catch { throw new Error('Günlük yüklenemedi. İnternet bağlantını kontrol edip yeniden dene.') }
 }
+
+export async function publishGameLog(console: GameConsole, profileId: string, instanceId: string, labels: { started: string; success: string; failed: string }, request: typeof fetch = fetch): Promise<string> {
+  const content = console.content(profileId, instanceId)
+  if (!content.trim()) throw new Error('Yüklenecek günlük yok.')
+  console.append(instanceId, labels.started, 'launcher')
+  try {
+    const url = await uploadMinecraftLog(content, request)
+    console.append(instanceId, `${labels.success} ${url}`, 'launcher')
+    return url
+  } catch (error) {
+    console.append(instanceId, labels.failed, 'error')
+    throw error
+  }
+}

@@ -134,7 +134,7 @@ export interface GameLogSnapshot {
   firstSeq: number; nextSeq: number; revision: number; dropped: number
 }
 export interface GameLogChange { profileId: string; instanceId: string }
-export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account'
+export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'resource-packs'
 export interface LauncherPresenceContext {
   page: LauncherPage
   section?: string
@@ -156,7 +156,7 @@ export interface JavaRuntimeInfo { path: string; version: string; majorVersion: 
 export type ModLoader = 'neoforge' | 'forge' | 'fabric' | 'quilt' | 'liteloader'
 export type ModProvider = 'modrinth' | 'curseforge' | 'technic'
 export interface ProviderStatus { curseforge: boolean }
-export type ModContentType = 'mod' | 'modpack'
+export type ModContentType = 'mod' | 'modpack' | 'resourcepack'
 export type ModSort = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
 export interface ModSearchHit { projectId: string; slug: string; title: string; description: string; author: string; iconUrl: string | null; downloads: number; updated: string; categories: string[] }
 export interface ModFavorite extends ModSearchHit { provider: ModProvider; contentType: ModContentType; savedAt: string }
@@ -172,7 +172,8 @@ export interface DownloadJob {
 export interface DownloadSnapshot { jobs: DownloadJob[]; paused: boolean; playing: boolean; speedLimitKiB: number; concurrency: number; pauseWhilePlaying: boolean }
 export interface ModSearchResult { hits: ModSearchHit[]; total: number }
 export interface ModProject { id: string; slug: string; title: string; description: string; body: string; iconUrl: string | null; downloads: number; license: string; sourceUrl: string | null; projectType: ModContentType }
-export interface ModVersion { id: string; name: string; versionNumber: string; type: string; published: string; downloads: number; gameVersions: string[]; loaders: string[] }
+export interface ModVersion { id: string; name: string; versionNumber: string; type: string; published: string; downloads: number; gameVersions: string[]; loaders: string[]; filename?: string }
+export interface InstalledResourcePack { filename: string; title: string; description: string; format?: string; modifiedAt: string; enabled: boolean; icon?: string; provider?: 'modrinth' | 'curseforge'; projectId?: string; versionId?: string; versionNumber?: string; sourceUrl?: string }
 export interface InstalledMod { provider?: ModProvider; projectId: string; title: string; versionId: string; versionNumber: string; filename: string; sourceUrl?: string }
 export interface LauncherErrorEntry {
   count?: number; firstAt?: string; lastAt?: string; level?: 'error' | 'info'; id: string; at: string; source: string; message: string; code: string }
@@ -281,7 +282,10 @@ export interface LauncherApi {
   connectCurseForge(key: string): Promise<ProviderStatus>
   searchMods(query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, contentType?: ModContentType, provider?: ModProvider): Promise<ModSearchResult>
   getModProject(id: string, provider?: ModProvider): Promise<ModProject>
-  getModVersions(id: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, allGameVersions?: boolean): Promise<ModVersion[]>
+  getModVersions(id: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, allGameVersions?: boolean, contentType?: ModContentType): Promise<ModVersion[]>
+  getResourcePacks(profileId: string): Promise<InstalledResourcePack[]>
+  setResourcePackEnabled(profileId: string, filename: string, enabled: boolean): Promise<InstalledResourcePack[]>
+  installResourcePack(profileId: string, versionId: string, provider: 'modrinth' | 'curseforge', content?: DownloadContent): Promise<InstalledResourcePack[]>
   installMod(profileId: string, versionId: string, provider?: ModProvider, content?: DownloadContent): Promise<InstalledMod[]>
   installModpack(versionId: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, content?: DownloadContent): Promise<{ state: LauncherState; profileId: string }>
   getInstalledMods(profileId: string): Promise<InstalledMod[]>

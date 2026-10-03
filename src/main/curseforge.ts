@@ -39,23 +39,24 @@ export class CurseForgeService {
   private request<T>(path: string): Promise<T> { return providerJson<T>(api + path, this.headers) }
   async search(query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, type: ModContentType): Promise<ModSearchResult> {
     const sorts = { relevance: 1, downloads: 6, follows: 2, newest: 11, updated: 3 }
-    const params = new URLSearchParams({ gameId: '432', classId: type === 'modpack' ? '4471' : '6', searchFilter: query.slice(0,100), gameVersion, modLoaderType: String(loaderIds[loader]), sortField: String(sorts[sort]), sortOrder: 'desc', index: String(Math.max(0, Math.min(9990, offset))), pageSize: '9' })
+    const params = new URLSearchParams({ gameId: '432', classId: type === 'resourcepack' ? '12' : type === 'modpack' ? '4471' : '6', searchFilter: query.slice(0,100), gameVersion, sortField: String(sorts[sort]), sortOrder: 'desc', index: String(Math.max(0, Math.min(9990, offset))), pageSize: '9' })
+    if (type !== 'resourcepack') params.set('modLoaderType', String(loaderIds[loader]))
     if (category !== 'all') params.set('categoryId', id(category))
     const result = await this.request<{ data: CurseMod[]; pagination: { totalCount: number } }>('/mods/search?' + params)
     return { total: result.pagination.totalCount, hits: result.data.map(item => ({ projectId: String(item.id), slug: item.slug, title: item.name, description: item.summary, author: item.authors.map(a=>a.name).join(', '), iconUrl: item.logo?.url ?? null, downloads: item.downloadCount, updated: item.dateModified, categories: item.categories.map(c=>c.name) })) }
   }
-  async categories(type: ModContentType) { const result = await this.request<{data:Array<{id:number;name:string;classId:number}>}>('/categories?gameId=432&classId='+(type==='modpack'?4471:6)); return result.data.map(c=>({value:String(c.id),label:c.name})) }
+  async categories(type: ModContentType) { const result = await this.request<{data:Array<{id:number;name:string;classId:number}>}>('/categories?gameId=432&classId='+(type==='resourcepack'?12:type==='modpack'?4471:6)); return result.data.map(c=>({value:String(c.id),label:c.name})) }
   async project(projectId: string): Promise<ModProject> {
     const [{data:item},{data:body}] = await Promise.all([this.request<{data:CurseMod}>(`/mods/${id(projectId)}`),this.request<{data:string}>(`/mods/${id(projectId)}/description`)])
-    return {id:String(item.id),slug:item.slug,title:item.name,description:item.summary,body:body.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' '),iconUrl:item.logo?.url??null,downloads:item.downloadCount,license:'—',sourceUrl:item.links.websiteUrl,projectType:item.classId===4471?'modpack':'mod'}
+    return {id:String(item.id),slug:item.slug,title:item.name,description:item.summary,body:body.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' '),iconUrl:item.logo?.url??null,downloads:item.downloadCount,license:'—',sourceUrl:item.links.websiteUrl,projectType:item.classId===12?'resourcepack':item.classId===4471?'modpack':'mod'}
   }
-  async files(projectId: string, gameVersion: string, loader: ModLoader, allGameVersions = false): Promise<CurseFile[]> {
+  async files(projectId: string, gameVersion: string, loader: ModLoader, allGameVersions = false, contentType: ModContentType = 'mod'): Promise<CurseFile[]> {
     const params = new URLSearchParams()
     if (!allGameVersions) params.set('gameVersion', gameVersion)
-    params.set('modLoaderType', String(loaderIds[loader])); params.set('pageSize', '50')
+    if (contentType !== 'resourcepack') params.set('modLoaderType', String(loaderIds[loader])); params.set('pageSize', '50')
     return (await this.request<{data:CurseFile[]}>(`/mods/${id(projectId)}/files?${params}`)).data.filter(f=>f.isAvailable)
   }
-  async versions(projectId: string, gameVersion: string, loader: ModLoader, allGameVersions = false): Promise<ModVersion[]> { return (await this.files(projectId,gameVersion,loader,allGameVersions)).map(f=>({id:`${f.modId}:${f.id}`,name:f.displayName,versionNumber:f.displayName,type:({1:'release',2:'beta',3:'alpha'} as Record<number,string>)[f.releaseType]??'release',published:f.fileDate,downloads:f.downloadCount,gameVersions:f.gameVersions,loaders:[loader]})) }
+  async versions(projectId: string, gameVersion: string, loader: ModLoader, allGameVersions = false, contentType: ModContentType = 'mod'): Promise<ModVersion[]> { return (await this.files(projectId,gameVersion,loader,allGameVersions,contentType)).map(f=>({id:`${f.modId}:${f.id}`,name:f.displayName,versionNumber:f.displayName,type:({1:'release',2:'beta',3:'alpha'} as Record<number,string>)[f.releaseType]??'release',published:f.fileDate,downloads:f.downloadCount,gameVersions:f.gameVersions,loaders:contentType==='resourcepack'?[]:[loader],filename:f.fileName})) }
   async file(value: string): Promise<CurseFile> {
     const [project,fileId,...extra]=value.split(':')
     if(extra.length)throw new Error('Geçersiz dosya kimliği.')

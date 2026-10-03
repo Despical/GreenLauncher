@@ -2,7 +2,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), vm = requ
 const { PassThrough } = require('node:stream'), { once } = require('node:events')
 const mod = { exports: {} }
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/game-console.ts','utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,require,structuredClone,Buffer,AbortSignal,setTimeout,clearTimeout,fetch:()=>{throw Error('Unexpected live request')}})
-const {GameConsole,uploadMinecraftLog,gameLogLevel,redactGameLog,formatMinecraftLogEvent} = mod.exports
+const {GameConsole,uploadMinecraftLog,publishGameLog,gameLogLevel,redactGameLog,formatMinecraftLogEvent} = mod.exports
 const wait = ms => new Promise(resolve=>setTimeout(resolve,ms))
 const instance = (id,profileId='profile-a') => ({id,profileId,pid:100,profileName:profileId,accountId:'fixture',accountName:'Fixture',versionId:'1.21.1',startedAt:new Date().toISOString()})
 const changes=[], logs = new GameConsole(change=>changes.push(change))
@@ -79,5 +79,12 @@ const changes=[], logs = new GameConsole(change=>changes.push(change))
   await assert.rejects(()=>uploadMinecraftLog(''),/Yüklenecek/)
   for(const result of [{ok:false},{ok:true,json:async()=>({success:false})},{ok:true,json:async()=>({success:true,id:'Fixture123',url:'https://example.org/Fixture123'})}])await assert.rejects(()=>uploadMinecraftLog('fixture',async()=>result),/yüklenemedi/)
   await assert.rejects(()=>uploadMinecraftLog('fixture',async()=>{throw Error('network')}),/yüklenemedi/)
+  const publishing = new GameConsole();publishing.begin(instance('upload'));publishing.append('upload','Minecraft output')
+  const labels={started:'Upload triggered.',success:'Uploaded.',failed:'Upload failed.'}
+  await publishGameLog(publishing,'profile-a','upload',labels,async()=>({ok:true,json:async()=>({success:true,id:'Fixture123',url:'https://mclo.gs/Fixture123'})}))
+  assert.equal(publishing.snapshot('profile-a','upload').lines.at(-2).text,'Upload triggered.');assert.equal(publishing.snapshot('profile-a','upload').lines.at(-1).text,'Uploaded. https://mclo.gs/Fixture123');assert.equal(publishing.snapshot('profile-a','upload').lines.at(-1).level,'launcher')
+  await assert.rejects(()=>publishGameLog(publishing,'profile-a','upload',labels,async()=>({ok:false})),/yüklenemedi/)
+  assert.equal(publishing.snapshot('profile-a','upload').lines.at(-1).level,'error');assert.equal(publishing.snapshot('profile-a','upload').lines.at(-1).text,'Upload failed.')
+  const before=publishing.snapshot('profile-a','upload').lines.length;await assert.rejects(()=>publishGameLog(publishing,'foreign-profile','upload',labels),/bulunamadı/);assert.equal(publishing.snapshot('profile-a','upload').lines.length,before)
   console.log('PASS game console UTF-8/chunk/CRLF/final-line streaming, levels, token redaction, session isolation, deltas, clear, bounded memory/history, batched events and mclo.gs request/response/failure contract; no remote logs uploaded')
 })().catch(error=>{console.error(error);process.exitCode=1})

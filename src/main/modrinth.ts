@@ -23,7 +23,7 @@ async function request<T>(path: string, params?: URLSearchParams): Promise<T> {
   return await response.json() as T
 }
 function visibleVersion(version: ApiVersion): ModVersion {
-  return { id: version.id, name: version.name, versionNumber: version.version_number, type: version.version_type, published: version.date_published, downloads: version.downloads, gameVersions: version.game_versions, loaders: version.loaders }
+  return { id: version.id, name: version.name, versionNumber: version.version_number, type: version.version_type, published: version.date_published, downloads: version.downloads, gameVersions: version.game_versions, loaders: version.loaders, filename: (version.files.find(file => file.primary) ?? version.files[0])?.filename }
 }
 function compatible(version: ApiVersion, gameVersion: string, loader: ModLoader): boolean {
   return version.game_versions.includes(gameVersion) && version.loaders.includes(loader)
@@ -46,8 +46,9 @@ export class ModrinthService {
     assertLoader(loader)
     if (!validSorts.includes(sort)) throw new Error('Geçersiz sıralama.')
     if (!validCategories.includes(category)) throw new Error('Geçersiz kategori.')
-    if (contentType !== 'mod' && contentType !== 'modpack') throw new Error('Geçersiz içerik türü.')
-    const facets = [[`project_type:${contentType}`], [`versions:${gameVersion}`], [`categories:${loader}`]]
+    if (!['mod', 'modpack', 'resourcepack'].includes(contentType)) throw new Error('Geçersiz içerik türü.')
+    const facets = [[`project_type:${contentType}`], [`versions:${gameVersion}`]]
+    if (contentType !== 'resourcepack') facets.push([`categories:${loader}`])
     if (category !== 'all') facets.push([`categories:${category}`])
     const params = new URLSearchParams({ query: query.trim().slice(0, 100), facets: JSON.stringify(facets), index: sort, offset: String(Math.max(0, Math.min(10000, Math.floor(offset)))), limit: '9' })
     const result = await request<{ hits: Array<{ project_id: string; slug: string; title: string; description: string; author: string; icon_url: string | null; downloads: number; date_modified: string; categories: string[] }>; total_hits: number }>('/search', params)
@@ -59,17 +60,29 @@ export class ModrinthService {
     assertId(id)
     const item = await request<{ id: string; slug: string; title: string; description: string; body: string; icon_url: string | null; downloads: number; updated: string; categories: string[]; license?: { id?: string }; source_url: string | null; project_type: ModContentType }>(`/project/${id}`)
     this.summaries.remember({ projectId: item.id, slug: item.slug, title: item.title, description: item.description, iconUrl: item.icon_url, downloads: item.downloads, updated: item.updated, categories: item.categories })
-    return { id: item.id, slug: item.slug, title: item.title, description: item.description, body: item.body, iconUrl: item.icon_url, downloads: item.downloads, license: item.license?.id ?? '—', sourceUrl: `https://modrinth.com/${item.project_type === 'modpack' ? 'modpack' : 'mod'}/${encodeURIComponent(item.slug)}`, projectType: item.project_type }
+    return { id: item.id, slug: item.slug, title: item.title, description: item.description, body: item.body, iconUrl: item.icon_url, downloads: item.downloads, license: item.license?.id ?? '—', sourceUrl: `https://modrinth.com/${item.project_type}/${encodeURIComponent(item.slug)}`, projectType: item.project_type }
   }
 
-  async versions(id: string, gameVersion: string, loader: ModLoader, allGameVersions = false): Promise<ModVersion[]> {
+  async versions(id: string, gameVersion: string, loader: ModLoader, allGameVersions = false, contentType: ModContentType = 'mod'): Promise<ModVersion[]> {
     assertId(id)
     assertGameVersion(gameVersion)
     assertLoader(loader)
-    const params = new URLSearchParams({ loaders: JSON.stringify([loader]), include_changelog: 'false' })
+    const params = new URLSearchParams({ include_changelog: 'false' })
+    if (contentType !== 'resourcepack') params.set('loaders', JSON.stringify([loader]))
     if (!allGameVersions) params.set('game_versions', JSON.stringify([gameVersion]))
     const items = await request<ApiVersion[]>(`/project/${id}/version`, params)
     return items.map(visibleVersion)
+  }
+
+  async resourcePack(versionId: string, gameVersion: string) {
+    assertId(versionId)
+    const version = await request<ApiVersion>(`/version/${versionId}`)
+    const project = await this.project(version.project_id)
+    if (version.id !== versionId || project.id !== version.project_id) throw new Error('Kaynak paketi dosyası doğrulanamadı.')
+    if (project.projectType !== 'resourcepack' || !version.game_versions.includes(gameVersion)) throw new Error('Kaynak paketi profilin Minecraft sürümüyle uyumlu değil.')
+    const file = version.files.find(file => file.primary && /\.zip$/i.test(file.filename)) ?? version.files.find(file => /\.zip$/i.test(file.filename))
+    if (!file || new URL(file.url).protocol !== 'https:' || new URL(file.url).hostname !== 'cdn.modrinth.com') throw new Error('Kaynak paketi dosyası doğrulanamadı.')
+    return { project, version: visibleVersion(version), file }
   }
 
   private manifestPath(profileId: string): string {

@@ -29,13 +29,13 @@ const categories = [
 ]
 
 const compactNumber = (value: number) => new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
-const safeIcon = (value: string | null): string | undefined => {
+export const safeIcon = (value: string | null): string | undefined => {
   try { const url = new URL(value ?? ''); return url.protocol === 'https:' && ['cdn.modrinth.com', 'media.forgecdn.net', 'mediafilez.forgecdn.net', 'cdn.technicpack.net'].includes(url.hostname) ? url.toString() : undefined }
   catch { return undefined }
 }
-const plainDescription = (body: string) => body.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#*`>|]/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 5000)
+export const plainDescription = (body: string) => body.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#*`>|]/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 5000)
 
-function ModSelect({ value, options, onChange, label, placeholder, searchable = false, up = false, menuAction }: {
+export function ModSelect({ value, options, onChange, label, placeholder, searchable = false, up = false, menuAction }: {
   value: string; options: Array<{ value: string; label: string; icon?: string; content?: ReactNode }>; onChange: (value: string) => void
   label: string; placeholder: string; searchable?: boolean; up?: boolean
   menuAction?: { label: string; onClick: () => void }

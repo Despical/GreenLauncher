@@ -4,6 +4,7 @@ import type { GameLogLine, GameLogSnapshot, LauncherProfile, RunningInstance } f
 import { diagnoseError } from '../../shared/errors'
 import { translate, type Language } from './i18n'
 import './minecraft-log.css'
+import { AccountDialog } from './AccountControls'
 
 export function MinecraftLogPage({ profile, requestedSession, language, isVisible, instances, onNotice, sessionPicker }: {
   profile: LauncherProfile; requestedSession?: { instanceId: string }; language: Language; isVisible: boolean; instances: RunningInstance[]
@@ -19,6 +20,8 @@ export function MinecraftLogPage({ profile, requestedSession, language, isVisibl
   const [follow, setFollow] = useState(true), [wrap, setWrap] = useState(true), [colors, setColors] = useState(true)
   const [query, setQuery] = useState(''), [found, setFound] = useState<number | null>(null)
   const [error, setError] = useState(''), [pending, setPending] = useState<'copy' | 'upload' | 'clear' | null>(null)
+  const [uploadTarget, setUploadTarget] = useState<string | null>(null)
+  useEffect(() => { setUploadTarget(null) }, [profile.id, isVisible])
   const [retry, setRetry] = useState(0)
   const lastRetry = useRef(0)
   const busy = useRef(false), consoleRef = useRef<HTMLDivElement>(null), atBottom = useRef(true)
@@ -78,8 +81,8 @@ export function MinecraftLogPage({ profile, requestedSession, language, isVisibl
     setFound(next.seq); atBottom.current = false
     consoleRef.current?.querySelector<HTMLElement>(`[data-seq="${next.seq}"]`)?.scrollIntoView({ block: 'center', inline: 'nearest' })
   }
-  const act = async (kind: 'copy' | 'upload' | 'clear') => {
-    const id = current.current?.session?.instance.id
+  const act = async (kind: 'copy' | 'upload' | 'clear', target?: string) => {
+    const id = target ?? current.current?.session?.instance.id
     if (!id || busy.current) return
     busy.current = true; setPending(kind)
     try {
@@ -100,14 +103,14 @@ export function MinecraftLogPage({ profile, requestedSession, language, isVisibl
     pieces.push(line.text.slice(start)); return pieces
   }
   return <div className="content-page minecraft-log-page">
-    <div className="page-heading"><div><h2>{t('Minecraft günlüğü')}</h2><p>{t('Bu profilin oyun çıktısını anlık olarak takip et.')}</p></div><button className="heading-action minecraft-log-upload-action" disabled={!lines.length || !!pending} onClick={() => void act('upload')}>{pending === 'upload' ? <LoaderCircle className="spin" size={17} /> : <Upload size={17} />}{t('Yükle')}</button></div>
+    <div className="page-heading"><div><h2>{t('Minecraft günlüğü')}</h2><p>{t('Bu profilin oyun çıktısını anlık olarak takip et.')}</p></div><button className="heading-action minecraft-log-upload-action" disabled={!lines.length || !!pending} onClick={() => setUploadTarget(current.current?.session?.instance.id ?? null)}>{pending === 'upload' ? <LoaderCircle className="spin" size={17} /> : <Upload size={17} />}{t('Yükle')}</button></div>
     <div className="minecraft-log-panel">
       <div className="minecraft-log-toolbar">
-        <div className="minecraft-log-context">
+        {snapshot?.session && <div className="minecraft-log-context">
           {snapshot && snapshot.sessions.length > 1
             ? sessionPicker(choice || snapshot.session?.instance.id || '', snapshot.sessions.map(session => ({ value: session.instance.id, label: sessionLabel(session.instance), detail: t(session.running ? 'Oyun çalışıyor' : 'Oyun kapandı') })), value => { setChoice(value); setFound(null); atBottom.current = true })
             : <div className="minecraft-log-session minecraft-log-session-info"><div className="dropdown-copy"><strong>{snapshot?.session ? sessionLabel(snapshot.session.instance) : t('Oyun oturumu')}</strong><small>{t(snapshot?.session ? snapshot.session.running ? 'Oyun çalışıyor' : 'Oyun kapandı' : 'Oyun çıktısı bekleniyor...')}</small></div></div>}
-        </div>
+        </div>}
         <div className="minecraft-log-search"><div className="minecraft-log-search-field"><Search size={17} aria-hidden="true" /><input aria-label={t('Günlükte ara')} placeholder={t('Günlükte ara')} value={query} onChange={event => { setQuery(event.target.value); setFound(null) }} onKeyDown={event => { if (event.key === 'Enter' && needle) find() }} /></div><button disabled={!needle || !lines.length} onClick={find}>{t('Bul')}</button></div>
       </div>
       {error && <div className="minecraft-log-error" role="alert">{t(error)}<button onClick={() => setRetry(retry + 1)}>{t('Yeniden dene')}</button></div>}
@@ -117,5 +120,6 @@ export function MinecraftLogPage({ profile, requestedSession, language, isVisibl
       <div className="minecraft-log-footer"><div className="minecraft-log-options">{checkbox('Güncellemeye devam et', follow, () => setFollow(!follow))}{checkbox('Satırları kaydır', wrap, () => setWrap(!wrap))}{checkbox('Satırları renklendir', colors, () => setColors(!colors))}</div><div className="minecraft-log-actions"><button className="minecraft-log-copy" disabled={!lines.length || !!pending} onClick={() => void act('copy')}>{pending === 'copy' ? <LoaderCircle className="spin" size={16} /> : <Copy size={16} />}{t('Kopyala')}</button><button className="minecraft-log-clear" disabled={!lines.length || !!pending} onClick={() => void act('clear')}><Trash2 size={16} />{t('Temizle')}</button><button className="minecraft-log-bottom" onClick={bottom}><ArrowDownToLine size={16} />{t('En altta')}</button></div></div>
       {!!snapshot?.dropped && <p className="minecraft-log-limit">{t('{count} eski satır bellek sınırı nedeniyle kaldırıldı.', { count: snapshot.dropped })}</p>}
     </div>
+    {uploadTarget && <AccountDialog title={t('Günlüğü yüklemek istediğine emin misin?')} description={t('“Minecraft günlüğü” dosyasını api.mclo.gs’ye yüklemek üzeresiniz. Kişisel bilgileri tekrar kontrol etmelisiniz.')} closeLabel={t('Kapat')} onClose={() => setUploadTarget(null)} className="minecraft-log-confirm" icon={<Upload size={22} />}><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setUploadTarget(null)}>{t('Vazgeç')}</button><button className="modal-primary" onClick={() => { const target = uploadTarget; setUploadTarget(null); void act('upload', target) }}><Upload size={17} />{t('Yükle')}</button></div></AccountDialog>}
   </div>
 }

@@ -85,6 +85,7 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
  try {
   assert.equal((await game.play(a)).status,'started')
   check('actual child PID recorded',()=>{assert.equal(game.getRunningInstances()[0].pid,children[0].pid);assert.equal(game.getRunningInstances()[0].accountId,first);assert.equal(game.getLaunchState().preparing,false)})
+  check('launch header records the actual username and UUID in pink diagnostic lines',()=>{const lines=game.console.snapshot(a).lines;assert.ok(lines.some(line=>line.level==='launcher'&&line.text==='Kullanıcı adı: PlayerOne'));assert.ok(lines.some(line=>line.level==='launcher'&&line.text===`UUID: ${first}`))})
   const confirmation=await game.play(a)
   check('second launch requires confirmation and spawns nothing',()=>{assert.equal(confirmation.status,'confirmation-required');assert.equal(confirmation.instances.length,1);assert.equal(children.length,1)})
   assert.equal((await game.play(a,undefined,true)).status,'started')
@@ -204,6 +205,7 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   const selectedAccount=store.get().selectedAccountId
   await game.play(b)
   check('profile automatic world target, account override and inherited memory reach the real launch',()=>{const o=options.at(-1);assert.equal(o.quickPlaySingleplayer,'World With Spaces');assert.equal(o.quickPlayMultiplayer,undefined);assert.equal(o.gameProfile.id,second);assert.equal(store.get().selectedAccountId,selectedAccount);assert.equal(o.maxMemory,store.get().settings.memoryMb);assert.equal(o.minMemory,1024);assert.equal(hidden,1);assert.equal(shown,0)})
+  check('launch header uses the override account without leaking credential arguments',()=>{const lines=game.console.snapshot(b).lines;assert.ok(lines.some(line=>line.text==='Kullanıcı adı: PlayerTwo'));assert.ok(lines.some(line=>line.text===`UUID: ${second}`));assert.ok(!lines.some(line=>/accessToken|refreshToken/.test(line.text)))})
   await stop(children.at(-1));check('hidden launcher is restored after the last game exits',()=>assert.equal(shown,1))
   edit({autoJoinEnabled:false,accountOverride:false,memoryOverride:true,permGenMb:256,hideLauncher:false,quitOnGameExit:true})
   await game.play(b)

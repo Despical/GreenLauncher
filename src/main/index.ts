@@ -14,7 +14,7 @@ import { parseShortcut, shortcutArguments } from './shortcuts'
 import { appId, configureWindows, executable, navigationArgument, navigationItems, persistentIcon } from './windows-integration'
 import { translate } from '../renderer/src/i18n'
 import { GameService, message } from './game'
-import { uploadMinecraftLog } from './game-console'
+import { publishGameLog } from './game-console'
 import { DiscordPresence, DISCORD_APPLICATION_ID } from './discord'
 import { ErrorLog } from './error-log'
 import { prepareDataPath } from './data-path'
@@ -33,6 +33,7 @@ import { ModFavorites } from './mod-favorites'
 import { ProfilePackages } from './profile-packages'
 import { CustomClients } from './custom-clients'
 import { ProfileServers } from './profile-servers'
+import { ResourcePacks } from './resource-packs'
 import { safePath } from './modpack'
 import { downloadVerified, type FileHashes } from './modrinth-download'
 import { diagnoseError } from '../shared/errors'
@@ -214,6 +215,7 @@ else {
     keepForGames = () => game.getRunningInstances().length > 0
     const modpacks = new ModpackService(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const curseforge = new CurseForgeService(store)
+    const resourcePacks = new ResourcePacks(store, modrinth, curseforge, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId))
     const technic = new TechnicService()
     const providerPacks = new ProviderPacks(store, game, curseforge, technic, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const profilePackages = new ProfilePackages(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
@@ -247,6 +249,7 @@ else {
         try {
           tray = new Tray(persistentIcon())
           tray.setToolTip('Green Launcher')
+          tray.on('click', showMainWindow)
           tray.on('double-click', showMainWindow)
         } catch (error) { logs.record('Sistem tepsisi', error) }
         updateShell()
@@ -374,11 +377,9 @@ else {
     handle('launcher:copy-game-log', (profileId: string, instanceId: string) => { requireLogProfile(profileId); clipboard.writeText(game.console.content(profileId, instanceId)) })
     handle('launcher:upload-game-log', async (profileId: string, instanceId: string) => {
       requireLogProfile(profileId)
-      const url = await uploadMinecraftLog(game.console.content(profileId, instanceId))
-      clipboard.writeText(url)
       const language = store.get().settings.language
-      const time = new Date().toLocaleTimeString('en-GB', { hour12: false })
-      game.console.append(instanceId, `[${time}] [Green Launcher/INFO]: ${translate(language, 'Günlük mclo.gs’a yüklendi.')} ${url}`)
+      const url = await publishGameLog(game.console, profileId, instanceId, { started: translate(language, 'Günlük yüklemesi başlatıldı.'), success: translate(language, 'Günlük mclo.gs’a yüklendi.'), failed: translate(language, 'Günlük yüklenemedi. İnternet bağlantını kontrol edip yeniden dene.') })
+      clipboard.writeText(url)
       return url
     })
     handle('launcher:get-versions', async (refresh?: boolean | 'if-stale') => {
@@ -509,7 +510,13 @@ else {
       if (favorites.refresh(selected, [{ projectId: id, slug: details.slug, title: details.title, description: details.description, iconUrl: details.iconUrl, downloads: details.downloads }])) send('launcher:modFavorites', favorites.get())
       return details
     })
-    handle('launcher:get-mod-versions', (id: string, gameVersion: string, loader: ModLoader, source?:ModProvider, allGameVersions = false) => metadata.get(JSON.stringify(['versions',provider(source),id,gameVersion,loader,allGameVersions === true]), () => source==='curseforge'?curseforge.versions(id,gameVersion,loader,allGameVersions === true):source==='technic'?technic.versions(id):modrinth.versions(id, gameVersion, loader,allGameVersions === true)))
+    handle('launcher:get-mod-versions', (id: string, gameVersion: string, loader: ModLoader, source?:ModProvider, allGameVersions = false, contentType: ModContentType = 'mod') => metadata.get(JSON.stringify(['versions',provider(source),id,gameVersion,loader,allGameVersions === true,contentType]), () => source==='curseforge'?curseforge.versions(id,gameVersion,loader,allGameVersions === true,contentType):source==='technic'?technic.versions(id):modrinth.versions(id, gameVersion, loader,allGameVersions === true,contentType)))
+    handle('launcher:get-resource-packs', (profileId: string) => resourcePacks.list(profileId))
+    handle('launcher:set-resource-pack-enabled', (profileId: string, filename: string, enabled: boolean) => {
+      if (installingContent || downloads.pending) throw new Error('Başka bir kurulum devam ediyor.')
+      return resourcePacks.enable(profileId, filename, enabled === true)
+    })
+    handle('launcher:install-resource-pack', (profileId: string, versionId: string, source: 'modrinth' | 'curseforge', content?: {title:string;iconUrl:string|null}) => queue('Kaynak paketi kurulumu', () => installContent(() => resourcePacks.install(profileId, versionId, source)), profileId, false, content))
     handle('launcher:get-installed-mods', (profileId: string) => modrinth.installed(profileId))
     handle('launcher:get-profile-mods', (profileId: string) => {
       const profile = store.get().profiles.find(item => item.id === profileId)

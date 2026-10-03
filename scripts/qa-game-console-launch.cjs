@@ -3,7 +3,7 @@ const { ipcMain, BrowserWindow } = require('electron')
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript')
 const mod = {exports:{}}
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/game-console.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,require,structuredClone,Buffer,AbortSignal,setTimeout,clearTimeout})
-const {GameConsole,uploadMinecraftLog}=mod.exports
+const {GameConsole,publishGameLog}=mod.exports
 const send=(event,value)=>{for(const win of BrowserWindow.getAllWindows())if(!win.isDestroyed())win.webContents.send('launcher:'+event,value)}
 const logs=new GameConsole(change=>send('gameLog',change)), sessions=new Map()
 let copied='', uploads=[], failUpload=false, failRead=false
@@ -33,7 +33,7 @@ register('launcher:get-game-log',(_event,profile,id,after)=>{if(failRead)throw E
 register('launcher:clear-game-log',(_event,profile,id)=>logs.clear(profile,id))
 register('launcher:copy-game-log',(_event,profile,id)=>{copied=logs.content(profile,id)})
 register('launcher:upload-game-log',async(_event,profile,id)=>{
-  const url=await uploadMinecraftLog(logs.content(profile,id),async(endpoint,options)=>{uploads.push({endpoint,content:JSON.parse(options.body).content});await new Promise(resolve=>setTimeout(resolve,180));return {ok:!failUpload,json:async()=>({success:true,id:'Fixture123',url:'https://mclo.gs/Fixture123'})}})
-  copied=url;logs.append(id,`[17:07:33] [Green Launcher/INFO]: Günlük mclo.gs’a yüklendi. ${url}`);return url
+  const url=await publishGameLog(logs,profile,id,{started:'Günlük yüklemesi başlatıldı.',success:'Günlük mclo.gs’a yüklendi.',failed:'Günlük yüklenemedi. İnternet bağlantını kontrol edip yeniden dene.'},async(endpoint,options)=>{uploads.push({endpoint,content:JSON.parse(options.body).content});await new Promise(resolve=>setTimeout(resolve,180));return {ok:!failUpload,json:async()=>({success:true,id:'Fixture123',url:'https://mclo.gs/Fixture123'})}})
+  copied=url;return url
 })
 require('./qa-profile-workspace-launch.cjs')
