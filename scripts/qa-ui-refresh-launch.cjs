@@ -237,7 +237,7 @@ handle('connect-curseforge', async key => {
 handle('open-external', url => { snapshots.externalOpened.push(url); return snapshots })
 handle('window-action', action => { if (action === 'close') app.quit() })
 handle('save-profile', profile => {
-  const saved = { ...profile, id: 'qa-profile', accountId: 'qa-offline', createdAt: new Date().toISOString() }
+  const saved = { ...profile, id: profile.id ?? 'qa-profile', accountId: 'qa-offline', createdAt: new Date().toISOString() }
   const index=state.profiles.findIndex(p=>p.id===saved.id);if(index>=0)state.profiles[index]=saved;else state.profiles.push(saved);state.selectedProfileId=saved.id
   return changed()
 })

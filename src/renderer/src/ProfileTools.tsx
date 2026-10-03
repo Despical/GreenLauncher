@@ -1,45 +1,12 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Info, ArrowDownToLine, ArrowUpRight, Copy, FolderOpen, Image, Layers3, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
-import type { InstalledMod, LauncherProfile, ModProvider, ProfileCover } from '../../shared/types'
-import { memoryGb } from '../../shared/memory'
-import { profileVersionLabel } from '../../shared/profile-version'
+import { ArrowDownToLine, Copy, FolderOpen, Image, Layers3, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import type { LauncherProfile, ProfileCover } from '../../shared/types'
 import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
+import { profileVersionLabel } from '../../shared/profile-version'
 import './profiles.css'
 
 export type ProfileAction = 'manage' | 'edit' | 'cover' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
-
-export function ProfileInformation({ profile, language, onClose }: { profile: LauncherProfile; language: Language; onClose: () => void }) {
-  const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
-  const [mods, setMods] = useState<InstalledMod[] | null>(null)
-  const [error, setError] = useState('')
-  const [linkError, setLinkError] = useState('')
-  const [opening, setOpening] = useState('')
-  const providerOf = (content: { provider?: ModProvider; projectId: string }): ModProvider => content.provider ?? (content.projectId.startsWith('curseforge:') ? 'curseforge' : content.projectId.startsWith('technic:') ? 'technic' : 'modrinth')
-  const providerName = (provider: ModProvider) => ({ modrinth: 'Modrinth', curseforge: 'CurseForge', technic: 'Technic' })[provider]
-  const openProject = async (content: { provider?: ModProvider; projectId: string; sourceUrl?: string }, pack = false) => {
-    setOpening(content.projectId); setLinkError('')
-    try {
-      const provider = providerOf(content)
-      const id = content.projectId.replace(/^(curseforge|technic):/, '')
-      const url = content.sourceUrl ?? (provider === 'modrinth' ? `https://modrinth.com/${pack ? 'modpack' : 'mod'}/${encodeURIComponent(id)}` : (await window.launcher.getModProject(id, provider)).sourceUrl)
-      if (url) await window.launcher.openExternal(url)
-    } catch (reason) { setLinkError(reason instanceof Error ? reason.message : String(reason)) }
-    finally { setOpening('') }
-  }
-  useEffect(() => {
-    let active = true
-    setMods(null); setError('')
-    window.launcher.getProfileMods(profile.id).then(items => { if (active) setMods(items) }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)) })
-    return () => { active = false }
-  }, [profile.id])
-  return <AccountDialog className="profile-information-dialog" title={profile.name} description={t('Bu profile ait Minecraft sürümü, yükleyici ve kurulu içerikler.')} closeLabel={t('Kapat')} onClose={onClose} icon={null}>
-    <dl className="profile-information-facts"><div><dt>{t('Minecraft sürümü')}</dt><dd>{profileVersionLabel(profile)}</dd></div><div><dt>{t('Bellek')}</dt><dd>{memoryGb(profile.minMemoryMb ?? 1024)} – {memoryGb(profile.memoryMb)} GB RAM</dd></div><div><dt>{t('Yükleyici')}</dt><dd>{profile.modLoaderVersion ?? (/optifine/i.test(profile.versionId) ? profile.versionId : 'Minecraft')}</dd></div><div><dt>{t('Çözünürlük')}</dt><dd>{profile.width} × {profile.height}</dd></div></dl>
-    {profile.modpack && <section className="profile-information-pack"><div><span>{t('Mod paketi')}</span><strong>{profile.modpack.title}</strong><small>{providerName(providerOf(profile.modpack))} · {profile.modpack.fileCount} {t('dosya')}{mods !== null && <> · {t('{count} mod', { count: mods.length })}</>}</small></div><button type="button" disabled={!!opening} title={t('Proje sayfasında aç')} aria-label={`${profile.modpack.title}: ${t('Proje sayfasında aç')}`} onClick={() => void openProject(profile.modpack!, true)}><ArrowUpRight size={20} /></button></section>}
-    <section className="profile-information-section">{error ? <p>{error}</p> : mods === null ? <p><LoaderCircle size={16} className="spin" /> {t('Modlar yükleniyor...')}</p> : mods.length ? <ul className="profile-information-mods">{mods.map(mod => <li key={mod.filename}><div><strong>{mod.title}</strong><small>{mod.versionNumber || mod.filename}{mod.projectId && <> · {providerName(providerOf(mod))}</>}</small></div>{mod.projectId && <button type="button" disabled={!!opening} title={t('Proje sayfasında aç')} aria-label={`${mod.title}: ${t('Proje sayfasında aç')}`} onClick={() => void openProject(mod)}><ArrowUpRight size={19} /></button>}</li>)}</ul> : !profile.modpack && <p className="profile-information-empty-note"><Info size={18} aria-hidden="true" /><span>{t('Bu profil hiçbir mod veya mod paketi içermemektedir.')}</span></p>}</section>
-    {linkError && <p className="profile-information-link-error" role="alert">{linkError}</p>}
-  </AccountDialog>
-}
 
 export function ProfileMenu({ profile, x, y, language, pending, onClose, onAction }: {
   profile: LauncherProfile; x: number; y: number; language: Language; pending: boolean

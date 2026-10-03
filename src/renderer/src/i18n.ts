@@ -10,6 +10,10 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  'Profil ayarları': ['Profile settings', 'Profileinstellungen', 'Paramètres du profil', 'Настройки профиля', 'Ustawienia profilu'],
+  'Pencere': ['Window', 'Fenster', 'Fenêtre', 'Окно', 'Okno'],
+  'Genel Ayarları aç': ['Open general settings', 'Allgemeine Einstellungen öffnen', 'Ouvrir les paramètres généraux', 'Открыть общие настройки', 'Otwórz ustawienia ogólne'],
+  'Buradaki ayarlar genel ayarları geçersiz kılar': ['These settings override the general settings', 'Diese Einstellungen überschreiben die allgemeinen Einstellungen', 'Ces paramètres remplacent les paramètres généraux', 'Эти настройки переопределяют общие настройки', 'Te ustawienia zastępują ustawienia ogólne'],
   'Profillerim’e dön': ['Back to my profiles', 'Zurück zu meinen Profilen', 'Retour à mes profils', 'Вернуться к моим профилям', 'Wróć do moich profili'],
   'Profili yönet': ['Manage profile', 'Profil verwalten', 'Gérer le profil', 'Управление профилем', 'Zarządzaj profilem'],
   'Profil yönetimi': ['Profile management', 'Profilverwaltung', 'Gestion du profil', 'Управление профилем', 'Zarządzanie profilem'],

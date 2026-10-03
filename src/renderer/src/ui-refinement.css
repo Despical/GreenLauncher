@@ -97,21 +97,6 @@
 .modal .dialog-heading .modal-close { flex: none; align-self: flex-start; }
 .modal .dialog-heading .account-dialog-symbol { flex: none; margin-top: 1px; }
 .confirm-modal { width: 480px; }
-.profile-information-dialog { width: 620px; }
-.profile-information-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0; }
-.profile-information-facts dt { font-size: 12px; color: #98a7b5; margin-bottom: 7px; }
-.profile-information-facts dd { margin: 0; font-size: 14px; font-weight: 600; color: #dce4eb; overflow-wrap: anywhere; }
-.profile-information-section { border-top: 1px solid #39434e; padding-top: 20px; margin-top: 24px; }
-.profile-information-section h3 { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin: 0 0 16px; color: #e4eaf0; }
-.profile-information-section h3 > span { color: #99a7b5; font-size: 12px; }
-.profile-information-section > strong { display: block; font-size: 14px; }
-.profile-information-section > small { display: block; color: #99a7b5; margin-top: 6px; }
-.profile-information-section > p { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 1.6; color: #aab7c4; }
-.profile-information-mods { list-style: none; margin: 0; padding: 0; }
-.profile-information-mods li { padding: 12px 0; border-bottom: 1px solid #303944; }
-.profile-information-mods li:last-child { border-bottom: 0; }
-.profile-information-mods strong { display: block; font-size: 13px; font-weight: 600; }
-.profile-information-mods small { display: block; font-size: 12px; color: #99a7b5; margin-top: 5px; overflow-wrap: anywhere; }
 .launcher-about-hero { display: flex; align-items: center; gap: 20px; padding: 24px; border-radius: 6px; background-size: cover; background-position: center; }
 .launcher-about-hero > img { width: 68px; height: 68px; object-fit: contain; }
 .launcher-about-hero > div { flex: 1; min-width: 0; }
@@ -168,28 +153,6 @@
 .profile-version-menu .dropdown-options { flex: 1; min-height: 0; max-height: none; overflow-y: auto; }
 .profile-version-menu .dropdown-options button { min-height: 54px; }
 .profile-version-menu .dropdown-recent { display: none; }
-.modal.account-dialog.profile-information-dialog { width: 640px; }
-.profile-information-facts dt { color: #b3c0cc; font-family: 'Inter Variable','Segoe UI',sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
-.profile-information-facts dd { font-size: 15px; line-height: 1.6; font-weight: 500; }
-.profile-information-section { border: 0; padding-top: 0; margin-top: 28px; }
-.profile-information-section > header { padding-bottom: 18px; margin-bottom: 8px; border-bottom: 1px solid #39434e; }
-.profile-information-section h3 { font-size: 18px; margin: 0 0 7px; font-family: 'Inter Variable','Segoe UI',sans-serif; font-weight: 600; }
-.profile-information-section h3 > span { font-size: 13px; }
-.profile-information-section header > p { margin: 0; font-size: 13px; line-height: 1.6; color: #aab7c4; }
-.profile-information-mods li { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 0; }
-.profile-information-mods li > div { min-width: 0; }
-.profile-information-mods strong { font-size: 14px; line-height: 1.5; }
-.profile-information-mods small { font-size: 13px; line-height: 1.5; }
-.profile-information-pack { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 26px; padding: 22px 0; border-top: 1px solid #39434e; border-bottom: 1px solid #39434e; }
-.profile-information-pack span { display: block; font-size: 14px; color: #b3c0cc; font-weight: 600; margin-bottom: 10px; }
-.profile-information-pack strong { display: block; font-size: 16px; font-weight: 600; }
-.profile-information-pack small { display: block; font-size: 13px; color: #aab7c4; margin-top: 7px; }
-.profile-information-mods button, .profile-information-pack button { display: grid; place-items: center; flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #b6c2cd; }
-.profile-information-mods button:hover:not(:disabled), .profile-information-pack button:hover:not(:disabled) { background: #30363d; color: #eef2f6; }
-.profile-information-empty { display: flex; align-items: center; gap: 16px; padding: 23px 0 10px; color: #9caebb; }
-.profile-information-empty strong { font-size: 14px; font-weight: 600; color: #cdd8e1; }
-.profile-information-empty p { margin: 7px 0 0; font-size: 13px; line-height: 1.6; }
-.profile-information-link-error { color: #ec9c97; font-size: 13px; }
 .launcher-about-hero { margin: -24px -24px 0; padding: 48px 48px 24px; border-radius: 8px 8px 0 0; }
 .launcher-about-link-icon { width: 24px; height: 24px; object-fit: contain; flex: none; }
 .launcher-about-links strong { font-size: 15px; }
@@ -214,8 +177,6 @@
 .mods-filters .mods-field > span, .mods-filters .dropdown-copy strong { font-family: 'Inter Variable','Segoe UI',sans-serif; font-size: 13px; font-weight: 600; }
 .mods-filters .dropdown-trigger { height: 42px; min-height: 42px; background: #161b22; border-color: #30363d; font-family: 'Inter Variable','Segoe UI',sans-serif; font-size: 13px; font-weight: 600; }
 .mods-filters .dropdown-trigger:hover { background: #21262d; border-color: #484f58; }
-.profile-information-section { margin-top: 8px; }
-.profile-information-empty-note { margin: 24px 0 0; font-size: 14px; line-height: 1.6; color: #aab7c4; }
 
 /* Every disclosure keeps its arrow mounted so both directions animate. */
 button > svg.lucide-chevron-down, button > svg.lucide-chevron-up { flex-shrink: 0; transform-origin: center; transition: transform .2s ease; }
@@ -245,8 +206,6 @@ button:not([aria-expanded]):active > svg.lucide-chevron-down { transform: rotate
 .statusbar-profile:hover { color: #c9d1d9; }
 .statusbar-profile:focus-visible { outline: 1px solid #8b949e; outline-offset: 3px; border-radius: 2px; }
 .statusbar-changelog { flex: none; }
-.profile-information-empty-note { border-top: 1px solid #34414e; padding-top: 20px; display: flex; gap: 11px; align-items: flex-start; }
-.profile-information-empty-note > svg { flex: none; margin-top: 2px; color: #98a8b6; }
 .modal.confirm-modal.cleanup-preview-modal { width: min(800px,calc(100vw - 48px)); }
 .cleanup-preview-list small { overflow-wrap: anywhere; }
 .profile-modal .profile-version-field .dropdown-trigger { height: 58px; }
