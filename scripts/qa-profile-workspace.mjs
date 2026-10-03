@@ -38,7 +38,7 @@ try {
   await choose('Test World'); await until("document.querySelectorAll('.server-row').length===2")
   await nav('Dünyalar'); await until("document.querySelectorAll('.world-select').length===2")
   await shot('qa-profile-workspace-worlds')
-  await nav('Modlar'); await until("document.querySelector('.mods-setup-fields.profile-scoped')")
+  await nav('Kurulu modlar'); await until("document.querySelector('.mods-setup-fields.profile-scoped')")
   assert.equal(await evaluate("document.querySelectorAll('.mods-field').length"),2)
   await choose('Test World 2')
   await until("window.launcher.getState().then(s=>s.qaWorkspaceRequests.filter(r=>r.channel==='launcher:get-installed-mods').at(-1)?.profileId==='qa-profile-1')")
@@ -57,7 +57,7 @@ try {
   for (const language of ['tr','en','de','fr','ru','pl']) {
     await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})')
     await call('Page.reload'); await until("document.querySelector('.launch-profile-edit')"); await click('.launch-profile-edit'); await until("document.querySelector('.profile-workspace-nav')")
-    assert.equal(await evaluate("document.querySelectorAll('.profile-workspace-nav button').length"),5)
+    assert.equal(await evaluate("document.querySelectorAll('.profile-workspace-nav button').length"),9)
     assert.equal(await evaluate("document.querySelector('.profile-workspace-back').textContent.includes('Profillerim’e dön')"),language==='tr')
     assert.equal(await evaluate("[...document.querySelectorAll('.profile-workspace-nav button')].every(b=>b.scrollWidth<=b.clientWidth)"),true,language+' sidebar text fits')
   }

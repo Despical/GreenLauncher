@@ -5,6 +5,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFil
 import { isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
 import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, ProfileCover, PlaySession } from '../shared/types'
 import { normalizeServerAddress } from '../shared/server-launch'
+import { profilePlaytime } from '../shared/profile-settings'
 
 function defaultSettings(): LauncherSettings {
   const display = screen.getPrimaryDisplay().bounds
@@ -71,7 +72,7 @@ export class LauncherStore {
       selectedAccountId: saved.selectedAccountId ?? null,
       dataPath: this.dataPath,
       playHistory,
-      playSessions: settings.savePlaytime && Array.isArray(saved.playSessions) ? saved.playSessions.filter(session => session && typeof session.id === 'string' && typeof session.profileId === 'string' && typeof session.profileName === 'string' && typeof session.versionId === 'string' && typeof session.startedAt === 'string' && typeof session.endedAt === 'string' && Number.isFinite(Date.parse(session.startedAt)) && Number.isFinite(Date.parse(session.endedAt)) && Date.parse(session.endedAt) >= Date.parse(session.startedAt) && Number.isFinite(session.durationMs) && session.durationMs >= 0) : []
+      playSessions: Array.isArray(saved.playSessions) ? saved.playSessions.filter(session => session && profilePlaytime(saved.profiles?.find(profile => profile.id === session.profileId), settings, 'savePlaytime') && typeof session.id === 'string' && typeof session.profileId === 'string' && typeof session.profileName === 'string' && typeof session.versionId === 'string' && typeof session.startedAt === 'string' && typeof session.endedAt === 'string' && Number.isFinite(Date.parse(session.startedAt)) && Number.isFinite(Date.parse(session.endedAt)) && Date.parse(session.endedAt) >= Date.parse(session.startedAt) && Number.isFinite(session.durationMs) && session.durationMs >= 0) : []
     }
     this.selections = saved.accountSelections ?? {}
     if (!this.state.accounts.some(a => a.id === this.state.selectedAccountId)) this.state.selectedAccountId = this.state.accounts[0]?.id ?? null
@@ -140,7 +141,7 @@ export class LauncherStore {
   private save(): LauncherState {
     this.rememberSelection()
     const temp = `${this.filePath}.tmp`
-    writeFileSync(temp, JSON.stringify({ ...this.state, playSessions: this.state.settings.savePlaytime ? this.state.playSessions : [], accountSelections: this.selections }, null, 2), 'utf8')
+    writeFileSync(temp, JSON.stringify({ ...this.state, playSessions: this.state.playSessions?.filter(session => profilePlaytime(this.state.profiles.find(profile => profile.id === session.profileId), this.state.settings, 'savePlaytime')), accountSelections: this.selections }, null, 2), 'utf8')
     renameSync(temp, this.filePath)
     return this.get()
   }
@@ -176,6 +177,9 @@ export class LauncherStore {
     if (gameDirectory && this.isStandardMinecraftPath(gameDirectory)) gameDirectory = ''
     if (gameDirectory && (!isAbsolute(gameDirectory) || parse(gameDirectory).root === gameDirectory || gameDirectory.length > 500)) throw new Error('Oyun klasörü için geçerli bir tam yol seçin.')
     const current = input.id ? this.ownedProfile(input.id) : undefined
+    if (input.accountOverride === true && input.launchAccountId && !this.state.accounts.some(account => account.id === input.launchAccountId)) throw new Error('Seçilen hesap bulunamadı.')
+    const worldId = typeof input.worldId === 'string' ? input.worldId : current?.worldId
+    if (worldId && (worldId.length > 255 || /[\\/\x00]/.test(worldId) || worldId === '.' || worldId === '..')) throw new Error('Dünya bulunamadı.')
     if (current?.modpack && (input.versionId !== current.versionId || (input.modLoaderVersion !== undefined && input.modLoaderVersion !== current.modLoaderVersion) || (input.modLoader !== undefined && input.modLoader !== current.modLoader))) throw new Error('Mod paketi profilinin Minecraft sürümü ve yükleyicisi değiştirilemez.')
     if (input.id && !current) throw new Error('Profil bulunamadı.')
     const memoryMb = bounded(input.memoryMb, this.state.settings.memoryMb, 1024, 32768)
@@ -194,6 +198,18 @@ export class LauncherStore {
       jvmArgs: (input.jvmArgs ?? '').trim().slice(0, 2048),
       fullscreen: input.fullscreen === true,
       serverAddress: normalizeServerAddress(input.serverAddress),
+      autoJoinEnabled: typeof input.autoJoinEnabled === 'boolean' ? input.autoJoinEnabled : current?.autoJoinEnabled,
+      autoJoinMode: input.autoJoinMode === 'world' ? 'world' : input.autoJoinMode === 'server' ? 'server' : current?.autoJoinMode,
+      worldId,
+      memoryOverride: typeof input.memoryOverride === 'boolean' ? input.memoryOverride : current?.memoryOverride,
+      permGenMb: bounded(input.permGenMb, current?.permGenMb ?? 128, 64, 4096),
+      hideLauncher: typeof input.hideLauncher === 'boolean' ? input.hideLauncher : current?.hideLauncher,
+      quitOnGameExit: typeof input.quitOnGameExit === 'boolean' ? input.quitOnGameExit : current?.quitOnGameExit,
+      playtimeOverride: typeof input.playtimeOverride === 'boolean' ? input.playtimeOverride : current?.playtimeOverride,
+      showPlaytime: typeof input.showPlaytime === 'boolean' ? input.showPlaytime : current?.showPlaytime,
+      savePlaytime: typeof input.savePlaytime === 'boolean' ? input.savePlaytime : current?.savePlaytime,
+      accountOverride: typeof input.accountOverride === 'boolean' ? input.accountOverride : current?.accountOverride,
+      launchAccountId: typeof input.launchAccountId === 'string' ? input.launchAccountId : current?.launchAccountId,
       gameDirectory,
       modLoader: current?.modpack ? current.modLoader : input.modLoader,
       modLoaderVersion: current?.modpack ? current.modLoaderVersion : input.modLoaderVersion,

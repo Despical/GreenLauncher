@@ -2,11 +2,11 @@
 .profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin-bottom: 12px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
 .profile-workspace-back:hover { background: #21262d; color: #e6edf3; }
 .profile-workspace-back:focus-visible { outline: 1px solid #8397a7; outline-offset: -2px; }
-.profile-workspace-identity { display: flex; flex: none; align-items: center; width: calc(100% - 24px); gap: 11px; margin: 0 12px 17px; padding: 0; }
-.profile-workspace-icon { width: 49px; height: 49px; flex: none; }
-.profile-workspace-icon img { display: block; width: 49px; height: 49px; object-fit: contain; }
+.profile-workspace-identity { display: flex; flex: none; align-items: center; width: calc(100% - 24px); margin: -7px 12px 10px; padding: 0; }
+.profile-workspace-icon { width: 49px; height: 49px; flex: none; display: flex; align-items: center; justify-content: center; }
+.profile-workspace-icon img { display: block; width: 44px; height: 44px; object-fit: contain; }
 .workspace-profile-select { flex: 1; min-width: 0; }
-.workspace-profile-select .dropdown-trigger { height: auto; min-height: 49px; padding: 0; border: 0; background: transparent; }
+.workspace-profile-select .dropdown-trigger { height: auto; min-height: 63px; padding: 7px 0; gap: 11px; border: 0; background: transparent; }
 .workspace-profile-select .dropdown-trigger:hover:not(:disabled), .workspace-profile-select.open .dropdown-trigger { border-color: #484f58; background: #21262d; }
 .workspace-profile-select .dropdown-copy { gap: 3px; line-height: 1.05; }
 .workspace-profile-select .dropdown-copy strong { font: 700 21px 'Space Grotesk Variable', sans-serif; letter-spacing: -.8px; }
@@ -32,3 +32,27 @@
 .profile-general-settings-link strong { font-size: 14px; font-weight: 600; }
 .profile-general-settings-link small { color: #8b949e; font-size: 12px; line-height: 1.5; }
 .profile-settings-save-bar { z-index: 12; }
+
+.profile-workspace-nav > button:disabled { opacity: .6; cursor: default; }
+.profile-workspace-nav > button:disabled:hover { background: transparent; }
+.profile-provider-icon { width: 19px; height: 19px; object-fit: contain; flex: none; }
+.profile-settings-panel .profile-version-field, .profile-setting-field { display: flex; flex-direction: column; gap: 10px; }
+.profile-settings-section { margin: 0; padding-top: 24px; border-top: 1px solid #30363d; }
+.profile-settings-section h3 { margin: 0 0 16px; font-size: 15px; font-weight: 600; }
+.profile-setting-check, .profile-setting-radio { display: flex; align-items: center; gap: 10px; border: 0; padding: 4px 0; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 500; text-align: left; }
+.profile-setting-check:focus-visible, .profile-setting-radio:focus-visible { outline: 1px solid #8397a7; outline-offset: 4px; border-radius: 3px; }
+.profile-checkbox { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #6e7681; border-radius: 3px; background: #0d1117; flex: none; }
+.profile-setting-check[aria-checked=true] .profile-checkbox { background: #334451; border-color: #8397a7; }
+.profile-section-enable { margin-bottom: 16px; }
+.profile-setting-options { display: flex; flex-direction: column; gap: 13px; }
+.profile-settings-fields:disabled .profile-setting-check, .profile-settings-fields:disabled .profile-setting-radio { opacity: .5; }
+.profile-join-row { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(0, 1.3fr); align-items: center; gap: 14px; }
+.profile-setting-radio > span:first-child { width: 15px; height: 15px; flex: none; border: 1px solid #6e7681; border-radius: 50%; background: #0d1117; }
+.profile-setting-radio[aria-checked=true] > span:first-child { border: 4px solid #8397a7; }
+.profile-setting-description { display: block; color: #8b949e; font-size: 12px; font-weight: 400; line-height: 1.6; margin-top: 9px; }
+.profile-auto-join-fields > .profile-setting-description { margin: 10px 0 18px; }
+.profile-account-override .profile-setting-field { margin-top: 14px; }
+.profile-window-options { margin-top: 4px; }
+.profile-memory-settings .form-grid { width: 100%; }
+
+.workspace-profile-select .dropdown-trigger:hover:not(:disabled) { filter: brightness(1.14); }

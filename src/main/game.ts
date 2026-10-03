@@ -43,6 +43,7 @@ import type { GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherProfile, M
 import { AccountService } from './auth'
 import { LauncherStore } from './store'
 import { PlaytimeTracker } from './playtime'
+import { permGenArgument, profileJoinTarget, profileMemory } from '../shared/profile-settings'
 import { getDownloadManager } from './download-manager'
 
 const versionIdPattern = /^[a-zA-Z0-9._-]{1,90}$/
@@ -62,6 +63,8 @@ export class GameService {
   private busy = false
   private sessions = new Map<string, RunningInstance>()
   private readonly playtime: PlaytimeTracker
+  private quitWhenGamesClose = false
+  private hiddenForGames = false
   private get running(): boolean { return this.sessions.size > 0 }
 
   constructor(
@@ -70,7 +73,8 @@ export class GameService {
     private readonly window: () => BrowserWindow | null,
     private readonly emit: (activity: LauncherActivity) => void,
     private readonly emitInstances: (instances: RunningInstance[]) => void = () => {},
-    onPlaytimeChanged: () => void = () => {}
+    onPlaytimeChanged: () => void = () => {},
+    private readonly quitLauncher: () => void = () => {}
   ) {
     this.playtime = new PlaytimeTracker(session => {
       try { store.recordPlaySession(session); onPlaytimeChanged() }
@@ -105,6 +109,12 @@ export class GameService {
 
   getRunningInstances(): RunningInstance[] { return structuredClone([...this.sessions.values()]) }
   flushPlaytime(): void { this.playtime.dispose() }
+
+  private finishWindowLifecycle(): void {
+    if (this.running || this.busy) return
+    if (this.quitWhenGamesClose) { this.quitWhenGamesClose = false; this.quitLauncher(); return }
+    if (this.hiddenForGames) { this.hiddenForGames = false; this.window()?.show() }
+  }
 
   private localVersions(): {
     vanilla: Map<string, { folder: MinecraftFolder; source: 'launcher'; releaseTime: string; type: GameVersion['type']; custom?: boolean }>
@@ -552,7 +562,6 @@ export class GameService {
 
   async play(profileId: string | null, versionOverride?: string, allowAdditional = false, serverOverride?: string, serverPreference?: ServerJoinPreference, temporaryOfflineName?: string, worldId?: string): Promise<LaunchResult> {
     if (this.busy) throw new Error('Başka bir oyun veya indirme işlemi devam ediyor.')
-    const serverAddress = normalizeServerAddress(serverOverride)
     const state = this.store.get()
     if (profileId === null && (!versionOverride || !versionIdPattern.test(versionOverride))) throw new Error('Geçersiz sürüm kimliği.')
     const profile = profileId === null ? {
@@ -560,9 +569,13 @@ export class GameService {
       javaPath: state.settings.javaPath, memoryMb: state.settings.memoryMb, minMemoryMb: Math.min(1024, state.settings.memoryMb),
       width: state.settings.width, height: state.settings.height, createdAt: new Date().toISOString()
     } as LauncherProfile : state.profiles.find(p => p.id === profileId)
-    if (temporaryOfflineName !== undefined && (profileId !== null || !serverAddress)) throw new Error('Geçici hesap yalnızca profilsiz sunucu katılımında kullanılabilir.')
-    const account = temporaryOfflineName !== undefined ? offlineAccount(temporaryOfflineName) : state.accounts.find(a => a.id === state.selectedAccountId)
     if (!profile) throw new Error('Profil bulunamadı.')
+    const target = profileJoinTarget(profile, serverOverride, worldId)
+    const serverAddress = normalizeServerAddress(target.serverAddress)
+    worldId = target.worldId
+    if (temporaryOfflineName !== undefined && (profileId !== null || !serverAddress)) throw new Error('Geçici hesap yalnızca profilsiz sunucu katılımında kullanılabilir.')
+    const accountId = profile.accountOverride ? profile.launchAccountId : state.selectedAccountId
+    const account = temporaryOfflineName !== undefined ? offlineAccount(temporaryOfflineName) : state.accounts.find(a => a.id === accountId)
     if (!account) throw new Error('Oynamak için bir hesap seçin veya çevrimdışı hesap oluşturun.')
     if (profileId !== null && versionOverride && versionOverride !== (profile.modLoaderVersion ?? profile.versionId)) throw new Error('Bu profil yalnızca kendi Minecraft sürümüyle çalışır. Başka bir sürüm için profili değiştirin.')
     if (worldId !== undefined) {
@@ -589,7 +602,7 @@ export class GameService {
       let version = installed || existsSync(this.folder.getVersionJson(versionId))
         ? await Version.parse(resourceFolder, versionId) : await this.installVersion(versionId, true)
       if (this.isCustom(versionId)) version = await customResolvedVersion(version, resourceFolder)
-      if (serverAddress && !serverLaunchMode(version.minecraftVersion || profile.versionId)) throw new Error('Bu Minecraft sürümü doğrudan sunucuya katılmayı desteklemiyor.')
+      if (serverOverride && !serverLaunchMode(version.minecraftVersion || profile.versionId)) throw new Error('Bu Minecraft sürümü doğrudan sunucuya katılmayı desteklemiyor.')
       if (worldId !== undefined && serverLaunchMode(version.minecraftVersion || profile.versionId) !== 'quick-play') throw new Error('Dünyaya doğrudan katılım Minecraft 1.20 ve sonrasında desteklenir.')
       const imported = this.isCustom(versionId) ? await customRuntime(version, resourceFolder) : undefined
       if (imported) {
@@ -601,6 +614,7 @@ export class GameService {
         await runtime.download(missing(await resolveAssetObjectInstallFiles(version, resourceFolder)))
       }
       const javaPath = await this.findJava(imported ? await customJavaVersion(version, resourceFolder) : version, profile, !!imported)
+      const javaInfo = profile.memoryOverride !== false ? await resolveJava(javaPath) : undefined
       this.status({ kind: 'launching', label: 'Oyun başlatılıyor', detail: `${profile.name} · ${versionId}`, profileId: profile.id, progress: 95 })
       const gamePath = profileId === null ? join(this.store.dataPath, 'standalone', versionId) : this.store.gamePath(profile)
       mkdirSync(gamePath, { recursive: true })
@@ -616,11 +630,10 @@ export class GameService {
         userType: offlineAccount ? 'legacy' : undefined,
         launcherName: 'Green Launcher',
         launcherBrand: 'GreenLauncher',
-        minMemory: Math.min(profile.minMemoryMb ?? 1024, profile.memoryMb),
-        maxMemory: profile.memoryMb,
+        ...profileMemory(profile, state.settings),
         resolution: { width: profile.width, height: profile.height, fullscreen: profile.fullscreen === true },
-        ...(worldId !== undefined ? { quickPlaySingleplayer: worldId } : serverLaunchOptions(version.minecraftVersion || profile.versionId, serverAddress ?? profile.serverAddress)),
-        extraJVMArgs: profile.jvmArgs?.trim() ? parseJvmArgs(profile.jvmArgs) : undefined,
+        ...(worldId !== undefined ? { quickPlaySingleplayer: worldId } : serverLaunchOptions(version.minecraftVersion || profile.versionId, serverAddress)),
+        extraJVMArgs: [...(profile.jvmArgs?.trim() ? parseJvmArgs(profile.jvmArgs) : []), ...permGenArgument(profile, javaInfo?.majorVersion)],
         extraExecOption: { detached: false, windowsHide: true }
       })
       // Unread output pipes can block Minecraft during verbose loader startup.
@@ -634,16 +647,19 @@ export class GameService {
       if (profileId !== null) this.playtime.start(this.sessions.get(id)!)
       this.emitInstances(this.getRunningInstances())
       this.status({ kind: 'playing', label: 'Oyun çalışıyor', detail: `${profile.name} · ${versionId}`, profileId: profile.id, progress: 100 })
-      if (state.settings.closeOnLaunch) this.window()?.minimize()
+      if (profile.hideLauncher === true) { this.hiddenForGames = true; this.window()?.hide() }
+      else if (profile.hideLauncher === undefined && state.settings.closeOnLaunch) this.window()?.minimize()
       const finish = (error?: string) => {
         if (!this.sessions.delete(id)) return
         this.playtime.finish(id)
+        if (profile.quitOnGameExit) this.quitWhenGamesClose = true
         this.emitInstances(this.getRunningInstances())
         if (this.busy) return
         const remaining = this.getRunningInstances()[0]
         this.status(error ? { kind: 'error', label: 'Oyun kapandı', detail: error } : remaining
           ? { kind: 'playing', label: 'Oyun çalışıyor', profileId: remaining.profileId, detail: `${remaining.profileName} · ${remaining.versionId}` }
           : { kind: 'idle', label: 'Hazır' })
+        this.finishWindowLifecycle()
       }
       process.once('exit', code => finish(code === 0 ? undefined : `Çıkış kodu: ${code ?? 'bilinmiyor'}`))
       process.once('error', error => finish(message(error)))
@@ -652,7 +668,7 @@ export class GameService {
     } catch (error) {
       this.status({ kind: 'error', label: 'Başlatma başarısız', detail: message(error), profileId: profile.id })
       throw error
-    } finally { this.busy = false }
+    } finally { this.busy = false; this.finishWindowLifecycle() }
   }
 }
 

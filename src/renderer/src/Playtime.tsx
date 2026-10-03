@@ -1,3 +1,4 @@
+import { profilePlaytime } from '../../shared/profile-settings'
 import type { LauncherState } from '../../shared/types'
 import { Clock3 } from 'lucide-react'
 import { playtimeSummary } from '../../shared/playtime'
@@ -11,7 +12,7 @@ export function playDuration(milliseconds: number, language: Language): string {
 }
 
 export function PlaytimeStatus({ state, language }: { state: LauncherState; language: Language }) {
-  if (state.settings.showPlaytime === false || !state.selectedProfileId) return null
+  if (!profilePlaytime(state.profiles.find(profile => profile.id === state.selectedProfileId), state.settings, 'showPlaytime') || !state.selectedProfileId) return null
   const summary = playtimeSummary(state.playSessions ?? [], state.selectedProfileId), last = summary.history[0]
   if (!last) return null
   const label = translate(language, 'Başlatmaya hazır, en son {date} tarihinde {duration} süreyle oynandı (toplam {total})', {

@@ -25,6 +25,18 @@ export interface LauncherProfile {
   jvmArgs?: string
   fullscreen?: boolean
   serverAddress?: string
+  autoJoinEnabled?: boolean
+  autoJoinMode?: 'server' | 'world'
+  worldId?: string
+  memoryOverride?: boolean
+  permGenMb?: number
+  hideLauncher?: boolean
+  quitOnGameExit?: boolean
+  playtimeOverride?: boolean
+  showPlaytime?: boolean
+  savePlaytime?: boolean
+  accountOverride?: boolean
+  launchAccountId?: string
   gameDirectory?: string
   modLoader?: ModLoader
   modLoaderVersion?: string

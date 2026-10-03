@@ -1,3 +1,4 @@
+import { profileJoinTarget } from '../shared/profile-settings'
 import { WorldService } from './worlds'
 import { NsisUpdater } from 'electron-updater'
 import { LauncherUpdater } from './updater'
@@ -207,7 +208,7 @@ else {
         const versionId = game.getRunningInstances()[0]?.versionId
         if (versionId) discord.setPlaying(versionId)
       } else if (!game.getRunningInstances().length && (activity.kind === 'idle' || activity.kind === 'error')) discord.clearPlaying()
-    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()))
+    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()), () => app.quit())
     app.on('before-quit', () => game.flushPlaytime())
     keepForGames = () => game.getRunningInstances().length > 0
     const modpacks = new ModpackService(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
@@ -275,7 +276,9 @@ else {
         changed(store.selectAccount(owner))
         if (profile) changed(store.selectProfile(profile.id))
         const versionId = profile ? undefined : request.versionId
-        const result = await queue(`Minecraft ${profile?.modLoaderVersion ?? profile?.versionId ?? versionId}`, () => game.play(profile?.id ?? null, versionId), profile?.id, true)
+        const target = profileJoinTarget(profile)
+        const start = () => game.play(profile?.id ?? null, versionId, false, undefined, undefined, undefined, target.worldId)
+        const result = await queue(`Minecraft ${profile?.modLoaderVersion ?? profile?.versionId ?? versionId}`, () => profile && target.worldId ? worlds.launch(profile.id, target.worldId, start) : start(), profile?.id, true)
         if (result.status === 'confirmation-required') send('launcher:launchRequest', { profileId: profile?.id ?? null, versionId, accountId: owner })
         changed(store.get())
       })().catch(error => { logs.record('Kısayol', error); send('launcher:shortcutError', diagnoseError(error).message) })
@@ -531,8 +534,9 @@ else {
     handle('launcher:play', (profileId: string, allowAdditional?: boolean, versionId?: string, serverAddress?: string, serverPreference?: ServerJoinPreference, worldId?: string) => queue(`Minecraft ${store.get().profiles.find(item => item.id === profileId)?.modLoaderVersion ?? store.get().profiles.find(item => item.id === profileId)?.versionId ?? ''}`, async () => {
       if (modpacks.isInstalling || installingContent) throw new Error('Mod paketi kurulumu devam ediyor.')
       if (worlds.isBusy) throw new Error('Başka bir dünya işlemi devam ediyor.')
-      const start = () => game.play(profileId, versionId, allowAdditional, serverAddress, serverPreference, undefined, worldId)
-      const result = worldId !== undefined ? await worlds.launch(profileId, worldId, start) : await start()
+      const target = profileJoinTarget(store.get().profiles.find(item => item.id === profileId), serverAddress, worldId)
+      const start = () => game.play(profileId, versionId, allowAdditional, serverAddress, serverPreference, undefined, target.worldId)
+      const result = target.worldId !== undefined ? await worlds.launch(profileId, target.worldId, start) : await start()
       changed(store.get())
       return result
     }, profileId, true))

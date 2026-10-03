@@ -64,9 +64,9 @@ check('first added account claims unowned legacy profiles',()=>assert.equal(unow
 directory=root
 
 const children=[], options=[], activities=[], updates=[]
-let launchMode='real', releaseGate
+let launchMode='real', releaseGate, javaMajor=21
 const core = require('@xmcl/core')
-const {GameService}=load('src/main/game.ts',{'@xmcl/core':{...core,Version:{parse:async(_,id)=>({id,minecraftVersion:id.split('-')[0]})},launch:async opts=>{
+const {GameService}=load('src/main/game.ts',{'@xmcl/installer':{...require('@xmcl/installer'),resolveJava:async()=>({majorVersion:javaMajor})},'@xmcl/core':{...core,Version:{parse:async(_,id)=>({id,minecraftVersion:id.split('-')[0]})},launch:async opts=>{
   options.push(opts)
   if(launchMode==='failure') throw Error('simulated spawn failure')
   if(launchMode==='exited') return Object.assign(new EventEmitter(),{pid:12345,exitCode:1,signalCode:null})
@@ -76,7 +76,8 @@ const {GameService}=load('src/main/game.ts',{'@xmcl/core':{...core,Version:{pars
   const child=spawn(process.execPath,['-e',code,floodMarker],{windowsHide:true,stdio:launchMode==='flood'?'pipe':'ignore'})
   children.push(child); await once(child,'spawn'); return child
 }}})
-const game = new GameService(store,{},()=>null,activity=>activities.push(activity),sessions=>updates.push(sessions))
+let hidden=0, shown=0, quit=0
+const game = new GameService(store,{},()=>({hide:()=>hidden++,show:()=>shown++,minimize:()=>{}}),activity=>activities.push(activity),sessions=>updates.push(sessions),()=>{},()=>quit++)
 game.installedVersion=()=>({folder:{root}})
 game.findJava=async()=>process.execPath
 const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
@@ -195,6 +196,26 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   for(let attempt=0;attempt<100&&!fs.existsSync(floodMarker);attempt++)await new Promise(resolve=>setTimeout(resolve,20))
   check('verbose game startup drains stdout and stderr without blocking on pipe capacity',()=>assert.equal(fs.readFileSync(floodMarker,'utf8'),'startup completed'))
   await stop(children.at(-1))
+  const edit = changes => store.saveProfile({...store.get().profiles.find(p=>p.id===b),...changes})
+  edit({autoJoinEnabled:true,autoJoinMode:'world',worldId:'World With Spaces',serverAddress:'localhost',accountOverride:true,launchAccountId:second,memoryOverride:false,memoryMb:8192,minMemoryMb:2048,hideLauncher:true,quitOnGameExit:false})
+  const selectedAccount=store.get().selectedAccountId
+  await game.play(b)
+  check('profile automatic world target, account override and inherited memory reach the real launch',()=>{const o=options.at(-1);assert.equal(o.quickPlaySingleplayer,'World With Spaces');assert.equal(o.quickPlayMultiplayer,undefined);assert.equal(o.gameProfile.id,second);assert.equal(store.get().selectedAccountId,selectedAccount);assert.equal(o.maxMemory,store.get().settings.memoryMb);assert.equal(o.minMemory,1024);assert.equal(hidden,1);assert.equal(shown,0)})
+  await stop(children.at(-1));check('hidden launcher is restored after the last game exits',()=>assert.equal(shown,1))
+  edit({autoJoinEnabled:false,accountOverride:false,memoryOverride:true,permGenMb:256,hideLauncher:false,quitOnGameExit:true})
+  await game.play(b)
+  check('disabled automatic joining launches normally and modern Java omits PermGen',()=>{const o=options.at(-1);assert.equal(o.quickPlaySingleplayer,undefined);assert.equal(o.quickPlayMultiplayer,undefined);assert.equal(o.maxMemory,8192);assert.equal(o.minMemory,2048);assert.ok(!o.extraJVMArgs.some(a=>a.startsWith('-XX:PermSize=')))})
+  await game.play(a,undefined,true)
+  await stop(children.at(-2));check('exit preference waits while another game is still running',()=>assert.equal(quit,0))
+  await stop(children.at(-1));check('launcher exits once all games have ended',()=>assert.equal(quit,1))
+  javaMajor=7;edit({quitOnGameExit:false});await game.play(b)
+  check('supported legacy Java receives the configured PermGen argument',()=>assert.ok(options.at(-1).extraJVMArgs.includes('-XX:PermSize=256m')))
+  await stop(children.at(-1));javaMajor=21
+  edit({autoJoinEnabled:true,autoJoinMode:'server',serverAddress:'localhost:25567'})
+  await game.play(b);check('enabled automatic server target reaches Quick Play',()=>assert.equal(options.at(-1).quickPlayMultiplayer,'localhost:25567'));await stop(children.at(-1))
+  store.removeAccount(second)
+  check('removed override account is rejected at save',()=>assert.throws(()=>edit({accountOverride:true,launchAccountId:second}),/hesap/))
+  const persisted = JSON.parse(fs.readFileSync(path.join(root,'launcher.json'),'utf8'));persisted.profiles.find(p=>p.id===b).accountOverride=true;persisted.profiles.find(p=>p.id===b).launchAccountId=second;fs.writeFileSync(path.join(root,'launcher.json'),JSON.stringify(persisted));const staleStore=new LauncherStore();const staleGame=new GameService(staleStore,{},()=>null,()=>{});await assert.rejects(()=>staleGame.play(b),/hesap/);check('missing override account never silently falls back to another account',()=>assert.equal(staleGame.getRunningInstances().length,0))
   console.log(`${checks} profile/shortcut/process checks passed. Real OS child processes used; Minecraft launch preparation stubbed. Data: ${root}`)
  } finally {for(const child of children) if(child.exitCode===null && child.signalCode===null) child.kill()}
 })().catch(error=>{console.error(error);process.exitCode=1})

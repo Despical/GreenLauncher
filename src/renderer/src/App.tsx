@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { profilePlaytime } from '../../shared/profile-settings'
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -7,7 +8,7 @@ import {
   ArrowDownToLine, ArrowLeft, ArrowRight, Layers3, Check, ChevronDown, ChevronRight, ChevronUp, CloudDownload, ExternalLink, FolderOpen,
   Copy, FileText, Home, LoaderCircle, LogIn, LogOut, Maximize2, MemoryStick, Minus, Monitor, MoreHorizontal, Pause,
   GripVertical, HardDrive, Image as ImageIcon, Info, Languages, Package, Pencil, Pin, Play, Plus, Search, Settings2, ShieldCheck, SlidersHorizontal, Trash2, UserRound,
-  Globe2, Server, UsersRound, WifiOff, X
+  Globe2, Sparkles, Server, UsersRound, WifiOff, X
 } from 'lucide-react'
 import type { CleanupPreview, DownloadSnapshot, DiskUsage, GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherErrorEntry, LauncherProfile, LauncherSettings, LauncherState, OfflineStatus, ScreenshotItem, ScreenshotSort, VersionType, RunningInstance, LaunchRequest, LauncherPresenceContext } from '../../shared/types'
 import { screenshotPageSize } from '../../shared/types'
@@ -31,6 +32,9 @@ import { ProfileMenu, ProfileCoverEditor, ProfileDropHint, type ProfileAction } 
 import { RunningPlayButton, LaunchConfirmation } from './RunningGames'
 import { AccountAvatar, AccountManager, AccountSwitcher, OfflineAccountDialog, DialogHeading } from './AccountControls'
 import logo from '../../../build/launcher-mark.png'
+import modrinthIcon from '../assets/modrinth-logo.svg'
+import curseforgeIcon from '../assets/curseforge.svg'
+import technicIcon from '../assets/technic.png'
 import customIcon from '../assets/cracked-stone-bricks.svg'
 import releaseIcon from '../assets/minecraft-release.png'
 import snapshotIcon from '../assets/minecraft-snapshot.png'
@@ -109,13 +113,13 @@ function LanguageMenu({ value, onChange, language }: { value: Language; onChange
   </div>
 }
 
-function Dropdown({ value, options, onChange, placeholder, searchable = false, className = '', language, disabled = false, title, searchPlaceholder, showAll = false }: { value: string; options: Option[]; onChange: (value: string) => void; placeholder: string; searchable?: boolean; className?: string; language: Language; disabled?: boolean; title?: string; searchPlaceholder?: string; showAll?: boolean }) {
+function Dropdown({ value, options, onChange, placeholder, searchable = false, className = '', language, disabled = false, title, searchPlaceholder, showAll = false, leadingIcon }: { value: string; options: Option[]; onChange: (value: string) => void; placeholder: string; searchable?: boolean; className?: string; language: Language; disabled?: boolean; title?: string; searchPlaceholder?: string; showAll?: boolean; leadingIcon?: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const root = useRef<HTMLDivElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const profilePicker = ['home-profile-select', 'gallery-profile-select', 'servers-profile-select', 'servers-list-profile-select', 'workspace-profile-select'].includes(className)
-  const portalled = className === 'profile-version-select' || className === 'server-resource-select' || profilePicker
+  const portalled = className === 'profile-version-select' || className === 'server-resource-select' || className === 'profile-setting-select' || profilePicker
   const [position, setPosition] = useState<CSSProperties | null>(null)
   useLayoutEffect(() => {
     if (!open || !portalled || !root.current) return
@@ -146,6 +150,7 @@ function Dropdown({ value, options, onChange, placeholder, searchable = false, c
     </div>
   return <div ref={root} title={title} className={`custom-dropdown ${className} ${open && !disabled ? 'open' : ''}`}>
     <button type="button" disabled={disabled} className="dropdown-trigger" aria-label={placeholder} aria-haspopup="listbox" aria-expanded={open && !disabled} onClick={() => { setPosition(null); setOpen(!open); setQuery('') }}>
+      {leadingIcon}
       {selected?.type && <span className={`version-glyph ${selected.type}`}>{selected.optifine ? <OptifineGlyph /> : <VersionGlyph type={selected.type} custom={selected.custom} />}</span>}
       <span className="dropdown-copy"><strong>{selected?.label ?? placeholder}</strong>{selected?.detail && <small>{selected.detail}</small>}</span><ChevronDown size={17} />
     </button>
@@ -242,6 +247,7 @@ function App() {
   const stateRef = useRef(state)
   stateRef.current = state
   const [managedProfileId, setManagedProfileId] = useState<string | null>(null)
+  const [workspaceModsSource, setWorkspaceModsSource] = useState<'custom' | 'modrinth' | 'curseforge' | 'technic'>('custom')
   const [isGlobalMods, setIsGlobalMods] = useState(false)
   const globalModsRef = useRef(isGlobalMods)
   globalModsRef.current = isGlobalMods
@@ -509,6 +515,9 @@ function App() {
 
   const profile = state?.profiles.find(item => item.id === state.selectedProfileId)
   const managedProfile = state?.profiles.find(item => item.id === managedProfileId)
+  const packProvider = managedProfile?.modpack?.provider ?? (managedProfile?.modpack?.projectId.startsWith('curseforge:') ? 'curseforge' : managedProfile?.modpack?.projectId.startsWith('technic:') ? 'technic' : 'modrinth')
+  const packProviderName = packProvider === 'curseforge' ? 'CurseForge' : packProvider === 'technic' ? 'Technic' : 'Modrinth'
+  const packProviderIcon = packProvider === 'curseforge' ? curseforgeIcon : packProvider === 'technic' ? technicIcon : modrinthIcon
   const inProfileWorkspace = !!managedProfile && profileWorkspacePages.includes(page) && !(page === 'mods' && isGlobalMods)
   const profilePages = Math.max(1, Math.ceil((state?.profiles.length ?? 0) / 9))
   const visibleProfiles = state?.profiles.slice(profilePage * 9, profilePage * 9 + 9) ?? []
@@ -738,14 +747,18 @@ function App() {
     <div className="titlebar"><div className="titlebar-left"><img src={logo} /> Green Launcher</div><div className="titlebar-actions"><button aria-label={t('Küçült')} onClick={() => window.launcher.windowAction('minimize')}><Minus size={16} /></button><button aria-label={t('Büyüt')} onClick={() => window.launcher.windowAction('maximize')}><Maximize2 size={13} /></button><button aria-label={t('Kapat')} className="close-window" onClick={() => window.launcher.windowAction('close')}><X size={17} /></button></div></div>
     <div className="app-body">
       <aside className={`sidebar ${inProfileWorkspace ? 'profile-sidebar' : ''}`}>{inProfileWorkspace && managedProfile ? <>
+        <button type="button" className="profile-workspace-back" onClick={() => setPage('profiles')}><ArrowLeft size={18} />{t('Profillerim’e dön')}</button>
         <div className="profile-workspace-identity">
-          <span className="profile-workspace-icon"><VersionGlyph custom={managedProfile.versionId.startsWith('custom:')} /></span>
-          <Dropdown className="workspace-profile-select" disabled={worldsBusy || serversBusy || profileSettingsBusy || launchBusy} searchable showAll searchPlaceholder={t('Profil ara')} language={language} value={managedProfile.id} placeholder={t('Profil seç')} options={state.profiles.map(item => ({ value: item.id, label: item.name, detail: profileVersionLabel(item) }))} onChange={id => openProfileWorkspace(id, page)} />
+          <Dropdown className="workspace-profile-select" leadingIcon={<span className="profile-workspace-icon"><VersionGlyph custom={managedProfile.versionId.startsWith('custom:')} /></span>} disabled={worldsBusy || serversBusy || profileSettingsBusy || launchBusy} searchable showAll searchPlaceholder={t('Profil ara')} language={language} value={managedProfile.id} placeholder={t('Profil seç')} options={state.profiles.map(item => ({ value: item.id, label: item.name, detail: profileVersionLabel(item) }))} onChange={id => openProfileWorkspace(id, page)} />
         </div>
         <div className="brand-separator" />
-        <button type="button" className="profile-workspace-back" onClick={() => setPage('profiles')}><ArrowLeft size={18} />{t('Profillerim’e dön')}</button>
         <nav className="side-nav profile-workspace-nav" aria-label={t('Profil yönetimi')}>
-          <button className={page === 'mods' ? 'active' : ''} aria-current={page === 'mods' ? 'page' : undefined} onClick={() => setPage('mods')}><Package size={19} />{t('Modlar')}</button>
+          <button disabled title={t('Bu bölüm henüz hazır değil.')}><FileText size={19} />{t('Minecraft günlüğü')}</button>
+          <button disabled title={t('Bu bölüm henüz hazır değil.')}><Layers3 size={19} />{t('Sürüm')}</button>
+          {managedProfile.modpack && <button className={page === 'mods' && workspaceModsSource === packProvider ? 'active' : ''} onClick={() => { setWorkspaceModsSource(packProvider); setPage('mods') }}><img className="profile-provider-icon" src={packProviderIcon} alt="" />{packProviderName}</button>}
+          <button className={page === 'mods' && workspaceModsSource === 'custom' ? 'active' : ''} aria-current={page === 'mods' && workspaceModsSource === 'custom' ? 'page' : undefined} onClick={() => { setWorkspaceModsSource('custom'); setPage('mods') }}><Package size={19} />{t('Kurulu modlar')}</button>
+          <button disabled title={t('Bu bölüm henüz hazır değil.')}><ImageIcon size={19} />{t('Kaynak paketleri')}</button>
+          <button disabled title={t('Bu bölüm henüz hazır değil.')}><Sparkles size={19} />{t('Shader paketleri')}</button>
           <button className={page === 'worlds' ? 'active' : ''} aria-current={page === 'worlds' ? 'page' : undefined} onClick={() => setPage('worlds')}><Globe2 size={19} />{t('Dünyalar')}</button>
           <button className={page === 'servers' ? 'active' : ''} aria-current={page === 'servers' ? 'page' : undefined} onClick={() => setPage('servers')}><Server size={19} />{t('Sunucular')}</button>
           <button className={page === 'gallery' ? 'active' : ''} aria-current={page === 'gallery' ? 'page' : undefined} onClick={() => setPage('gallery')}><ImageIcon size={19} />{t('Ekran görüntüleri')}</button>
@@ -768,10 +781,10 @@ function App() {
         </>}<AccountSwitcher state={state} t={t} onState={setState} onNotice={setToast} open={accountSwitcherOpen} setOpen={setAccountSwitcherOpen} active={page === 'account'} onManage={() => setAccountOpen(true)} onOffline={() => setOfflineCreateOpen(true)} onProfile={() => setPage('account')} />
       </aside>
       <main ref={main} onScroll={() => { if (main.current) scrollPositions.current[page] = main.current.scrollTop }} className={`main-content page-${page}`}>
-        {visited.has('profile-settings') && managedProfile && <div className="retained-page" hidden={page !== 'profile-settings'}><ProfileSettingsPage profile={managedProfile} selectedProfileId={state.selectedProfileId} language={language} isVisible={page === 'profile-settings'} onState={setState} onNotice={setToast} onBusyChange={setProfileSettingsBusy} onOpenGeneral={tab => { setSettingsTab(tab); setPage('settings') }} versionPicker={(draft, onChange) => <Dropdown className="profile-version-select" language={language} value={profileLaunchVersion(draft)} searchable placeholder={t('Sürüm seç')} disabled={!!draft.modpack} title={draft.modpack ? t('Bu profil yalnızca bu sürümde çalıştırılabilir. Başka bir sürüm için profilini değiştir.') : undefined} options={versionOptions.some(item => item.value === profileLaunchVersion(draft)) ? versionOptions : [{ value: profileLaunchVersion(draft), label: profileVersionLabel(draft) }, ...versionOptions]} onChange={onChange} />} /></div>}
+        {visited.has('profile-settings') && managedProfile && <div className="retained-page" hidden={page !== 'profile-settings'}><ProfileSettingsPage profile={managedProfile} selectedProfileId={state.selectedProfileId} language={language} isVisible={page === 'profile-settings'} settings={state.settings} accounts={state.accounts} choicePicker={(value, options, onChange, label, disabled) => <Dropdown className="profile-setting-select" language={language} value={value} options={options} onChange={onChange} placeholder={label} disabled={disabled} showAll />} onState={setState} onNotice={setToast} onBusyChange={setProfileSettingsBusy} onOpenGeneral={tab => { setSettingsTab(tab); setPage('settings') }} versionPicker={(draft, onChange) => <Dropdown className="profile-version-select" language={language} value={profileLaunchVersion(draft)} searchable placeholder={t('Sürüm seç')} disabled={!!draft.modpack} title={draft.modpack ? t('Bu profil yalnızca bu sürümde çalıştırılabilir. Başka bir sürüm için profilini değiştir.') : undefined} options={versionOptions.some(item => item.value === profileLaunchVersion(draft)) ? versionOptions : [{ value: profileLaunchVersion(draft), label: profileVersionLabel(draft) }, ...versionOptions]} onChange={onChange} />} /></div>}
         {visited.has('worlds') && <div className="retained-page" hidden={page !== 'worlds'}><Suspense fallback={<div className="library-empty"><LoaderCircle className="spin" size={28} /></div>}><WorldsPage scopedProfileId={managedProfileId ?? undefined} onBusyChange={setWorldsBusy} state={state} language={language} instances={instances} launchBusy={launchBusy} isVisible={page === 'worlds'} onCreateProfile={createDraft} onNotice={setToast} onJoin={request => void launchTarget(request)} profilePicker={(value, onChange, disabled) => <Dropdown className="servers-list-profile-select" searchable showAll searchPlaceholder={t('Profil ara')} language={language} value={value} placeholder={t('Profil seç')} disabled={disabled} options={state.profiles.map(item => ({value:item.id,label:item.name}))} onChange={onChange} />} /></Suspense></div>}
         {visited.has('servers') && <div className="retained-page" hidden={page !== 'servers'}><Suspense fallback={<div className="library-empty"><LoaderCircle className="spin" size={28} /></div>}><ServersPage scopedProfileId={managedProfileId ?? undefined} onBusyChange={setServersBusy} onCreateProfile={createDraft} isVisible={page === 'servers'} state={state} versions={versions} language={language} launchBusy={launchBusy} onNotice={setToast} onJoin={request => void launchTarget(request)} listProfilePicker={(value, onChange, disabled) => <Dropdown className="servers-list-profile-select" searchable showAll searchPlaceholder={t('Profil ara')} language={language} value={value} placeholder={t('Profil seç')} disabled={disabled || !state.profiles.length} options={state.profiles.map(item => ({value:item.id,label:item.name}))} onChange={onChange} />} profilePicker={(value, onChange) => <Dropdown className="servers-profile-select" searchable searchPlaceholder={t('Profil ara')} language={language} value={value} placeholder={t('Profil seç')} options={state.profiles.map(item => ({value:item.id,label:item.name,detail:profileVersionLabel(item)}))} onChange={onChange} />} choicePicker={(value, options, onChange, label, className) => <Dropdown language={language} value={value} options={options} onChange={onChange} placeholder={label} className={className} />} versionPicker={(value, onChange) => <Dropdown className="profile-version-select" searchable showAll language={language} value={value} placeholder={t('Sürüm seç')} options={serverVersionOptions} onChange={onChange} />} /></Suspense></div>}
-        {visited.has('mods') && <div className="retained-page" hidden={page !== 'mods'}><Suspense fallback={<div className="library-empty"><LoaderCircle className="spin" size={28} /></div>}><ModsPage scopedProfileId={isGlobalMods ? undefined : managedProfileId ?? undefined} state={state} versions={versions} language={language} onState={setState} onNotice={notifyCape} onDownloads={() => setPage('downloads')} onPresenceChange={setModsPresence} /></Suspense></div>}
+        {visited.has('mods') && <div className="retained-page" hidden={page !== 'mods'}><Suspense fallback={<div className="library-empty"><LoaderCircle className="spin" size={28} /></div>}><ModsPage requestedSource={isGlobalMods ? undefined : workspaceModsSource} scopedProfileId={isGlobalMods ? undefined : managedProfileId ?? undefined} state={state} versions={versions} language={language} onState={setState} onNotice={notifyCape} onDownloads={() => setPage('downloads')} onPresenceChange={setModsPresence} /></Suspense></div>}
         {visited.has('account') && <div className="retained-page" hidden={page !== 'account'}><div className="content-page account-page">
           <div className="page-heading"><div><h2>{t('Profilim')}</h2><p>{account?.kind === 'offline' ? t('Çevrimdışı oyuncu bilgilerini burada görebilirsin.') : t('Minecraft hesabını ve karakter görünümünü burada görebilirsin.')}</p></div><button className="heading-action primary" onClick={() => setAccountOpen(true)}><UsersRound size={17} /> {t('Hesapları yönet')}</button></div>
           {account ? <SkinPreview key={account.id} account={account} t={t} onNotify={notifyCape} active={page === 'account'} onViewChange={setAccountView} /> : <div className="account-page-empty"><div className="account-page-empty-icon"><UserRound size={34} /></div><h3>{t('Hesap ekle')}</h3><p>{t('Microsoft hesabını bağla veya bir çevrimdışı oyuncu adı seç.')}</p><button className="modal-primary" onClick={() => setAccountOpen(true)}><UsersRound size={18} /> {t('Hesapları yönet')}</button><button className="account-page-offline-add" onClick={() => { setOfflineCreateOpen(true) }}><WifiOff size={17} /> {t('Çevrimdışı hesap ekle')}</button></div>}
@@ -887,7 +900,7 @@ function App() {
         </div></div>}
       </main>
     </div>
-    <div className="statusbar">{!downloadStatus && !instances.length && updates.update.phase !== 'downloading' && activity.kind === 'idle' && state.settings.showPlaytime !== false && state.playSessions?.some(session => session.profileId === footerProfile?.id && session.durationMs > 0) ? <PlaytimeStatus state={inProfileWorkspace ? { ...state, selectedProfileId: managedProfileId } : state} language={language} /> : <span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (updates.update.phase === 'downloading' ? `${t('Güncelleme indiriliyor...')} ${Math.floor(updates.update.percent ?? 0)}%` : activity.kind === 'idle' ? t(instances.length ? 'Oyun çalışıyor' : 'Başlatmaya hazır') : t(activity.label))}</span>}<div className="statusbar-end">{footerProfile && <button type="button" className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${footerProfile.name}`} aria-label={t('Profillerim')} onClick={() => setPage('profiles')}>Minecraft {selectedVersionLabel} · {footerProfile.name}</button>}<div className="statusbar-release"><UpdateIndicator controls={updates} language={language} onOpen={() => setPage('downloads')} /><button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div></div>
+    <div className="statusbar">{!downloadStatus && !instances.length && updates.update.phase !== 'downloading' && activity.kind === 'idle' && profilePlaytime(footerProfile, state.settings, 'showPlaytime') && state.playSessions?.some(session => session.profileId === footerProfile?.id && session.durationMs > 0) ? <PlaytimeStatus state={inProfileWorkspace ? { ...state, selectedProfileId: managedProfileId } : state} language={language} /> : <span className="statusbar-download" title={downloadStatus || undefined}>{downloadStatus || (updates.update.phase === 'downloading' ? `${t('Güncelleme indiriliyor...')} ${Math.floor(updates.update.percent ?? 0)}%` : activity.kind === 'idle' ? t(instances.length ? 'Oyun çalışıyor' : 'Başlatmaya hazır') : t(activity.label))}</span>}<div className="statusbar-end">{footerProfile && <button type="button" className="statusbar-profile" title={`Minecraft ${selectedVersionLabel} · ${footerProfile.name}`} aria-label={t('Profillerim')} onClick={() => setPage('profiles')}>Minecraft {selectedVersionLabel} · {footerProfile.name}</button>}<div className="statusbar-release"><UpdateIndicator controls={updates} language={language} onOpen={() => setPage('downloads')} /><button className="statusbar-changelog" aria-expanded={changelogOpen} aria-label={t('Değişiklik günlüğü')} aria-haspopup="dialog" onClick={()=>setChangelogOpen(true)}><FileText size={13}/>v{packageJson.version}<ChevronUp size={13}/></button></div></div></div>
     {changelogOpen && <Suspense fallback={null}><Changelog language={language} update={updates.update} onCheck={() => updates.action('check')} onUpdate={() => { setChangelogOpen(false); setPage('downloads'); void updates.action('download').catch(() => {}) }} onClose={()=>setChangelogOpen(false)}/></Suspense>}
     {profileMenu && page === 'profiles' && state.profiles.some(item => item.id === profileMenu.id) && <ProfileMenu profile={state.profiles.find(item => item.id === profileMenu.id)!} x={profileMenu.x} y={profileMenu.y} language={language} pending={profileTasks.includes(profileMenu.id) || instances.some(item => item.profileId === profileMenu.id)} onClose={() => setProfileMenu(null)} onAction={action => void profileAction(profileMenu.id, action)} />}
     {coverProfileId && state.profiles.some(item => item.id === coverProfileId) && <ProfileCoverEditor profile={state.profiles.find(item => item.id === coverProfileId)!} language={language} onClose={() => setCoverProfileId(null)} onNotice={notifyCape} onSaved={async cover => { setState(await window.launcher.saveProfileCover(coverProfileId, cover)); notifyCape(t('Profil kapağı güncellendi.')) }} />}

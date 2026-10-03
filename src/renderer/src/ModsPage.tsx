@@ -96,9 +96,10 @@ function ModSelect({ value, options, onChange, label, placeholder, searchable = 
   </div>
 }
 
-export function ModsPage({ state, versions, language, scopedProfileId, onState, onNotice, onDownloads, onPresenceChange }: {
+export function ModsPage({ state, versions, language, scopedProfileId, requestedSource, onState, onNotice, onDownloads, onPresenceChange }: {
   state: LauncherState; versions: GameVersion[]; language: Language
   scopedProfileId?: string
+  requestedSource?: 'custom' | ModProvider
   onState: (state: LauncherState) => void; onNotice: (message: string) => void
   onDownloads: () => void
   onPresenceChange?: (context: LauncherPresenceContext) => void
@@ -201,6 +202,7 @@ export function ModsPage({ state, versions, language, scopedProfileId, onState, 
     setContentType(next === 'technic' ? 'modpack' : 'mod')
     setGameVersion(next === 'technic' ? 'all' : baseVersion(profile?.versionId))
   }
+  useEffect(() => { if (requestedSource) selectSource(requestedSource) }, [requestedSource, scopedProfileId])
   useEffect(() => { setProfileId(state.selectedProfileId ?? state.profiles[0]?.id ?? ''); setInstalled([]) }, [state.selectedAccountId])
   useEffect(() => {
     if (scopedProfileId !== undefined) chooseProfile(scopedProfileId)
