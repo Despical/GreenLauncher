@@ -9,7 +9,7 @@ try {
  assert.equal(await evaluate("[...document.querySelectorAll('.profile-workspace-nav button')].some(b=>b?.textContent.trim()==='Kurulu modlar')"),false)
  for (const [name,kind,first,filename] of [['Modlar','mod','Sodium','Sodium_1.10.0.jar'],['Shader paketleri','shader','Complementary','Complementary_1.10.0.zip'],['Kaynak paketleri','resourcepack','Fresh Animations','FreshAnimations_v1.10.0.zip']]) {
   await nav(name);await until(q('h2')+'?.textContent==='+JSON.stringify(name));await until('document.querySelectorAll('+JSON.stringify(base+' .resource-pack-row')+').length===3')
-  await input(base+' .resource-search input',first);await until('document.querySelectorAll('+JSON.stringify(base+' .resource-pack-row')+').length===1')
+  assert.equal(await evaluate(q('.page-heading button')+'===null'),true,'no top-right refresh control');await input(base+' .resource-search input',first);await until('document.querySelectorAll('+JSON.stringify(base+' .resource-pack-row')+').length===1')
   await click(base+' .resource-enable');await until(q('.resource-enable')+"?.getAttribute('aria-checked')==='false'")
   await click(base+' .resource-check-updates');await until(q('.resource-update-summary')+"?.getAttribute('data-update-status')==='update'")
   assert.equal(await evaluate(q('.resource-update-summary')+"?.textContent.includes('1.0 → 2.0')"),kind==='resourcepack'?false:true)

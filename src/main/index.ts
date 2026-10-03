@@ -35,7 +35,8 @@ import { CustomClients } from './custom-clients'
 import { ProfileServers } from './profile-servers'
 import { ResourcePacks } from './resource-packs'
 import { ProfileContent } from './profile-content'
-import type { ProfileContentKind } from '../shared/types'
+import { ProfileVersions } from './profile-versions'
+import type { ProfileContentKind, ProfileLoader } from '../shared/types'
 import { safePath } from './modpack'
 import { downloadVerified, type FileHashes } from './modrinth-download'
 import { diagnoseError } from '../shared/errors'
@@ -225,6 +226,7 @@ else {
     const profilePackages = new ProfilePackages(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const customClients = new CustomClients(store.minecraftPath, id => game.isInstalled(id) ? Promise.resolve() : game.install(id))
     let installingContent = false
+    const profileVersions = new ProfileVersions(store, game, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId), async profileId => (await profileContent.list(profileId, 'mod')).filter(mod => mod.enabled).length)
     const installContent = async <T>(action: () => Promise<T>): Promise<T> => {
       if (installingContent || modpacks.isInstalling || game.getLaunchState().preparing) throw new Error('Oyun veya başka bir kurulum devam ediyor.')
       installingContent = true
@@ -548,6 +550,11 @@ else {
       changed(result.state)
       return result
     }), undefined, false, content))
+    handle('launcher:configure-profile-version', (profileId: string, minecraftVersion: string, loader?: ProfileLoader, acknowledged?: boolean) => queue(`Minecraft ${minecraftVersion}`, () => installContent(async () => {
+      const result = await profileVersions.configure(profileId, minecraftVersion, loader, acknowledged === true)
+      if (result.status === 'configured') changed(result.state)
+      return result
+    }), profileId))
     handle('launcher:install-mod-loader', (profileId: string, gameVersion: string, loader: ModLoader) => queue(`${loader} · Minecraft ${gameVersion}`, async () => {
       if (installingContent) throw new Error('Başka bir kurulum devam ediyor.')
       const profile = store.get().profiles.find(item => item.id === profileId)

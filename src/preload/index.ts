@@ -103,6 +103,7 @@ const api: LauncherApi = {
   installModpack: (versionId, gameVersion, loader, provider, content) => invoke('install-modpack', versionId, gameVersion, loader, provider, content),
   getInstalledMods: profileId => invoke('get-installed-mods', profileId),
   getProfileMods: profileId => invoke('get-profile-mods', profileId),
+  configureProfileVersion: (profileId, minecraftVersion, loader, acknowledged) => invoke('configure-profile-version', profileId, minecraftVersion, loader, acknowledged),
   installModLoader: (profileId, gameVersion, loader) => invoke('install-mod-loader', profileId, gameVersion, loader),
   openExternal: url => invoke('open-external', url),
   windowAction: action => invoke('window-action', action),

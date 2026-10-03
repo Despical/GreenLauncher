@@ -153,6 +153,8 @@ export interface ServerStatus {
 }
 
 export interface JavaRuntimeInfo { path: string; version: string; majorVersion: number; source: string }
+export type ProfileLoader = 'none' | 'optifine' | ModLoader
+export type ProfileVersionResult = { status: 'configured'; state: LauncherState } | { status: 'confirmation-required'; activeMods: number }
 export type ModLoader = 'neoforge' | 'forge' | 'fabric' | 'quilt' | 'liteloader'
 export type ModProvider = 'modrinth' | 'curseforge' | 'technic'
 export interface ProviderStatus { curseforge: boolean }
@@ -297,6 +299,7 @@ export interface LauncherApi {
   installModpack(versionId: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, content?: DownloadContent): Promise<{ state: LauncherState; profileId: string }>
   getInstalledMods(profileId: string): Promise<InstalledMod[]>
   getProfileMods(profileId: string): Promise<InstalledMod[]>
+  configureProfileVersion(profileId: string, minecraftVersion: string, loader?: ProfileLoader, acknowledged?: boolean): Promise<ProfileVersionResult>
   installModLoader(profileId: string, gameVersion: string, loader: ModLoader): Promise<LauncherState>
   openExternal(url: string): Promise<void>
   windowAction(action: 'minimize' | 'maximize' | 'close'): Promise<void>

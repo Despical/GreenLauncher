@@ -10,11 +10,10 @@ import javaIcon from '../assets/java-original.svg'
 type Tab = 'general' | 'java' | 'window'
 const normalize = (profile: LauncherProfile): LauncherProfile => ({ ...profile, minMemoryMb: profile.minMemoryMb ?? Math.min(1024, profile.memoryMb), jvmArgs: profile.jvmArgs ?? '', fullscreen: profile.fullscreen ?? false, gameDirectory: profile.gameDirectory ?? '', serverAddress: profile.serverAddress ?? '' })
 
-export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccountId, language, isVisible, settings, accounts, choicePicker, versionPicker, onState, onNotice, onOpenGeneral, onBusyChange }: {
+export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccountId, language, isVisible, settings, accounts, choicePicker, onState, onNotice, onOpenGeneral, onBusyChange }: {
   profile: LauncherProfile; selectedProfileId: string | null; selectedAccountId: string | null; language: Language; isVisible: boolean
   settings: LauncherSettings; accounts: GameAccount[]
   choicePicker: (value: string, options: Array<{ value: string; label: string; detail?: string }>, onChange: (value: string) => void, label: string, disabled?: boolean) => ReactNode
-  versionPicker: (draft: LauncherProfile, onChange: (versionId: string) => void) => ReactNode
   onState: (state: LauncherState) => void; onNotice: (message: string) => void
   onOpenGeneral: (tab: 'launcher' | 'java' | 'storage') => void; onBusyChange: (busy: boolean) => void
 }) {
@@ -32,7 +31,7 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
     window.launcher.getWorlds(profile.id).then(items => { if (active) setWorlds(items) }).catch(error => { if (active) setWorldError(t(diagnoseError(error).message)) }).finally(() => { if (active) setWorldLoading(false) })
     return () => { active = false }
   }, [profile.id, profile.gameDirectory, isVisible, language])
-  const draft = drafts[profile.id] ?? normalize(profile)
+  const draft = { ...(drafts[profile.id] ?? normalize(profile)), versionId: profile.versionId, modLoader: profile.modLoader, modLoaderVersion: profile.modLoaderVersion }
   const dirty = JSON.stringify(draft) !== JSON.stringify(normalize(profile))
   useEffect(() => { onBusyChange(saving); return () => onBusyChange(false) }, [saving, onBusyChange])
   const update = (changes: Partial<LauncherProfile>) => setDrafts(current => ({ ...current, [profile.id]: { ...draft, ...changes } }))
@@ -73,7 +72,6 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
       <fieldset className="profile-settings-fields" disabled={saving}>
         {tab === 'general' && <div className="form-grid">
           <label className="full">{t('Profil adı')}<input value={draft.name} maxLength={48} onChange={event => update({ name: event.target.value })} placeholder={t('Örn. Survival')} /></label>
-          <div className="full profile-version-field"><label>{t('Minecraft sürümü')}</label>{versionPicker(draft, versionId => update({ versionId, modLoader: undefined, modLoaderVersion: undefined }))}</div>
           <label className="full profile-game-directory">{t('Oyun klasörü')}<div className="input-with-button"><input value={draft.gameDirectory ?? ''} onChange={event => update({ gameDirectory: event.target.value })} placeholder={t('Profilin varsayılan klasörü')} /><button type="button" title={t('Klasör seç')} onClick={() => void browse('directory')}><FolderOpen size={17} /></button></div></label>
           <section className="full profile-settings-section profile-auto-join">
             {sectionHeading('Otomatik katılım', autoJoin, () => update({ autoJoinEnabled: !autoJoin }))}

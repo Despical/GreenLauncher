@@ -230,6 +230,16 @@ export class LauncherStore {
     return this.save()
   }
 
+  setProfileVersion(id: string, version: Pick<LauncherProfile, 'versionId' | 'modLoader' | 'modLoaderVersion'>): LauncherState {
+    const profile = this.ownedProfile(id)
+    if (!/^[a-zA-Z0-9._-]{1,90}$/.test(version.versionId) || version.modLoaderVersion && !/^[a-zA-Z0-9._-]{1,90}$/.test(version.modLoaderVersion)) throw new Error('Geçersiz sürüm kimliği.')
+    if (version.modLoader && (!['fabric', 'forge', 'neoforge', 'quilt', 'liteloader'].includes(version.modLoader) || !version.modLoaderVersion)) throw new Error('Geçersiz mod yükleyicisi.')
+    if (profile.modpack) throw new Error('Bu mod paketinin sürümü ve yükleyicisi paket tarafından yönetilir.')
+    Object.assign(profile, { versionId: version.versionId, modLoader: version.modLoader, modLoaderVersion: version.modLoaderVersion })
+    if (this.state.selectedProfileId === id) this.state.selectedVersionId = version.modLoaderVersion ?? version.versionId
+    return this.save()
+  }
+
   setModLoader(id: string, gameVersion: string, loader: LauncherProfile['modLoader'], loaderVersion: string): LauncherState {
     const profile = this.ownedProfile(id)
     if (profile.versionId !== gameVersion) throw new Error('Yükleyici profilin Minecraft sürümüyle uyumlu olmalı.')
