@@ -134,7 +134,7 @@ export interface GameLogSnapshot {
   firstSeq: number; nextSeq: number; revision: number; dropped: number
 }
 export interface GameLogChange { profileId: string; instanceId: string }
-export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'resource-packs'
+export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'resource-packs' | 'shader-packs'
 export interface LauncherPresenceContext {
   page: LauncherPage
   section?: string
@@ -156,7 +156,9 @@ export interface JavaRuntimeInfo { path: string; version: string; majorVersion: 
 export type ModLoader = 'neoforge' | 'forge' | 'fabric' | 'quilt' | 'liteloader'
 export type ModProvider = 'modrinth' | 'curseforge' | 'technic'
 export interface ProviderStatus { curseforge: boolean }
-export type ModContentType = 'mod' | 'modpack' | 'resourcepack'
+export type ModContentType = 'mod' | 'modpack' | 'resourcepack' | 'shader'
+export type ProfileContentKind = 'mod' | 'resourcepack' | 'shader'
+export interface ProfileContentUpdate { filename: string; status: 'current' | 'update' | 'incompatible' | 'unknown' | 'error'; compatible?: boolean; latest?: ModVersion; error?: string }
 export type ModSort = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
 export interface ModSearchHit { projectId: string; slug: string; title: string; description: string; author: string; iconUrl: string | null; downloads: number; updated: string; categories: string[] }
 export interface ModFavorite extends ModSearchHit { provider: ModProvider; contentType: ModContentType; savedAt: string }
@@ -283,6 +285,11 @@ export interface LauncherApi {
   searchMods(query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, contentType?: ModContentType, provider?: ModProvider): Promise<ModSearchResult>
   getModProject(id: string, provider?: ModProvider): Promise<ModProject>
   getModVersions(id: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, allGameVersions?: boolean, contentType?: ModContentType): Promise<ModVersion[]>
+  getProfileContent(profileId: string, kind: ProfileContentKind): Promise<InstalledResourcePack[]>
+  setProfileContentEnabled(profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean): Promise<InstalledResourcePack[]>
+  installProfileContent(profileId: string, kind: ProfileContentKind, versionId: string, provider: 'modrinth' | 'curseforge', content?: DownloadContent): Promise<InstalledResourcePack[]>
+  checkProfileContentUpdates(profileId: string, kind: ProfileContentKind): Promise<ProfileContentUpdate[]>
+  updateProfileContent(profileId: string, kind: ProfileContentKind, filename: string, content?: DownloadContent): Promise<InstalledResourcePack[]>
   getResourcePacks(profileId: string): Promise<InstalledResourcePack[]>
   setResourcePackEnabled(profileId: string, filename: string, enabled: boolean): Promise<InstalledResourcePack[]>
   installResourcePack(profileId: string, versionId: string, provider: 'modrinth' | 'curseforge', content?: DownloadContent): Promise<InstalledResourcePack[]>

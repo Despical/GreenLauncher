@@ -58,6 +58,11 @@ for (const path of files) {
       if (node.expression.text === 't') record(node.arguments[0], source)
       if (node.expression.text === 'translate') record(node.arguments[1], source)
     }
+    // Profile content pages translate their shared copy map at render time.
+    if (source.fileName.endsWith('ResourcePacksPage.tsx') && ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === 'copy' && node.initializer) {
+      const inspectCopy = child => { if (ts.isPropertyAssignment(child)) record(child.initializer, source); ts.forEachChild(child, inspectCopy) }
+      inspectCopy(node.initializer)
+    }
     // Release titles and notes are translated through variables at render time.
     if (source.fileName.endsWith('Changelog.tsx') && ts.isPropertyAssignment(node)) {
       const name = propertyName(node.name)

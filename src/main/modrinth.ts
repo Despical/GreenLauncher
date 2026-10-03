@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join, basename, extname } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import type { InstalledMod, ModContentType, ModLoader, ModProject, ModSearchHit, ModSearchResult, ModSort, ModVersion } from '../shared/types'
 import { LauncherStore } from './store'
 import { downloadVerified } from './modrinth-download'
@@ -46,9 +47,9 @@ export class ModrinthService {
     assertLoader(loader)
     if (!validSorts.includes(sort)) throw new Error('Geçersiz sıralama.')
     if (!validCategories.includes(category)) throw new Error('Geçersiz kategori.')
-    if (!['mod', 'modpack', 'resourcepack'].includes(contentType)) throw new Error('Geçersiz içerik türü.')
+    if (!['mod', 'modpack', 'resourcepack', 'shader'].includes(contentType)) throw new Error('Geçersiz içerik türü.')
     const facets = [[`project_type:${contentType}`], [`versions:${gameVersion}`]]
-    if (contentType !== 'resourcepack') facets.push([`categories:${loader}`])
+    if (contentType === 'mod' || contentType === 'modpack') facets.push([`categories:${loader}`])
     if (category !== 'all') facets.push([`categories:${category}`])
     const params = new URLSearchParams({ query: query.trim().slice(0, 100), facets: JSON.stringify(facets), index: sort, offset: String(Math.max(0, Math.min(10000, Math.floor(offset)))), limit: '9' })
     const result = await request<{ hits: Array<{ project_id: string; slug: string; title: string; description: string; author: string; icon_url: string | null; downloads: number; date_modified: string; categories: string[] }>; total_hits: number }>('/search', params)
@@ -68,21 +69,28 @@ export class ModrinthService {
     assertGameVersion(gameVersion)
     assertLoader(loader)
     const params = new URLSearchParams({ include_changelog: 'false' })
-    if (contentType !== 'resourcepack') params.set('loaders', JSON.stringify([loader]))
+    if (contentType === 'mod' || contentType === 'modpack') params.set('loaders', JSON.stringify([loader]))
     if (!allGameVersions) params.set('game_versions', JSON.stringify([gameVersion]))
     const items = await request<ApiVersion[]>(`/project/${id}/version`, params)
     return items.map(visibleVersion)
   }
 
-  async resourcePack(versionId: string, gameVersion: string) {
+  async resourcePack(versionId: string, gameVersion: string, contentType: 'resourcepack' | 'shader' = 'resourcepack') {
     assertId(versionId)
     const version = await request<ApiVersion>(`/version/${versionId}`)
     const project = await this.project(version.project_id)
     if (version.id !== versionId || project.id !== version.project_id) throw new Error('Kaynak paketi dosyası doğrulanamadı.')
-    if (project.projectType !== 'resourcepack' || !version.game_versions.includes(gameVersion)) throw new Error('Kaynak paketi profilin Minecraft sürümüyle uyumlu değil.')
+    if (project.projectType !== contentType || !version.game_versions.includes(gameVersion)) throw new Error('Kaynak paketi profilin Minecraft sürümüyle uyumlu değil.')
     const file = version.files.find(file => file.primary && /\.zip$/i.test(file.filename)) ?? version.files.find(file => /\.zip$/i.test(file.filename))
     if (!file || new URL(file.url).protocol !== 'https:' || new URL(file.url).hostname !== 'cdn.modrinth.com') throw new Error('Kaynak paketi dosyası doğrulanamadı.')
     return { project, version: visibleVersion(version), file }
+  }
+
+  async version(versionId: string) {
+    assertId(versionId)
+    const version = await request<ApiVersion>(`/version/${versionId}`)
+    if (version.id !== versionId) throw new Error('Paket dosyası doğrulanamadı.')
+    return { ...visibleVersion(version), projectId: version.project_id }
   }
 
   private manifestPath(profileId: string): string {
@@ -148,8 +156,7 @@ export class ModrinthService {
       const previous = installed.find(item => item.projectId === version.project_id && (item.provider ?? 'modrinth') === 'modrinth')
       if (previous?.filename !== filename && previous && existsSync(join(modsDir, previous.filename))) {
         // Keep an older version as a disabled backup instead of deleting a user's file.
-        let disabled = join(modsDir, `${previous.filename}.disabled`)
-        if (existsSync(disabled)) disabled = join(modsDir, `${previous.filename}.${Date.now()}.disabled`)
+        const disabled = join(modsDir, `${previous.filename}.${randomUUID()}.disabled`)
         renameSync(join(modsDir, previous.filename), disabled)
       }
       const index = installed.findIndex(item => item.projectId === version.project_id && (item.provider ?? 'modrinth') === 'modrinth')

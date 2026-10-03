@@ -34,6 +34,8 @@ import { ProfilePackages } from './profile-packages'
 import { CustomClients } from './custom-clients'
 import { ProfileServers } from './profile-servers'
 import { ResourcePacks } from './resource-packs'
+import { ProfileContent } from './profile-content'
+import type { ProfileContentKind } from '../shared/types'
 import { safePath } from './modpack'
 import { downloadVerified, type FileHashes } from './modrinth-download'
 import { diagnoseError } from '../shared/errors'
@@ -216,6 +218,8 @@ else {
     const modpacks = new ModpackService(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const curseforge = new CurseForgeService(store)
     const resourcePacks = new ResourcePacks(store, modrinth, curseforge, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId))
+    const shaderPacks = new ResourcePacks(store, modrinth, curseforge, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId), 'shader')
+    const profileContent = new ProfileContent(store, modrinth, curseforge, resourcePacks, shaderPacks, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId))
     const technic = new TechnicService()
     const providerPacks = new ProviderPacks(store, game, curseforge, technic, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const profilePackages = new ProfilePackages(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
@@ -511,6 +515,14 @@ else {
       return details
     })
     handle('launcher:get-mod-versions', (id: string, gameVersion: string, loader: ModLoader, source?:ModProvider, allGameVersions = false, contentType: ModContentType = 'mod') => metadata.get(JSON.stringify(['versions',provider(source),id,gameVersion,loader,allGameVersions === true,contentType]), () => source==='curseforge'?curseforge.versions(id,gameVersion,loader,allGameVersions === true,contentType):source==='technic'?technic.versions(id):modrinth.versions(id, gameVersion, loader,allGameVersions === true,contentType)))
+    handle('launcher:get-profile-content', (profileId: string, kind: ProfileContentKind) => profileContent.list(profileId, kind))
+    handle('launcher:set-profile-content-enabled', (profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean) => {
+      if (installingContent || downloads.pending) throw new Error('Başka bir kurulum devam ediyor.')
+      return profileContent.enable(profileId, kind, filename, enabled === true)
+    })
+    handle('launcher:check-profile-content-updates', (profileId: string, kind: ProfileContentKind) => profileContent.updates(profileId, kind))
+    handle('launcher:install-profile-content', (profileId: string, kind: ProfileContentKind, versionId: string, source: 'modrinth' | 'curseforge', content?: {title:string;iconUrl:string|null}) => queue(content?.title || 'Paket kurulumu', () => installContent(() => profileContent.install(profileId, kind, versionId, source)), profileId, false, content))
+    handle('launcher:update-profile-content', (profileId: string, kind: ProfileContentKind, filename: string, content?: {title:string;iconUrl:string|null}) => queue(content?.title || 'Paket güncellemesi', () => installContent(() => profileContent.update(profileId, kind, filename)), profileId, false, content))
     handle('launcher:get-resource-packs', (profileId: string) => resourcePacks.list(profileId))
     handle('launcher:set-resource-pack-enabled', (profileId: string, filename: string, enabled: boolean) => {
       if (installingContent || downloads.pending) throw new Error('Başka bir kurulum devam ediyor.')
@@ -528,7 +540,7 @@ else {
     })
     handle('launcher:install-mod', (profileId: string, versionId: string, source?:ModProvider, content?: {title:string;iconUrl:string|null}) => queue('Mod kurulumu', () => installContent(() => {
       const selected=provider(source);if(selected==='technic')throw new Error('Technic yalnızca mod paketleri sunar.')
-      return selected==='curseforge'?curseforge.install(profileId,versionId):modrinth.install(profileId, versionId)
+      return profileContent.install(profileId, 'mod', versionId, selected).then(() => modrinth.installed(profileId))
     }), profileId, false, content))
     handle('launcher:install-modpack', (versionId: string, gameVersion: string, loader: ModLoader, source?:ModProvider, content?: {title:string;iconUrl:string|null}) => queue('Mod paketi kurulumu', () => installContent(async () => {
       const selected=provider(source)

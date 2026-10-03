@@ -3,7 +3,7 @@ const { ipcMain } = require('electron')
 const register = ipcMain.handle.bind(ipcMain)
 const requests = []
 ipcMain.handle = (channel, handler) => register(channel, async (event, ...args) => {
-  if (['launcher:get-worlds', 'launcher:get-servers', 'launcher:get-installed-mods', 'launcher:get-screenshots'].includes(channel)) {
+  if (['launcher:get-worlds', 'launcher:get-servers', 'launcher:get-installed-mods', 'launcher:get-profile-content', 'launcher:get-screenshots'].includes(channel)) {
     requests.push({ channel, profileId: args[0] })
   }
   const result = await handler(event, ...args)

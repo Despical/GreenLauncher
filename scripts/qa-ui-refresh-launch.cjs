@@ -149,6 +149,11 @@ handle('qa-server-checks', () => qaServerChecks)
 handle('qa-clear-profiles', () => { state.profiles=[];state.selectedProfileId=null;return changed() })
 handle('import-custom-client', () => { qaCustomImported=true;return {id:'1.8.9-SPECIAL',versions:[...qaVersions(),{id:'1.8.9-SPECIAL',custom:true,type:'release',releaseTime:'2015-12-09',url:'',installed:true,optifineVersions:[]}]} })
 handle('get-profile-mods', profileId => profileId === 'qa-profile-2' ? [] : [{provider:'modrinth',projectId:'qa',title:'Sodium',filename:'sodium-0.6.0.jar',versionNumber:'0.6.0',versionId:'qa'}, {projectId:'',title:'friends-mod',filename:'friends-mod.jar',versionNumber:'',versionId:''}])
+if (!process.argv.includes('--qa-profile-content')) {
+  handle('get-profile-content', (profileId, kind) => kind === 'mod' && profileId !== 'qa-profile-2' ? [{ provider: 'modrinth', projectId: 'qa', title: 'Sodium', filename: 'sodium-0.6.0.jar', versionNumber: '0.6.0', versionId: 'qa', enabled: true, description: '', modifiedAt: '2026-10-03' }, { title: 'friends-mod', filename: 'friends-mod.jar.disabled', enabled: false, description: '', modifiedAt: '2026-10-03' }] : [])
+  handle('check-profile-content-updates', () => [])
+}
+
 let projectRequests = 0
 let presenceContext = null
 handle('set-presence-context', context => { presenceContext = context })

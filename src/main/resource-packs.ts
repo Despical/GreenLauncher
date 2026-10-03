@@ -8,6 +8,7 @@ import type { ModrinthService } from './modrinth'
 import type { CurseForgeService } from './curseforge'
 import { downloadVerified } from './modrinth-download'
 import { diskSpace } from './disk-space'
+import { inspectShaderPack, shaderConfiguration, readShaderSelection, writeShaderSelection } from './shader-packs'
 
 type PackMetadata = { description: string; format?: string; icon?: string }
 type ManagedPack = Pick<InstalledResourcePack, 'filename' | 'title' | 'provider' | 'projectId' | 'versionId' | 'versionNumber' | 'sourceUrl'>
@@ -54,25 +55,28 @@ export async function inspectResourcePack(path: string): Promise<PackMetadata> {
 }
 
 export class ResourcePacks {
-  constructor(private store: LauncherStore, private modrinth: ModrinthService, private curseforge: CurseForgeService, private busy: (profileId: string) => boolean = () => false) {}
+  constructor(private store: LauncherStore, private modrinth: ModrinthService, private curseforge: CurseForgeService, private busy: (profileId: string) => boolean = () => false, private kind: 'resourcepack' | 'shader' = 'resourcepack') {}
   private paths(profileId: string) {
     const profile = this.store.get().profiles.find(profile => profile.id === profileId)
     if (!profile) throw new Error('Profil bulunamadı.')
-    const game = this.store.gamePath(profile), directory = join(game, 'resourcepacks'), options = join(game, 'options.txt'), manifest = join(this.store.profilePath(profileId), 'green-launcher-resourcepacks.json')
+    const game = this.store.gamePath(profile), directory = join(game, this.kind === 'shader' ? 'shaderpacks' : 'resourcepacks'), options = this.kind === 'shader' ? shaderConfiguration(game, /-OptiFine_/i.test(profile.versionId)).path : join(game, 'options.txt'), manifest = join(this.store.profilePath(profileId), this.kind === 'shader' ? 'green-launcher-shaderpacks.json' : 'green-launcher-resourcepacks.json')
     for (const path of [directory, options, manifest]) noLink(path)
     return { profile, directory, options, manifest }
   }
+  private inspect(path: string): Promise<PackMetadata> { return this.kind === 'shader' ? inspectShaderPack(path) : inspectResourcePack(path) }
   private managed(path: string): ManagedPack[] {
     if (!existsSync(path)) return []
     try { const items = JSON.parse(readFileSync(path, 'utf8')); return Array.isArray(items) ? items.filter(item => validName(item?.filename) && ['modrinth', 'curseforge'].includes(item.provider) && typeof item.title === 'string') : [] } catch { return [] }
   }
   private selected(path: string): { text: string; packs: string[] } {
+    if (this.kind === 'shader') return readShaderSelection(path)
     const text = existsSync(path) ? readFileSync(path, 'utf8') : ''
     const raw = text.match(/^resourcePacks:(.*)$/m)?.[1].trim()
     if (raw === undefined) return { text, packs: [] }
     try { const packs = JSON.parse(raw); if (!Array.isArray(packs) || packs.some(pack => typeof pack !== 'string')) throw Error(); return { text, packs } } catch { throw new Error('Kaynak paketi listesi okunamadı.') }
   }
   private writeSelection(path: string, text: string, packs: string[]) {
+    if (this.kind === 'shader') { writeShaderSelection(path, text, packs); return }
     const line = `resourcePacks:${JSON.stringify(packs)}`, newline = text.includes('\r\n') ? '\r\n' : '\n'
     const next = /^resourcePacks:/m.test(text) ? text.replace(/^resourcePacks:[^\r\n]*/m, line) : text + (text && !text.endsWith('\n') ? newline : '') + line + newline
     const temp = `${path}.${randomUUID()}.tmp`
@@ -88,18 +92,22 @@ export class ResourcePacks {
     for (const file of items) {
       const path = join(directory, file.name)
       let info: PackMetadata
-      try { info = await inspectResourcePack(path) } catch { if (file.isDirectory()) continue; info = { description: '' } }
+      try { info = await this.inspect(path) } catch { if (file.isDirectory()) continue; info = { description: '' } }
       result.push({ ...known.get(file.name), filename: file.name, title: known.get(file.name)?.title ?? file.name.replace(/\.zip$/i, ''), ...info, modifiedAt: statSync(path).mtime.toISOString(), enabled: packs.includes(`file/${file.name}`) || packs.includes(`file:${file.name}`) || packs.includes(file.name) })
     }
     return result.sort((a, b) => a.title.localeCompare(b.title))
   }
   async enable(profileId: string, filename: string, enabled: boolean): Promise<InstalledResourcePack[]> {
     if (this.busy(profileId)) throw new Error('Kaynak paketlerini değiştirmek için oyunu kapat.')
-    const { directory, options } = this.paths(profileId)
+    const { profile, directory, options } = this.paths(profileId)
+    if (this.kind === 'shader' && enabled && !shaderConfiguration(this.store.gamePath(profile), /-OptiFine_/i.test(profile.versionId)).engine) throw new Error('Shader paketlerini kullanmak için Iris, Oculus veya OptiFine gerekir.')
     if (!validName(filename) || !existsSync(join(directory, filename))) throw new Error('Kaynak paketi bulunamadı.')
-    await inspectResourcePack(join(directory, filename))
+    await this.inspect(join(directory, filename))
+    if (this.busy(profileId)) throw new Error('Paketleri değiştirmek için oyunu kapat.')
+    const fresh = this.paths(profileId)
+    if (fresh.directory !== directory || fresh.options !== options) throw new Error('Profil ayarları değişti. Tekrar dene.')
     const { text, packs } = this.selected(options)
-    const next = packs.filter(pack => ![filename, `file/${filename}`, `file:${filename}`].includes(pack))
+    const next = this.kind === 'shader' && enabled ? [] : packs.filter(pack => ![filename, `file/${filename}`, `file:${filename}`].includes(pack))
     if (enabled) next.push(`file/${filename}`)
     this.writeSelection(options, text, next)
     return this.list(profileId)
@@ -111,13 +119,13 @@ export class ResourcePacks {
     const gameVersion = profile.versionId.split(/-OptiFine_/i)[0]
     let record: ManagedPack, original: string, download: (path: string) => Promise<void>
     if (provider === 'modrinth') {
-      const plan = await this.modrinth.resourcePack(versionId, gameVersion)
+      const plan = await this.modrinth.resourcePack(versionId, gameVersion, this.kind)
       original = plan.file.filename
       record = { filename: '', title: plan.project.title, provider, projectId: plan.project.id, versionId: plan.version.id, versionNumber: plan.version.versionNumber, sourceUrl: plan.project.sourceUrl ?? undefined }
       download = path => downloadVerified([plan.file.url], plan.file.hashes, path, join(this.store.dataPath, 'cache', 'modrinth-files'))
     } else {
       const file = await this.curseforge.file(versionId)
-      if (await this.curseforge.destination(String(file.modId)) !== 'resourcepacks' || !file.gameVersions.includes(gameVersion)) throw new Error('Kaynak paketi profilin Minecraft sürümüyle uyumlu değil.')
+      if (await this.curseforge.destination(String(file.modId)) !== (this.kind === 'shader' ? 'shaderpacks' : 'resourcepacks') || !file.gameVersions.includes(gameVersion)) throw new Error('Kaynak paketi profilin Minecraft sürümüyle uyumlu değil.')
       const project = await this.curseforge.project(String(file.modId))
       original = file.fileName
       record = { filename: '', title: project.title, provider, projectId: project.id, versionId, versionNumber: file.displayName, sourceUrl: project.sourceUrl ?? undefined }
@@ -126,12 +134,13 @@ export class ResourcePacks {
     if (!validName(original) || !/\.zip$/i.test(original)) throw new Error('Kaynak paketi dosyası doğrulanamadı.')
     record.filename = `${provider}-${record.projectId}-${versionId.replace(/:/g, '-')}-${original.replace(/[^a-zA-Z0-9._+() -]/g, '_').slice(0, 120)}`
     if (!validName(record.filename)) throw new Error('Kaynak paketi dosyası doğrulanamadı.')
-    const staging = join(this.store.dataPath, 'cache', 'resourcepacks'); mkdirSync(staging, { recursive: true })
+    const staging = join(this.store.dataPath, 'cache', this.kind === 'shader' ? 'shaderpacks' : 'resourcepacks'); mkdirSync(staging, { recursive: true })
     const archive = join(staging, `${randomUUID()}.zip`)
-    await download(archive); await inspectResourcePack(archive)
+    await download(archive); await this.inspect(archive)
     if (this.busy(profileId)) throw new Error('Kaynak paketlerini değiştirmek için oyunu kapat.')
     // Revalidate after asynchronous requests. Game options are read at commit time.
-    this.paths(profileId)
+    const fresh = this.paths(profileId)
+    if (fresh.directory !== directory || fresh.options !== options || fresh.profile.versionId.split(/-OptiFine_/i)[0] !== gameVersion) throw new Error('Profil ayarları değişti. Tekrar dene.')
     const selected = this.selected(options), managed = this.managed(manifest)
     const previous = managed.find(pack => pack.provider === provider && pack.projectId === record.projectId)
     mkdirSync(directory, { recursive: true })

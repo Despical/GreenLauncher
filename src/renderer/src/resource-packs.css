@@ -14,6 +14,16 @@
 .resource-mode-bar > span { color: #8b949e; font-size: 13px; }
 .resource-mode-bar .mods-type-tabs span { margin-left: 6px; color: #8b949e; }
 .resource-search { margin-bottom: 16px; max-width: 480px; }
+.resource-installed-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.resource-installed-toolbar .resource-search { flex: 1; margin: 0; }
+.resource-check-updates { margin-left: auto; flex: none; }
+.resource-update-summary { border-top: 1px solid #30363d; padding-top: 16px; margin: 20px 0; color: #8b949e; font-size: 12px; }
+.resource-update-summary strong { font-weight: 500; }
+.resource-update-summary p { margin: 10px 0; font-size: 12px; }
+.resource-update-summary small { display: block; overflow-wrap: anywhere; }
+.resource-update-summary[data-update-status=update] > strong, .resource-update-indicator { color: #d2b36f; }
+.resource-update-summary[data-update-status=incompatible] > strong, .resource-update-summary[data-update-status=error] > strong { color: #f0887e; }
+.resource-update-button { width: 100%; justify-content: center; margin-top: 14px; }
 .resource-installed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 20px; }
 .resource-installed-list, .resource-installed-detail { border: 1px solid #30363d; border-radius: 8px; background: #161b22; min-width: 0; }
 .resource-installed-list { overflow: hidden; min-height: 340px; }
