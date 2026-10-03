@@ -1,6 +1,7 @@
 import { diskSpace } from './disk-space'
 import { WorldService } from './worlds'
-import { BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
+import { cpus, freemem, totalmem, platform, release, arch } from 'node:os'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, relative, sep } from 'node:path'
@@ -43,9 +44,11 @@ import type { GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherProfile, M
 import { AccountService } from './auth'
 import { LauncherStore } from './store'
 import { PlaytimeTracker } from './playtime'
-import { permGenArgument, profileJoinTarget, profileMemory } from '../shared/profile-settings'
+import { permGenArgument, profileJoinTarget, profileMemory, shouldOpenGameConsole } from '../shared/profile-settings'
 import { getDownloadManager } from './download-manager'
 import { GameConsole } from './game-console'
+import { gameConsoleHeader } from './game-console-header'
+import { translate } from '../renderer/src/i18n'
 import type { GameLogChange } from '../shared/types'
 
 const versionIdPattern = /^[a-zA-Z0-9._-]{1,90}$/
@@ -78,7 +81,8 @@ export class GameService {
     private readonly emitInstances: (instances: RunningInstance[]) => void = () => {},
     onPlaytimeChanged: () => void = () => {},
     private readonly quitLauncher: () => void = () => {},
-    onGameLogChanged: (change: GameLogChange) => void = () => {}
+    onGameLogChanged: (change: GameLogChange) => void = () => {},
+    private readonly onConsoleRequested: (target: { profileId: string; instanceId: string }) => void = () => {}
   ) {
     this.console = new GameConsole(onGameLogChanged)
     this.playtime = new PlaytimeTracker(session => {
@@ -619,11 +623,21 @@ export class GameService {
         await runtime.download(missing(await resolveAssetObjectInstallFiles(version, resourceFolder)))
       }
       const javaPath = await this.findJava(imported ? await customJavaVersion(version, resourceFolder) : version, profile, !!imported)
-      const javaInfo = profile.memoryOverride !== false ? await resolveJava(javaPath) : undefined
+      const javaInfo = await resolveJava(javaPath)
       this.status({ kind: 'launching', label: 'Oyun başlatılıyor', detail: `${profile.name} · ${versionId}`, profileId: profile.id, progress: 95 })
       const gamePath = profileId === null ? join(this.store.dataPath, 'standalone', versionId) : this.store.gamePath(profile)
       mkdirSync(gamePath, { recursive: true })
       if (serverAddress && serverPreference) saveMinecraftServerPreference(gamePath, serverAddress, serverPreference)
+      let gpu: string[] = []
+      try {
+        if (app.getGPUInfo) {
+          const info = await Promise.race([app.getGPUInfo('basic'), new Promise<null>(resolve => { const timer = setTimeout(() => resolve(null), 500); timer.unref?.() })])
+          const devices = (info as { gpuDevice?: Array<{ deviceString?: string }> } | null)?.gpuDevice ?? []
+          gpu = devices.flatMap(device => device.deviceString ? [device.deviceString] : [])
+        }
+      } catch { /* Optional diagnostics must not prevent a game launch. */ }
+      const memory = profileMemory(profile, state.settings)
+      const extraJVMArgs = [...(profile.jvmArgs?.trim() ? parseJvmArgs(profile.jvmArgs) : []), ...permGenArgument(profile, javaInfo?.majorVersion)]
       const process = await launch({
         version,
         javaPath,
@@ -635,10 +649,10 @@ export class GameService {
         userType: offlineAccount ? 'legacy' : undefined,
         launcherName: 'Green Launcher',
         launcherBrand: 'GreenLauncher',
-        ...profileMemory(profile, state.settings),
+        ...memory,
         resolution: { width: profile.width, height: profile.height, fullscreen: profile.fullscreen === true },
         ...(worldId !== undefined ? { quickPlaySingleplayer: worldId } : serverLaunchOptions(version.minecraftVersion || profile.versionId, serverAddress)),
-        extraJVMArgs: [...(profile.jvmArgs?.trim() ? parseJvmArgs(profile.jvmArgs) : []), ...permGenArgument(profile, javaInfo?.majorVersion)],
+        extraJVMArgs,
         extraExecOption: { detached: false, windowsHide: true }
       })
       if (!process.pid) throw new Error('Oyun işlemi başlatılamadı.')
@@ -646,19 +660,33 @@ export class GameService {
       const id = randomUUID()
       this.sessions.set(id, { id, pid: process.pid, profileId: profile.id, profileName: profile.name, accountId: account.id, accountName: account.name, versionId, loader: /optifine/i.test(versionId) ? 'optifine' : versionId === profile.modLoaderVersion ? profile.modLoader : undefined, startedAt: new Date().toISOString() })
       this.console.begin(this.sessions.get(id)!, accessToken ? [accessToken] : [])
+      let mods: string[] = []
+      try { mods = readdirSync(join(gamePath, 'mods')).filter(name => /\.jar(?:\.disabled)?$/i.test(name)).sort().map(name => `${name.endsWith('.disabled') ? '[-]' : '[+]'} ${name}`) } catch { /* A vanilla profile has no mods directory. */ }
+      for (const line of gameConsoleHeader({ launcherVersion: app.getVersion?.() ?? '', profile: profile.name, mode: offlineAccount ? 'offline' : 'microsoft', gamePath, javaPath, javaVersion: javaInfo?.version ?? String(javaInfo?.majorVersion ?? ''), os: `${platform()} ${release()} (${arch()})`, cpu: cpus()[0]?.model.trim() ?? '', totalMemoryMb: Math.round(totalmem() / 1024 ** 2), availableMemoryMb: Math.round(freemem() / 1024 ** 2), gpu, minecraftVersion: version.minecraftVersion || profile.versionId, loader: profile.modLoader ? `${profile.modLoader} · ${versionId}` : undefined, mainClass: version.mainClass, libraries: (version.libraries ?? []).map(library => library.name), mods, width: profile.width, height: profile.height, fullscreen: profile.fullscreen === true, javaArguments: [`-Xms${memory.minMemory}m`, `-Xmx${memory.maxMemory}m`, ...extraJVMArgs], pid: process.pid }, state.settings.language)) this.console.append(id, line, 'launcher')
       this.console.attach(id, process.stdout, 'info')
       this.console.attach(id, process.stderr, 'error')
-      process.once('close', () => this.console.finish(id))
+      process.once('close', (code, signal) => {
+        this.console.append(id, translate(state.settings.language, signal ? 'İşlem {signal} sinyaliyle sonlandı.' : 'İşlem {code} çıkış koduyla sonlandı.', signal ? { signal } : { code: code ?? translate(state.settings.language, 'Bilinmiyor') }), 'launcher')
+        this.console.finish(id)
+      })
       if (profileId !== null) this.store.markPlayed(profile.id, versionId)
       if (profileId !== null) this.playtime.start(this.sessions.get(id)!)
       this.emitInstances(this.getRunningInstances())
       this.status({ kind: 'playing', label: 'Oyun çalışıyor', detail: `${profile.name} · ${versionId}`, profileId: profile.id, progress: 100 })
-      if (profile.hideLauncher === true) { this.hiddenForGames = true; this.window()?.hide() }
-      else if (profile.hideLauncher === undefined && state.settings.closeOnLaunch) this.window()?.minimize()
-      const finish = (error?: string) => {
+      const openConsole = (reason: 'launch' | 'crash') => {
+        if (!shouldOpenGameConsole(profile, reason) || profileId === null) return false
+        this.onConsoleRequested({ profileId: profile.id, instanceId: id })
+        this.window()?.show(); this.window()?.focus?.()
+        return true
+      }
+      const consoleShown = openConsole('launch')
+      if (!consoleShown && profile.hideLauncher === true) { this.hiddenForGames = true; this.window()?.hide() }
+      else if (!consoleShown && profile.hideLauncher === undefined && state.settings.closeOnLaunch) this.window()?.minimize()
+      const finish = (error?: string, consoleOpened = false) => {
         if (!this.sessions.delete(id)) return
         this.playtime.finish(id)
-        if (profile.quitOnGameExit) this.quitWhenGamesClose = true
+        if (consoleOpened) this.quitWhenGamesClose = false
+        else if (profile.quitOnGameExit) this.quitWhenGamesClose = true
         this.emitInstances(this.getRunningInstances())
         if (this.busy) return
         const remaining = this.getRunningInstances()[0]
@@ -667,8 +695,8 @@ export class GameService {
           : { kind: 'idle', label: 'Hazır' })
         this.finishWindowLifecycle()
       }
-      process.once('exit', code => finish(code === 0 ? undefined : `Çıkış kodu: ${code ?? 'bilinmiyor'}`))
-      process.once('error', error => finish(message(error)))
+      process.once('exit', code => finish(code === 0 ? undefined : `Çıkış kodu: ${code ?? 'bilinmiyor'}`, code !== 0 && openConsole('crash')))
+      process.once('error', error => finish(message(error), openConsole('crash')))
       return { status: 'started' }
 
     } catch (error) {

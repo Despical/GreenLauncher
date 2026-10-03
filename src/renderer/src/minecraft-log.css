@@ -7,10 +7,6 @@
 .minecraft-log-toolbar, .minecraft-log-footer { flex: none; }
 .minecraft-log-options { flex-wrap: wrap; gap: 18px; }
 .minecraft-log-check { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; color: #c9d1d9; font: 500 13px 'Inter Variable', 'Segoe UI', sans-serif; }
-.minecraft-log-check .profile-checkbox { width: 18px; height: 18px; border-radius: 4px; transition: background-color .15s ease, border-color .15s ease; }
-.minecraft-log-check[aria-checked=true] .profile-checkbox { background: #238636; border-color: #2ea043; color: #fff; }
-.minecraft-log-check:hover .profile-checkbox { border-color: #8b949e; }
-.minecraft-log-check[aria-checked=true]:hover .profile-checkbox { background: #2ea043; border-color: #3fb950; }
 .minecraft-log-actions { flex-wrap: wrap; gap: 8px; }
 .minecraft-log-actions button, .minecraft-log-search button, .minecraft-log-error button { display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; font: 600 13px 'Inter Variable', 'Segoe UI', sans-serif; white-space: nowrap; }
 .minecraft-log-actions button:hover:not(:disabled), .minecraft-log-search button:hover:not(:disabled), .minecraft-log-error button:hover { border-color: #484f58; background: #30363d; }
@@ -49,3 +45,5 @@
 .minecraft-log-limit { margin: 12px 0 0; color: #8b949e; font-size: 12px; }
 .minecraft-log-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: #f08080; font-size: 13px; }
 .minecraft-log-search input:focus-visible { outline: none; }
+
+.minecraft-console.colored .level-launcher .minecraft-line-text { color: #de8be7; }

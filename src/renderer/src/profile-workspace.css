@@ -43,8 +43,6 @@
 .profile-settings-panel .dropdown-trigger:disabled .dropdown-copy strong { color: #6e7681; }
 .profile-setting-check, .profile-setting-radio { display: flex; align-items: center; gap: 10px; border: 0; padding: 4px 0; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 500; text-align: left; }
 .profile-setting-check:focus-visible, .profile-setting-radio:focus-visible { outline: 1px solid #8397a7; outline-offset: 4px; border-radius: 3px; }
-.profile-checkbox { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #6e7681; border-radius: 3px; background: #0d1117; flex: none; }
-.profile-setting-check[aria-checked=true] .profile-checkbox { background: #334451; border-color: #8397a7; }
 .profile-setting-options { display: flex; flex-direction: column; gap: 13px; }
 .profile-settings-fields:disabled .profile-setting-check, .profile-settings-fields:disabled .profile-setting-radio { opacity: .5; }
 .profile-auto-join-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 14px; }
@@ -64,3 +62,8 @@
 .profile-window-options .setting-toggle small { line-height: 1.5; }
 .profile-jvm-args textarea { display: block; width: 100%; height: 84px; margin-top: 9px; padding: 10px 12px; resize: none; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #e6edf3; font: 14px/20px 'Inter Variable', 'Segoe UI', sans-serif; }
 .profile-jvm-args textarea:focus { outline: none; border-color: #8397a7; }
+
+.profile-setting-options .setting-toggle + .setting-toggle { border-top: 0; }
+.profile-setting-options .setting-toggle { padding: 8px 0; }
+.profile-setting-options .setting-toggle > span:first-child { min-width: 0; }
+.profile-window-divider { margin: 4px 0 0; }

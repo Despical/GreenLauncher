@@ -1,5 +1,9 @@
 import type { LauncherProfile, LauncherSettings } from './types'
 
+export function shouldOpenGameConsole(profile: LauncherProfile, reason: 'launch' | 'crash'): boolean {
+  return profile.consoleEnabled === true && (reason === 'launch' ? profile.showConsoleOnLaunch !== false : profile.showConsoleOnCrash !== false)
+}
+
 export function profileJoinTarget(profile?: LauncherProfile, serverAddress?: string, worldId?: string): { serverAddress?: string; worldId?: string } {
   if (serverAddress !== undefined || worldId !== undefined) return { serverAddress, worldId }
   if (!profile || profile.autoJoinEnabled === false) return {}

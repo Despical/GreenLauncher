@@ -32,6 +32,9 @@ export interface LauncherProfile {
   permGenMb?: number
   hideLauncher?: boolean
   quitOnGameExit?: boolean
+  consoleEnabled?: boolean
+  showConsoleOnLaunch?: boolean
+  showConsoleOnCrash?: boolean
   playtimeOverride?: boolean
   showPlaytime?: boolean
   savePlaytime?: boolean
@@ -123,7 +126,7 @@ export interface RunningInstance {
   startedAt: string
 }
 export type LaunchResult = { status: 'started' } | { status: 'confirmation-required'; instances: RunningInstance[] }
-export type GameLogLevel = 'info' | 'warn' | 'error' | 'debug'
+export type GameLogLevel = 'info' | 'warn' | 'error' | 'debug' | 'launcher'
 export interface GameLogLine { seq: number; text: string; level: GameLogLevel }
 export interface GameLogSession { instance: RunningInstance; running: boolean }
 export interface GameLogSnapshot {
@@ -180,6 +183,7 @@ export interface LauncherEvents {
   skinUpdated: { accountId: string; skin: string | null }
   instances: RunningInstance[]
   gameLog: GameLogChange
+  consoleRequest: { profileId: string; instanceId: string }
   navigate: LauncherPage
   launchRequest: LaunchRequest
   activity: LauncherActivity

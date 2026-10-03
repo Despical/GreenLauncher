@@ -1,6 +1,7 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/space-grotesk';
 @import './accounts.css';
+@import './checkbox.css';
 
 :root {
   font-family: 'Inter Variable', 'Segoe UI', sans-serif;

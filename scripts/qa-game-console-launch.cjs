@@ -19,6 +19,9 @@ ipcMain.handle=(channel,handler)=>register(channel,async(event,...args)=>{
     const {qaGameLog:control,...settings}=args[0];args[0]=settings
     if(control.start)start(control.start,control.profileId,control.pid)
     if(control.append){let level='info';for(const line of control.append)level=logs.append(control.id??'log-second',line,level)}
+    if(control.launcher)for(const line of control.launcher)logs.append(control.id??'log-second',line,'launcher')
+    if(control.stream){const stream=new (require('node:stream').PassThrough)();logs.attach(control.id??'log-second',stream,'info');stream.end(control.stream)}
+    if(control.consoleRequest)send('consoleRequest',control.consoleRequest)
     if(control.finish){logs.finish(control.finish);sessions.delete(control.finish);send('instances',[...sessions.values()])}
     if(control.failUpload!==undefined)failUpload=control.failUpload
     if(control.failRead!==undefined)failRead=control.failRead

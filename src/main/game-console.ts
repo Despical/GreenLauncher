@@ -5,6 +5,28 @@ import type { GameLogChange, GameLogLevel, GameLogLine, GameLogSession, GameLogS
 const maxLines = 10_000, maxBytes = 8 * 1024 * 1024, maxLineLength = 16_384
 type Session = GameLogSession & { lines: GameLogLine[]; bytes: number; nextSeq: number; revision: number; dropped: number; secrets: string[] }
 
+function xmlText(value: string): string {
+  return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>|&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (original, cdata: string | undefined, entity: string) => {
+    if (cdata !== undefined) return cdata
+    const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
+    if (named[entity]) return named[entity]
+    const code = entity.startsWith('#x') ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10)
+    return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : original
+  })
+}
+
+/** Decode Minecraft's Log4j XML output without altering plain-text logs. */
+export function formatMinecraftLogEvent(event: string): string {
+  const opening = event.match(/^<(?:log4j:)?Event\b([^>]*)>/)?.[1] ?? ''
+  const attribute = (name: string) => xmlText(opening.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`))?.[1] ?? '')
+  const timestamp = Number(attribute('timestamp') || attribute('timeMillis'))
+  const time = new Date(Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now()).toLocaleTimeString('en-GB', { hour12: false })
+  const message = event.match(/<(?:log4j:)?Message\b[^>]*>([\s\S]*?)<\/(?:log4j:)?Message>/)?.[1] ?? ''
+  const throwable = event.match(/<(?:log4j:)?Throwable\b[^>]*>([\s\S]*?)<\/(?:log4j:)?Throwable>/)?.[1]
+  const text = xmlText(message)
+  return `[${time}] [${attribute('thread') || 'main'}/${attribute('level') || 'INFO'}]: ${text}${throwable ? '\n' + xmlText(throwable) : ''}`
+}
+
 export function redactGameLog(text: string, secrets: string[] = []): string {
   for (const secret of secrets) if (secret) text = text.split(secret).join('[redacted]')
   return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
@@ -55,7 +77,7 @@ export class GameConsole {
   append(id: string, raw: string, fallback: GameLogLevel = 'info'): GameLogLevel {
     const session = this.sessions.get(id)
     if (!session) return fallback
-    const text = redactGameLog(raw, session.secrets).slice(0, maxLineLength), level = gameLogLevel(text, fallback)
+    const text = redactGameLog(raw, session.secrets).slice(0, maxLineLength), level = fallback === 'launcher' ? 'launcher' : gameLogLevel(text, fallback)
     session.lines.push({ seq: session.nextSeq++, text, level }); session.bytes += Buffer.byteLength(text); session.revision++
     while (session.lines.length > maxLines || session.bytes > maxBytes) {
       session.bytes -= Buffer.byteLength(session.lines.shift()!.text); session.dropped++
@@ -68,9 +90,24 @@ export class GameConsole {
     let pending = '', level = fallback, ended = false
     const consume = (text: string, final = false) => {
       pending += text
-      let end: number
-      while ((end = pending.indexOf('\n')) >= 0) { level = this.append(id, pending.slice(0, end).replace(/\r$/, ''), level); pending = pending.slice(end + 1) }
-      if (pending.length > 65_536 || (final && pending)) { level = this.append(id, pending.replace(/\r$/, ''), level); pending = '' }
+      while (pending) {
+        const start = pending.search(/<(?:log4j:)?Event\b/), newline = pending.indexOf('\n')
+        if (start >= 0 && (newline < 0 || start <= newline)) {
+          if (start > 0) { level = this.append(id, pending.slice(0, start).replace(/\r$/, ''), level); pending = pending.slice(start) }
+          // Ignore closing-tag text inside CDATA messages, even across chunks.
+          const closing = [...pending.matchAll(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<\/(?:log4j:)?Event>/g)].find(match => match[0].startsWith('</'))
+          if (!closing) break
+          const end = closing.index + closing[0].length
+          for (const line of formatMinecraftLogEvent(pending.slice(0, end)).split(/\r?\n/)) level = this.append(id, line, level)
+          pending = pending.slice(end).replace(/^\r?\n/, '')
+        } else if (newline >= 0) {
+          const line = pending.slice(0, newline).replace(/\r$/, '')
+          if (!/^\s*(?:<\?xml\b.*\?>|<\/?Events\b[^>]*>)\s*$/.test(line)) level = this.append(id, line, level)
+          pending = pending.slice(newline + 1)
+        } else break
+      }
+      const limit = /<(?:log4j:)?Event\b/.test(pending) ? 1024 * 1024 : 65_536
+      if (pending.length > limit || (final && pending)) { level = this.append(id, pending.replace(/\r$/, ''), level); pending = '' }
     }
     const finish = () => { if (ended) return; ended = true; consume(decoder.end(), true) }
     stream.on('data', (chunk: Buffer | string) => consume(typeof chunk === 'string' ? chunk : decoder.write(chunk)))

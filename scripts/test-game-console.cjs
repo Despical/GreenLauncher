@@ -2,7 +2,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), vm = requ
 const { PassThrough } = require('node:stream'), { once } = require('node:events')
 const mod = { exports: {} }
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/game-console.ts','utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,require,structuredClone,Buffer,AbortSignal,setTimeout,clearTimeout,fetch:()=>{throw Error('Unexpected live request')}})
-const {GameConsole,uploadMinecraftLog,gameLogLevel,redactGameLog} = mod.exports
+const {GameConsole,uploadMinecraftLog,gameLogLevel,redactGameLog,formatMinecraftLogEvent} = mod.exports
 const wait = ms => new Promise(resolve=>setTimeout(resolve,ms))
 const instance = (id,profileId='profile-a') => ({id,profileId,pid:100,profileName:profileId,accountId:'fixture',accountName:'Fixture',versionId:'1.21.1',startedAt:new Date().toISOString()})
 const changes=[], logs = new GameConsole(change=>changes.push(change))
@@ -34,6 +34,20 @@ const changes=[], logs = new GameConsole(change=>changes.push(change))
   assert.equal(sampleLogs.content('profile-a','sample'),sample,'preserve raw Minecraft format including multiline exceptions')
   assert.equal(sampleLogs.snapshot('profile-a','sample').lines.map(line=>line.level).join(','),'info,warn,info,error,error')
   assert.equal(gameLogLevel('[17:07:33] [Render thread/INFO]: WARN: error: message mentions other levels'),'info')
+  const xmlLogs = new GameConsole(), xmlStream = new PassThrough(), timestamp = new Date(2026,9,3,17,7,33).getTime()
+  xmlLogs.begin(instance('xml'),['xml-private-token']);xmlLogs.attach('xml',xmlStream,'info')
+  const event = `<log4j:Event logger="fixture" timestamp="${timestamp}" level="ERROR" thread="Download-2">\n<log4j:Message><![CDATA[Couldn't connect to realms & </log4j:Event> xml-private-token]]></log4j:Message>\n<log4j:Throwable><![CDATA[com.fixture.Exception: test\n    at fixture.method(Fixture.java:1)]]></log4j:Throwable>\n</log4j:Event>`
+  const following = `<Event timeMillis="${timestamp+1000}" level="INFO" thread="Render thread"><Message>SDL &amp; natives &lt;ready&gt;</Message></Event>`
+  const combined = '[17:07:32] [main/INFO]: Plain before XML\n'+event+'\n'+following+'\n[17:07:35] [main/WARN]: Plain after XML\n'
+  for(let offset=0;offset<combined.length;offset+=11)xmlStream.write(combined.slice(offset,offset+11))
+  xmlStream.end();await once(xmlStream,'end')
+  const xmlSnapshot = xmlLogs.snapshot('profile-a','xml')
+  assert.equal(xmlSnapshot.lines.length,6);assert.equal(xmlSnapshot.lines.map(line=>line.level).join(','),'info,error,error,error,info,warn')
+  assert.equal(xmlSnapshot.lines[1].text,"[17:07:33] [Download-2/ERROR]: Couldn't connect to realms & </log4j:Event> [redacted]")
+  assert.equal(xmlSnapshot.lines[3].text,'    at fixture.method(Fixture.java:1)')
+  assert.equal(xmlSnapshot.lines[4].text,'[17:07:34] [Render thread/INFO]: SDL & natives <ready>')
+  assert.equal(formatMinecraftLogEvent(`<Event timeMillis="${timestamp}" level="INFO" thread="Render thread"><Message><![CDATA[&amp; stays literal]]></Message></Event>`),'[17:07:33] [Render thread/INFO]: &amp; stays literal')
+  xmlLogs.append('xml','Process exited with code 0.','launcher');assert.equal(xmlLogs.snapshot('profile-a','xml').lines.at(-1).level,'launcher')
   assert.ok(!redactGameLog('{"accessToken": "fixture-secret", "password": "private-password"}').includes('fixture-secret'))
   assert.ok(!redactGameLog('Authorization: Bearer private-bearer').includes('private-bearer'))
   logs.begin(instance('b','profile-b'));logs.append('b','profile B only')

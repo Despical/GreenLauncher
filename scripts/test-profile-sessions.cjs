@@ -63,7 +63,7 @@ unowned.createOfflineAccount('FirstOwner')
 check('first added account claims unowned legacy profiles',()=>assert.equal(unowned.get().profiles.length,2))
 directory=root
 
-const children=[], options=[], activities=[], updates=[]
+const children=[], options=[], activities=[], updates=[], consoleRequests=[]
 let launchMode='real', releaseGate, javaMajor=21
 const core = require('@xmcl/core')
 const {GameService}=load('src/main/game.ts',{'@xmcl/installer':{...require('@xmcl/installer'),resolveJava:async()=>({majorVersion:javaMajor})},'@xmcl/core':{...core,Version:{parse:async(_,id)=>({id,minecraftVersion:id.split('-')[0]})},launch:async opts=>{
@@ -72,12 +72,12 @@ const {GameService}=load('src/main/game.ts',{'@xmcl/installer':{...require('@xmc
   if(launchMode==='exited') return Object.assign(new EventEmitter(),{pid:12345,exitCode:1,signalCode:null})
   if(launchMode==='gate') await new Promise(resolve=>{releaseGate=resolve})
   const floodMarker=path.join(root,'startup-after-heavy-output.txt')
-  const code=launchMode==='flood' ? "let left=2;const done=()=>{if(--left===0)require('node:fs').writeFileSync(process.argv[1],'startup completed')};process.stdout.write(Buffer.alloc(2*1024*1024,65),done);process.stderr.write(Buffer.alloc(2*1024*1024,66),done);setInterval(()=>{},1000)" : 'setInterval(()=>{},1000)'
+  const code=launchMode==='flood' ? "let left=2;const done=()=>{if(--left===0)require('node:fs').writeFileSync(process.argv[1],'startup completed')};process.stdout.write(Buffer.alloc(2*1024*1024,65),done);process.stderr.write(Buffer.alloc(2*1024*1024,66),done);setInterval(()=>{},1000)" : launchMode==='code-0'||launchMode==='code-7' ? `setTimeout(()=>process.exit(${launchMode==='code-0'?0:7}),200)` : 'setInterval(()=>{},1000)'
   const child=spawn(process.execPath,['-e',code,floodMarker],{windowsHide:true,stdio:launchMode==='flood'?'pipe':'ignore'})
   children.push(child); await once(child,'spawn'); return child
 }}})
 let hidden=0, shown=0, quit=0
-const game = new GameService(store,{},()=>({hide:()=>hidden++,show:()=>shown++,minimize:()=>{}}),activity=>activities.push(activity),sessions=>updates.push(sessions),()=>{},()=>quit++)
+const game = new GameService(store,{},()=>({hide:()=>hidden++,show:()=>shown++,minimize:()=>{}}),activity=>activities.push(activity),sessions=>updates.push(sessions),()=>{},()=>quit++,()=>{},target=>consoleRequests.push(target))
 game.installedVersion=()=>({folder:{root}})
 game.findJava=async()=>process.execPath
 const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
@@ -216,6 +216,20 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   await stop(children.at(-1));javaMajor=21
   edit({autoJoinEnabled:true,autoJoinMode:'server',serverAddress:'localhost:25567'})
   await game.play(b);check('enabled automatic server target reaches Quick Play',()=>assert.equal(options.at(-1).quickPlayMultiplayer,'localhost:25567'));await stop(children.at(-1))
+  edit({autoJoinEnabled:false,accountOverride:false,consoleEnabled:true,showConsoleOnLaunch:true,showConsoleOnCrash:false,hideLauncher:true,quitOnGameExit:false})
+  const previousHidden=hidden
+  await game.play(b)
+  check('enabled launch console targets the actual profile and process and takes priority over hide',()=>{assert.equal(consoleRequests.at(-1).profileId,b);assert.equal(consoleRequests.at(-1).instanceId,game.getRunningInstances()[0].id);assert.equal(hidden,previousHidden);assert.ok(game.console.snapshot(b).lines.some(line=>line.level==='launcher'&&line.text.startsWith('Green Launcher')))})
+  await stop(children.at(-1))
+  edit({showConsoleOnLaunch:false,showConsoleOnCrash:true,quitOnGameExit:true})
+  const beforeCrashRequests=consoleRequests.length,beforeCrashQuit=quit
+  launchMode='code-7';await game.play(b);await once(children.at(-1),'close')
+  check('crash opens the matching console and keeps diagnostics available despite exit-on-close',()=>{assert.equal(consoleRequests.length,beforeCrashRequests+1);assert.equal(quit,beforeCrashQuit);assert.equal(game.console.snapshot(b).session.running,false);assert.equal(game.console.snapshot(b).lines.at(-1).text,'İşlem 7 çıkış koduyla sonlandı.');assert.equal(game.console.snapshot(b).lines.at(-1).level,'launcher')})
+  edit({quitOnGameExit:false});launchMode='code-0';await game.play(b);await once(children.at(-1),'close')
+  check('clean exit records zero code without invoking crash console',()=>{assert.equal(consoleRequests.length,beforeCrashRequests+1);assert.equal(game.console.snapshot(b).lines.at(-1).text,'İşlem 0 çıkış koduyla sonlandı.')})
+  edit({consoleEnabled:false,showConsoleOnLaunch:true});launchMode='code-7';await game.play(b);await once(children.at(-1),'close')
+  check('disabled console section suppresses both navigation preferences and persists across restart',()=>{assert.equal(consoleRequests.length,beforeCrashRequests+1);const saved=new LauncherStore().get().profiles.find(p=>p.id===b);assert.equal(saved.consoleEnabled,false);assert.equal(saved.showConsoleOnLaunch,true);assert.equal(saved.showConsoleOnCrash,true)})
+  launchMode='real'
   store.removeAccount(second)
   check('removed override account is rejected at save',()=>assert.throws(()=>edit({accountOverride:true,launchAccountId:second}),/hesap/))
   const persisted = JSON.parse(fs.readFileSync(path.join(root,'launcher.json'),'utf8'));persisted.profiles.find(p=>p.id===b).accountOverride=true;persisted.profiles.find(p=>p.id===b).launchAccountId=second;fs.writeFileSync(path.join(root,'launcher.json'),JSON.stringify(persisted));const staleStore=new LauncherStore();const staleGame=new GameService(staleStore,{},()=>null,()=>{});await assert.rejects(()=>staleGame.play(b),/hesap/);check('missing override account never silently falls back to another account',()=>assert.equal(staleGame.getRunningInstances().length,0))

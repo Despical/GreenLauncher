@@ -5,15 +5,16 @@ import { diagnoseError } from '../../shared/errors'
 import { translate, type Language } from './i18n'
 import './minecraft-log.css'
 
-export function MinecraftLogPage({ profile, language, isVisible, instances, onNotice, sessionPicker }: {
-  profile: LauncherProfile; language: Language; isVisible: boolean; instances: RunningInstance[]
+export function MinecraftLogPage({ profile, requestedSession, language, isVisible, instances, onNotice, sessionPicker }: {
+  profile: LauncherProfile; requestedSession?: { instanceId: string }; language: Language; isVisible: boolean; instances: RunningInstance[]
   onNotice: (message: string) => void
   sessionPicker: (value: string, options: Array<{ value: string; label: string; detail?: string }>, onChange: (value: string) => void) => ReactNode
 }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
   const [snapshot, setSnapshot] = useState<GameLogSnapshot | null>(null)
   const current = useRef(snapshot); current.current = snapshot
-  const [choice, setChoice] = useState('')
+  const [choice, setChoice] = useState(requestedSession?.instanceId ?? '')
+  useEffect(() => { if (requestedSession) { setChoice(requestedSession.instanceId); atBottom.current = true; if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight } }, [requestedSession])
   const lastChoice = useRef('')
   const [follow, setFollow] = useState(true), [wrap, setWrap] = useState(true), [colors, setColors] = useState(true)
   const [query, setQuery] = useState(''), [found, setFound] = useState<number | null>(null)

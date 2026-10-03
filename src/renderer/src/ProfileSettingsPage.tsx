@@ -56,10 +56,9 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
     } catch (error) { onNotice(t(diagnoseError(error).message)) }
     finally { setSaving(false) }
   }
-  const checked = (label: string, value: boolean, onChange: () => void, className = '') => <button type="button" role="checkbox" aria-checked={value} className={`profile-setting-check ${className}`} onClick={onChange}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} />}</span><span>{t(label)}</span></button>
   const sectionHeading = (title: string, value: boolean, onChange: () => void) => <>
     <div className="profile-section-divider" role="separator" />
-    <h3><button type="button" role="checkbox" aria-checked={value} className="profile-setting-check profile-section-enable" onClick={onChange}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} />}</span><span>{t(title)}</span></button></h3>
+    <h3><button type="button" role="checkbox" aria-checked={value} className="profile-setting-check profile-section-enable" onClick={onChange}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} strokeWidth={3} />}</span><span>{t(title)}</span></button></h3>
   </>
   const toggle = (title: string, description: string, value: boolean, onChange: () => void) => <button type="button" role="switch" aria-checked={value} className="setting-toggle" onClick={onChange}><span><strong>{t(title)}</strong><small>{t(description)}</small></span><span aria-hidden="true" className={`switch ${value ? 'on' : ''}`} /></button>
   const autoJoin = draft.autoJoinEnabled ?? !!draft.serverAddress
@@ -86,7 +85,10 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
             </fieldset>
           </section>
           <section className="full profile-settings-section profile-playtime-settings">{sectionHeading('Oyun süresi', draft.playtimeOverride === true, () => update({ playtimeOverride: !draft.playtimeOverride, showPlaytime: draft.showPlaytime ?? settings.showPlaytime !== false, savePlaytime: draft.savePlaytime ?? settings.savePlaytime !== false }))}
-            <fieldset className="profile-settings-fields profile-settings-box profile-setting-options" data-enabled={draft.playtimeOverride === true} disabled={!draft.playtimeOverride}>{checked('Bu profilde oynanan süreyi göster', profilePlaytime(draft, settings, 'showPlaytime'), () => update({ showPlaytime: draft.showPlaytime === false }))}{checked('Bu profilde oynanan süreyi kaydet', profilePlaytime(draft, settings, 'savePlaytime'), () => update({ savePlaytime: draft.savePlaytime === false }))}</fieldset>
+            <fieldset className="profile-settings-fields profile-settings-box profile-setting-options" data-enabled={draft.playtimeOverride === true} disabled={!draft.playtimeOverride}>{toggle('Bu profilde oynanan süreyi göster', 'Bu profilin son oturumunu ve toplam oyun süresini göster.', profilePlaytime(draft, settings, 'showPlaytime'), () => update({ showPlaytime: !profilePlaytime(draft, settings, 'showPlaytime') }))}{toggle('Bu profilde oynanan süreyi kaydet', 'Bu profilin oynanan süresini sonraki oturumlar için sakla.', profilePlaytime(draft, settings, 'savePlaytime'), () => update({ savePlaytime: !profilePlaytime(draft, settings, 'savePlaytime') }))}</fieldset>
+          </section>
+          <section className="full profile-settings-section profile-console-settings">{sectionHeading('Konsol penceresi', draft.consoleEnabled === true, () => update({ consoleEnabled: !draft.consoleEnabled }))}
+            <fieldset className="profile-settings-fields profile-settings-box profile-setting-options" data-enabled={draft.consoleEnabled === true} disabled={!draft.consoleEnabled}>{toggle('Oyun başlatıldığında konsol sayfasını göster', 'Bu profil başlatıldığında Minecraft günlüğüne geç.', draft.showConsoleOnLaunch !== false, () => update({ showConsoleOnLaunch: draft.showConsoleOnLaunch === false }))}{toggle('Oyun çöktüğünde konsol sayfasını göster', 'Oyun hata ile kapanırsa Minecraft günlüğünü aç.', draft.showConsoleOnCrash !== false, () => update({ showConsoleOnCrash: draft.showConsoleOnCrash === false }))}</fieldset>
           </section>
           <section className="full profile-settings-section profile-account-override">{sectionHeading('Varsayılan hesabı geçersiz kıl', draft.accountOverride === true, () => update({ accountOverride: !draft.accountOverride, launchAccountId: draft.launchAccountId ?? selectedAccountId ?? accounts[0]?.id }))}
             <fieldset className="profile-settings-fields profile-settings-box" data-enabled={draft.accountOverride === true} disabled={!draft.accountOverride}><div className="profile-setting-field"><label>{t('Hesap')}</label>{choicePicker(effectiveAccountId, accounts.map(account => ({ value: account.id, label: account.name, detail: t(account.kind === 'offline' ? 'Çevrimdışı hesap' : 'Microsoft hesabı') })), launchAccountId => update({ launchAccountId }), t('Hesap seç'), !draft.accountOverride)}</div></fieldset>
@@ -106,6 +108,7 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
         {tab === 'window' && <div className="form-grid">
           <label>{t('Genişlik')}<input type="number" min={640} max={7680} value={draft.width} onChange={event => update({ width: Number(event.target.value) })} /></label>
           <label>{t('Yükseklik')}<input type="number" min={480} max={4320} value={draft.height} onChange={event => update({ height: Number(event.target.value) })} /></label>
+          <div className="full profile-window-divider profile-section-divider" role="separator" />
           <div className="full profile-window-options">{toggle('Tam ekran başlat', 'Açılışta ekran çözünürlüğünü tam ekran kullan.', draft.fullscreen === true, () => update({ fullscreen: !draft.fullscreen }))}{toggle('Oyun penceresi açıldığında başlatıcıyı gizle', 'Oyun çalışırken başlatıcıyı arka planda tut.', draft.hideLauncher ?? settings.closeOnLaunch, () => update({ hideLauncher: !(draft.hideLauncher ?? settings.closeOnLaunch) }))}{toggle('Oyun penceresi kapandığında başlatıcıdan çık', 'Tüm oyun pencereleri kapandığında başlatıcıyı kapat.', draft.quitOnGameExit === true, () => update({ quitOnGameExit: !draft.quitOnGameExit }))}</div>
         </div>}
       </fieldset>
