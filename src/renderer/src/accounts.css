@@ -81,8 +81,6 @@
 .account-provider-icon { display: grid; place-items: center; width: 26px; flex: none; }
 .account-provider-button > svg { flex: none; }
 .account-provider-button:hover { border-color: #617785; background: #2b3b48; }
-.account-provider-button.microsoft { border-color: #42624c; background: #23372a; }
-.account-provider-button.microsoft:hover { border-color: #648c70; background: #2d4635; }
 .account-security-note { display: flex; align-items: flex-start; gap: 8px; margin: 17px 0 0; color: #a3b2bd; font-size: 12px; line-height: 19px; }
 .account-security-note svg { flex: none; margin-top: 1px; color: #839d8d; }
 .modal.offline-account-dialog { width: min(500px, calc(100vw - 48px)); }

@@ -10,6 +10,16 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  "Buradaki ayarlar genel ayarları geçersiz kılar.": ["These settings override the general settings.", "Diese Einstellungen überschreiben die allgemeinen Einstellungen.", "Ces paramètres remplacent les paramètres généraux.", "Эти настройки переопределяют общие настройки.", "Te ustawienia zastępują ustawienia ogólne."],
+  "Genel ayarları aç": ["Open general settings", "Allgemeine Einstellungen öffnen", "Ouvrir les paramètres généraux", "Открыть общие настройки", "Otwórz ustawienia ogólne"],
+  "Oyun süresi": ["Playtime", "Spielzeit", "Temps de jeu", "Время игры", "Czas gry"],
+  "Varsayılan hesabı geçersiz kıl": ["Override default account", "Standardkonto überschreiben", "Remplacer le compte par défaut", "Переопределить учётную запись по умолчанию", "Zastąp domyślne konto"],
+  "Oyun açıldığında bir sunucuya veya dünyaya otomatik katıl.": ["Automatically join a server or world when the game starts.", "Beim Spielstart automatisch einem Server oder einer Welt beitreten.", "Rejoindre automatiquement un serveur ou un monde au lancement du jeu.", "Автоматически входить на сервер или в мир при запуске игры.", "Automatycznie dołącz do serwera lub świata po uruchomieniu gry."],
+  "Oynanan süreyi bu profil için göster ve kaydet.": ["Show and record time played in this profile.", "Die Spielzeit dieses Profils anzeigen und speichern.", "Afficher et enregistrer le temps joué sur ce profil.", "Показывать и записывать время игры в этом профиле.", "Pokazuj i zapisuj czas gry w tym profilu."],
+  "Bu profili başlatırken kullanılacak hesabı seç.": ["Choose the account used to launch this profile.", "Das Konto zum Starten dieses Profils auswählen.", "Choisir le compte utilisé pour lancer ce profil.", "Выберите учётную запись для запуска этого профиля.", "Wybierz konto używane do uruchamiania tego profilu."],
+  "Bu profil için kullanılacak Java bellek değerlerini ayarla.": ["Set Java memory values for this profile.", "Die Java-Speicherwerte für dieses Profil festlegen.", "Définir la mémoire Java utilisée par ce profil.", "Настройте память Java для этого профиля.", "Ustaw pamięć Java używaną przez ten profil."],
+  "Oyun çalışırken başlatıcıyı arka planda tut.": ["Keep the launcher in the background while the game is running.", "Den Launcher während des Spiels im Hintergrund halten.", "Garder le lanceur en arrière-plan pendant le jeu.", "Держать launcher в фоне во время игры.", "Pozostaw launcher w tle podczas gry."],
+  "Tüm oyun pencereleri kapandığında başlatıcıyı kapat.": ["Close the launcher after all game windows have closed.", "Den Launcher schließen, wenn alle Spielfenster geschlossen sind.", "Fermer le lanceur lorsque toutes les fenêtres de jeu sont fermées.", "Закрывать launcher после закрытия всех окон игры.", "Zamknij launcher po zamknięciu wszystkich okien gry."],
   'Hesap': ['Account', 'Konto', 'Compte', 'Учётная запись', 'Konto'],
   "Otomatik katılım": ["Automatic joining", "Automatisch beitreten", "Connexion automatique", "Автоматическое подключение", "Automatyczne dołączanie"],
   "Etkinleştir": ["Enable", "Aktivieren", "Activer", "Включить", "Włącz"],

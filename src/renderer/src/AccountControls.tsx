@@ -156,7 +156,7 @@ export function AccountManager({ state, t, onState, onNotice, onClose, onOffline
     } catch (error) { setRemoval(null); onNotice(t(diagnoseError(error).message)) }
     finally { busy.current = false; setPending(null) }
   }
-  return <AccountDialog title={t('Hesapları yönet')} description={t('Hesapların arasında geçiş yap veya yeni bir hesap ekle.')} closeLabel={t('Kapat')} onClose={onClose} locked={!!pending} className="account-manager-dialog">
+  return <AccountDialog icon={null} title={t('Hesapları yönet')} description={t('Hesapların arasında geçiş yap veya yeni bir hesap ekle.')} closeLabel={t('Kapat')} onClose={onClose} locked={!!pending} className="account-manager-dialog">
     <div className="account-section-label"><span>{t('Kayıtlı hesaplar')}</span><span className="account-count">{state.accounts.length}</span></div>
     <div className="managed-account-list">{accounts.length ? accounts.map(item => <div key={item.id} className={`managed-account-presence ${removal?.account.id === item.id && removal.exiting ? 'leaving' : ''}`}><div className="managed-account-clip"><div className={`managed-account ${item.id === state.selectedAccountId ? 'selected' : ''}`}>
       <div className="managed-account-main"><button type="button" className="account-card-select" aria-pressed={item.id === state.selectedAccountId} disabled={!!pending} onClick={() => { if (item.id !== state.selectedAccountId) void run(item.id, () => window.launcher.selectAccount(item.id)) }}><AccountAvatar account={item} /><span className="account-identity"><strong>{item.name}</strong><small>{item.kind === 'offline' ? <WifiOff size={14} /> : <MicrosoftMark size={14} />}{item.kind === 'offline' ? t('Çevrimdışı hesap') : t('Microsoft hesabı')}</small></span>
