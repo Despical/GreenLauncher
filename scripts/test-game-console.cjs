@@ -33,12 +33,20 @@ const changes=[], logs = new GameConsole(change=>changes.push(change))
   await once(sampleStream,'end')
   assert.equal(sampleLogs.content('profile-a','sample'),sample,'preserve raw Minecraft format including multiline exceptions')
   assert.equal(sampleLogs.snapshot('profile-a','sample').lines.map(line=>line.level).join(','),'info,warn,info,error,error')
+  const spacingLogs = new GameConsole(), spacingStream = new PassThrough()
+  spacingLogs.begin(instance('spacing'));spacingLogs.append('spacing','Launcher header','launcher');spacingLogs.append('spacing','','launcher');spacingLogs.attach('spacing',spacingStream,'info')
+  spacingStream.write('[18:05:45] [Render thread/INFO]: Setting user: Fixture\r\n  \r\n\r\n')
+  assert.equal(spacingLogs.snapshot('profile-a','spacing').lines.length,3,'separators wait for the next record across chunks')
+  spacingStream.write('[18:05:45] [Render thread/INFO]: Backend library: LWJGL version 3.4.3+4\n[18:05:46] [main/ERROR]: Test exception\n\n    at fixture.method(Fixture.java:1)\n')
+  spacingStream.end('\n[18:05:47] [main/INFO]: Done\n \n');await once(spacingStream,'end')
+  assert.equal(spacingLogs.content('profile-a','spacing'),['Launcher header','','[18:05:45] [Render thread/INFO]: Setting user: Fixture','[18:05:45] [Render thread/INFO]: Backend library: LWJGL version 3.4.3+4','[18:05:46] [main/ERROR]: Test exception','','    at fixture.method(Fixture.java:1)','[18:05:47] [main/INFO]: Done'].join('\n'),'remove timestamp separators while preserving launcher spacing and stack traces')
+  assert.equal(spacingLogs.snapshot('profile-a','spacing').lines[6].level,'error')
   assert.equal(gameLogLevel('[17:07:33] [Render thread/INFO]: WARN: error: message mentions other levels'),'info')
   const xmlLogs = new GameConsole(), xmlStream = new PassThrough(), timestamp = new Date(2026,9,3,17,7,33).getTime()
   xmlLogs.begin(instance('xml'),['xml-private-token']);xmlLogs.attach('xml',xmlStream,'info')
   const event = `<log4j:Event logger="fixture" timestamp="${timestamp}" level="ERROR" thread="Download-2">\n<log4j:Message><![CDATA[Couldn't connect to realms & </log4j:Event> xml-private-token]]></log4j:Message>\n<log4j:Throwable><![CDATA[com.fixture.Exception: test\n    at fixture.method(Fixture.java:1)]]></log4j:Throwable>\n</log4j:Event>`
   const following = `<Event timeMillis="${timestamp+1000}" level="INFO" thread="Render thread"><Message>SDL &amp; natives &lt;ready&gt;</Message></Event>`
-  const combined = '[17:07:32] [main/INFO]: Plain before XML\n'+event+'\n'+following+'\n[17:07:35] [main/WARN]: Plain after XML\n'
+  const combined = '[17:07:32] [main/INFO]: Plain before XML\n  \n  '+event+'\n  \n  '+following+'\n \n[17:07:35] [main/WARN]: Plain after XML\n'
   for(let offset=0;offset<combined.length;offset+=11)xmlStream.write(combined.slice(offset,offset+11))
   xmlStream.end();await once(xmlStream,'end')
   const xmlSnapshot = xmlLogs.snapshot('profile-a','xml')

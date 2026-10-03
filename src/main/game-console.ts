@@ -87,27 +87,35 @@ export class GameConsole {
   attach(id: string, stream: Readable | null | undefined, fallback: GameLogLevel): void {
     if (!stream) return
     const decoder = new StringDecoder('utf8')
-    let pending = '', level = fallback, ended = false
+    let pending = '', level = fallback, ended = false, blankLines = 0
+    const emit = (line: string) => {
+      // Buffer separators until the next record: Minecraft records should be
+      // adjacent, while blank lines inside plain messages/stack traces survive.
+      if (!line.trim()) { blankLines = Math.min(blankLines + 1, maxLines); return }
+      if (/^\[\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\]/.test(line)) blankLines = 0
+      while (blankLines > 0) { level = this.append(id, '', level); blankLines-- }
+      level = this.append(id, line, level)
+    }
     const consume = (text: string, final = false) => {
       pending += text
       while (pending) {
         const start = pending.search(/<(?:log4j:)?Event\b/), newline = pending.indexOf('\n')
         if (start >= 0 && (newline < 0 || start <= newline)) {
-          if (start > 0) { level = this.append(id, pending.slice(0, start).replace(/\r$/, ''), level); pending = pending.slice(start) }
+          if (start > 0) { emit(pending.slice(0, start).replace(/\r$/, '')); pending = pending.slice(start) }
           // Ignore closing-tag text inside CDATA messages, even across chunks.
           const closing = [...pending.matchAll(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<\/(?:log4j:)?Event>/g)].find(match => match[0].startsWith('</'))
           if (!closing) break
           const end = closing.index + closing[0].length
-          for (const line of formatMinecraftLogEvent(pending.slice(0, end)).split(/\r?\n/)) level = this.append(id, line, level)
+          for (const line of formatMinecraftLogEvent(pending.slice(0, end)).split(/\r?\n/)) emit(line)
           pending = pending.slice(end).replace(/^\r?\n/, '')
         } else if (newline >= 0) {
           const line = pending.slice(0, newline).replace(/\r$/, '')
-          if (!/^\s*(?:<\?xml\b.*\?>|<\/?Events\b[^>]*>)\s*$/.test(line)) level = this.append(id, line, level)
+          if (!/^\s*(?:<\?xml\b.*\?>|<\/?Events\b[^>]*>)\s*$/.test(line)) emit(line)
           pending = pending.slice(newline + 1)
         } else break
       }
       const limit = /<(?:log4j:)?Event\b/.test(pending) ? 1024 * 1024 : 65_536
-      if (pending.length > limit || (final && pending)) { level = this.append(id, pending.replace(/\r$/, ''), level); pending = '' }
+      if (pending.length > limit || (final && pending)) { emit(pending.replace(/\r$/, '')); pending = '' }
     }
     const finish = () => { if (ended) return; ended = true; consume(decoder.end(), true) }
     stream.on('data', (chunk: Buffer | string) => consume(typeof chunk === 'string' ? chunk : decoder.write(chunk)))

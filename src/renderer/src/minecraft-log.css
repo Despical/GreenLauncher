@@ -12,10 +12,8 @@
 .minecraft-log-actions button:hover:not(:disabled), .minecraft-log-search button:hover:not(:disabled), .minecraft-log-error button:hover { border-color: #484f58; background: #30363d; }
 .minecraft-log-page button:focus-visible, .minecraft-log-page input:focus-visible, .minecraft-console:focus-visible { outline: 1px solid #8397a7; outline-offset: 3px; }
 .minecraft-log-context { display: flex; align-items: center; min-width: 200px; }
-.minecraft-log-state { display: flex; align-items: center; gap: 8px; color: #8b949e; font-size: 13px; }
-.minecraft-log-state > span { width: 7px; height: 7px; border-radius: 50%; background: #6e7681; }
-.minecraft-log-state.running > span { background: #8397a7; }
 .minecraft-log-session { width: 270px; max-width: 100%; }
+.minecraft-log-session-info { display: flex; align-items: center; height: 50px; padding: 6px 12px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; }
 .minecraft-log-session .dropdown-trigger { min-height: 42px; }
 .minecraft-log-session .dropdown-copy strong { font-size: 12px; }
 .minecraft-log-session .dropdown-copy small { font-size: 11px; }
@@ -26,8 +24,9 @@
 .minecraft-console-empty p { max-width: 440px; margin: 0; }
 .minecraft-log-chunk { content-visibility: auto; contain-intrinsic-size: auto 4400px; }
 .minecraft-console:not(.wrap) .minecraft-log-chunk { content-visibility: visible; width: max-content; min-width: 100%; }
-.minecraft-console-line { min-height: 22px; padding: 0 14px; }
-.minecraft-console:not(.wrap) .minecraft-console-line { width: max-content; min-width: 100%; }
+.minecraft-console-line { display: grid; grid-template-columns: 5ch minmax(0, 1fr); column-gap: 14px; min-height: 22px; padding: 0 14px; }
+.minecraft-console:not(.wrap) .minecraft-console-line { grid-template-columns: 5ch max-content; width: max-content; min-width: 100%; }
+.minecraft-line-number { color: #6e7681; text-align: right; user-select: none; }
 .minecraft-line-text { white-space: pre; }
 .minecraft-console.wrap .minecraft-line-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .minecraft-console.colored .level-error .minecraft-line-text { color: #f08080; }
