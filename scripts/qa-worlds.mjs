@@ -26,7 +26,7 @@ try {
  await manage('Kopyala');await until("document.querySelectorAll('.world-select').length===3")
  const copy=await evaluate("window.launcher.getWorlds('qa-profile').then(w=>w.find(i=>i.id==='Creative (1)'))")
  assert.equal(copy.name,'Yaratıcı dünyam (kopya)');assert.equal(read('Creative (1)').value.Data.value.LevelName.value,copy.name)
- const chooseProfile=async name=>{await click('.worlds-page .servers-list-profile-select .dropdown-trigger');await until("document.querySelector('.profile-picker-menu')");await evaluate("[...document.querySelectorAll('.profile-picker-menu [role=option]')].find(e=>e.querySelector('strong').textContent==="+JSON.stringify(name)+").click()");await until("!document.querySelector('.worlds-page .servers-list-profile-select .dropdown-trigger').disabled")}
+ const chooseProfile=async name=>{await click('.workspace-profile-select .dropdown-trigger');await until("document.querySelector('.profile-picker-menu')");await evaluate("[...document.querySelectorAll('.profile-picker-menu [role=option]')].find(e=>e.querySelector('strong').textContent==="+JSON.stringify(name)+").click()");await until("!document.querySelector('.workspace-profile-select .dropdown-trigger').disabled")}
  await chooseProfile('Test World 2');assert.equal(await evaluate("document.querySelectorAll('.world-select').length"),0)
  await click('.worlds-page .servers-heading-actions button:last-child');await until("document.querySelectorAll('.world-select').length===1")
  assert.equal(await evaluate("document.querySelector('.world-identity strong').textContent"),'Elle eklenen dünya')
@@ -49,7 +49,7 @@ try {
    assert.equal(await evaluate("document.querySelector('.worlds-page h2').textContent"),heading)
    for(const width of [1080,1280,1600]) {
     await call('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:false})
-    const fits=await evaluate("(()=>{const workspace=document.querySelector('.worlds-page .servers-workspace').getBoundingClientRect(),panel=document.querySelector('.worlds-page .servers-list-panel').getBoundingClientRect(),row=document.querySelector('.world-select').getBoundingClientRect(),picker=document.querySelector('.worlds-page .servers-list-profile-select').getBoundingClientRect();return {page:document.documentElement.scrollWidth<=innerWidth,workspace:workspace.right<=innerWidth,row:row.right<=panel.right,picker:picker.right<=panel.right,buttons:[...document.querySelectorAll('.world-management-actions button')].every(b=>b.scrollWidth<=b.clientWidth+1)}})()")
+    const fits=await evaluate("(()=>{const workspace=document.querySelector('.worlds-page .servers-workspace').getBoundingClientRect(),panel=document.querySelector('.worlds-page .servers-list-panel').getBoundingClientRect(),row=document.querySelector('.world-select').getBoundingClientRect(),picker=document.querySelector('.workspace-profile-select').getBoundingClientRect();return {page:document.documentElement.scrollWidth<=innerWidth,workspace:workspace.right<=innerWidth,row:row.right<=panel.right,picker:picker.right<=document.querySelector('.sidebar').getBoundingClientRect().right,buttons:[...document.querySelectorAll('.world-management-actions button')].every(b=>b.scrollWidth<=b.clientWidth+1)}})()")
     const layout=await evaluate("(()=>{const rows=[...document.querySelectorAll('.world-select>span+span')],header=[...document.querySelectorAll('.worlds-table-head>span+span')],facts=[...document.querySelectorAll('.worlds-page .server-facts>div')].map(e=>e.getBoundingClientRect()),pairs=[...document.querySelectorAll('.world-action-pair')].map(e=>{const b=e.getBoundingClientRect(),i=e.querySelector('svg').getBoundingClientRect();return {x:i.left-b.left,y:i.top-b.top,height:b.height}});return {rows:rows.every(e=>getComputedStyle(e,'::before').width==='1px'&&getComputedStyle(e,'::before').content!=='none'),header:header.every(e=>getComputedStyle(e,'::before').content==='none'),factIcons:document.querySelectorAll('.worlds-page .server-facts dt svg').length===4,fullRow:(()=>{const r=document.querySelector('.worlds-page .server-row').getBoundingClientRect(),p=document.querySelector('.worlds-page .servers-list-panel').getBoundingClientRect();return Math.abs(r.left-p.left-1)<1&&Math.abs(p.right-r.right-1)<1})(),identity:document.querySelectorAll('.world-details-identity h3').length===1&&document.querySelectorAll('.world-details-identity>div>span').length===0,facts:facts.every((r,i)=>i===0||r.top>=facts[i-1].bottom)&&facts.every(r=>Math.abs(r.left-facts[0].left)<1),icons:pairs.every(p=>Math.abs(p.x-pairs[0].x)<1&&Math.abs(p.y-(p.height-16)/2)<1)}})()")
     assert.ok(Object.values(layout).every(Boolean),JSON.stringify({language,width,layout}))
     assert.ok(Object.values(fits).every(Boolean),JSON.stringify({language,width,fits}));if(width===1080)await shot('qa-worlds-'+language+'-1080')
@@ -60,14 +60,12 @@ try {
  const pages=['home','versions','profiles','servers','worlds','mods','gallery','downloads','settings']
  for(let i=0;i<pages.length;i++){await key(String(i+1));await until("document.querySelector('.main-content').classList.contains('page-"+pages[i]+"')")}
  await key('5');await evaluate("window.launcher.getState().then(async s=>{for(const p of s.profiles)await window.launcher.deleteProfile(p.id)})")
- await until("document.querySelector('.worlds-profile-required')")
+ await until("document.querySelector('.page-profiles')&&!document.querySelector('.profile-sidebar')")
  assert.equal(await evaluate("[...document.querySelectorAll('.worlds-page .servers-heading-actions button')].every(b=>b.disabled)"),true)
- await key('4');await until("document.querySelector('.servers-page:not(.worlds-page) h3')?.textContent==='Önce bir profil oluştur'")
- assert.equal(await evaluate("document.querySelectorAll('.servers-page:not(.worlds-page) .servers-workspace').length"),0)
- assert.equal(await evaluate("document.querySelector('.servers-page:not(.worlds-page) .servers-heading-actions button:last-child').disabled"),true)
- await shot('qa-servers-profile-required');await click('.servers-page:not(.worlds-page) .servers-empty .secondary');await until("document.querySelector('.profile-modal')")
+ await key('4');await until("document.querySelector('.page-profiles')&&!document.querySelector('.profile-sidebar')")
+ await shot('qa-servers-profile-required');await button('Yeni profil');await until("document.querySelector('.profile-modal')")
  assert.equal(errors.length,0,JSON.stringify(errors))
- console.log('PASS Ctrl+1 through Ctrl+9 follow the sidebar; no-profile server/world guidance blocks adding and offers profile creation')
+ console.log('PASS Ctrl+1 through Ctrl+9 follow the sidebar; no-profile server/world navigation returns to profile creation')
 } finally {socket.close()}
 `
 await new Function('assert','writeFileSync','readFileSync','existsSync','join','nbt','zlib','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync,readFileSync,existsSync,join,nbt,zlib)

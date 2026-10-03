@@ -9,7 +9,7 @@ try {
   await call('Runtime.enable');await evaluate("window.launcher.saveSettings({language:'tr'}).then(()=>window.launcher.selectProfile('qa-profile'))")
   await call('Page.reload');await until("document.querySelector('.side-nav')");await key('4');await until("document.querySelector('.server-online.online')")
   assert.equal(await evaluate("document.querySelectorAll('.servers-sort-select').length"),0)
-  assert.equal(await evaluate("document.querySelector('.servers-list-profile-select .dropdown-copy strong').textContent"),'Test World')
+  assert.equal(await evaluate("document.querySelector('.workspace-profile-select .dropdown-copy strong').textContent"),'Test World')
   assert.equal(await evaluate("document.querySelector('.server-join').disabled"),false)
   await click('.server-row:last-child .server-select')
   assert.equal(await evaluate("document.querySelector('.server-join').disabled"),true)
@@ -17,7 +17,7 @@ try {
   await evaluate("document.querySelector('.server-row:last-child .server-select').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
   assert.equal(await evaluate("document.querySelectorAll('.server-join-dialog').length"),0)
   await shot('qa-profile-servers-offline')
-  const chooseProfile=async name=>{await click('.servers-list-profile-select .dropdown-trigger');await until("document.querySelector('.profile-picker-menu')");await evaluate("[...document.querySelectorAll('.profile-picker-menu [role=option]')].find(e=>e.querySelector('strong').textContent==="+JSON.stringify(name)+").click()");await until("!document.querySelector('.servers-list-profile-select .dropdown-trigger').disabled")}
+  const chooseProfile=async name=>{await click('.workspace-profile-select .dropdown-trigger');await until("document.querySelector('.profile-picker-menu')");await evaluate("[...document.querySelectorAll('.profile-picker-menu [role=option]')].find(e=>e.querySelector('strong').textContent==="+JSON.stringify(name)+").click()");await until("!document.querySelector('.workspace-profile-select .dropdown-trigger').disabled")}
   await chooseProfile('Test World 2')
   assert.equal(await evaluate("document.querySelectorAll('.server-row').length"),0)
   await click('.servers-heading-actions button:last-child');await until("document.querySelector('.server-edit-dialog')")
@@ -52,13 +52,13 @@ try {
   assert.equal(await evaluate("document.querySelector('.server-identity strong').textContent"),'Renamed from launcher')
   await click('.server-details-actions .danger');await until("document.querySelector('.server-delete-dialog')");await click('.server-delete-dialog .danger');await until("document.querySelectorAll('.server-row').length===0")
   assert.equal(parse(bFile).value.servers.value.value.length,0)
-  console.log('PASS real profile servers.dat CRUD, independent profile picker, game-to-launcher live add/rename/delete polling, and disabled offline join including double-click')
+  console.log('PASS real profile servers.dat CRUD, shared sidebar profile picker, game-to-launcher live add/rename/delete polling, and disabled offline join including double-click')
   const headings={tr:'Sunucular',en:'Servers',de:'Server',fr:'Serveurs',ru:'Серверы',pl:'Serwery'}
   for(const [language,heading] of Object.entries(headings)) {
-    await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('4');await until("document.querySelector('.servers-list-profile-select')&&!document.querySelector('.servers-list-profile-select .dropdown-trigger').disabled")
+    await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.side-nav')");await key('4');await until("document.querySelector('.servers-page h2')&&document.querySelector('.workspace-profile-select')&&!document.querySelector('.workspace-profile-select .dropdown-trigger').disabled")
     await call('Emulation.setDeviceMetricsOverride',{width:1080,height:800,deviceScaleFactor:1,mobile:false})
     assert.equal(await evaluate("document.querySelector('.servers-page .page-heading h2').textContent"),heading)
-    assert.equal(await evaluate("(()=>{const w=document.querySelector('.servers-workspace').getBoundingClientRect(),p=document.querySelector('.servers-list-profile-select').getBoundingClientRect(),s=document.querySelector('.servers-toolbar').getBoundingClientRect();return w.right<=innerWidth&&p.right<=s.right&&document.documentElement.scrollWidth<=innerWidth})()"),true)
+    assert.equal(await evaluate("(()=>{const w=document.querySelector('.servers-workspace').getBoundingClientRect(),p=document.querySelector('.workspace-profile-select').getBoundingClientRect(),s=document.querySelector('.sidebar').getBoundingClientRect();return w.right<=innerWidth&&p.right<=s.right&&document.documentElement.scrollWidth<=innerWidth})()"),true)
   }
   await evaluate("window.launcher.getState().then(async s=>{for(const p of s.profiles)await window.launcher.deleteProfile(p.id)})")
   await until("!document.querySelector('.statusbar-profile')")

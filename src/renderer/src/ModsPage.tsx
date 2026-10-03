@@ -96,8 +96,9 @@ function ModSelect({ value, options, onChange, label, placeholder, searchable = 
   </div>
 }
 
-export function ModsPage({ state, versions, language, onState, onNotice, onDownloads, onPresenceChange }: {
+export function ModsPage({ state, versions, language, scopedProfileId, onState, onNotice, onDownloads, onPresenceChange }: {
   state: LauncherState; versions: GameVersion[]; language: Language
+  scopedProfileId?: string
   onState: (state: LauncherState) => void; onNotice: (message: string) => void
   onDownloads: () => void
   onPresenceChange?: (context: LauncherPresenceContext) => void
@@ -117,7 +118,8 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
   const [favorites, setFavorites] = useState<ModFavorite[]>([])
   const [savingFavorite, setSavingFavorite] = useState(false)
   useEffect(() => { window.launcher.getModFavorites().then(setFavorites).catch(error => onNotice(String(error))) }, [])
-  const [profileId, setProfileId] = useState(state.selectedProfileId ?? state.profiles[0]?.id ?? '')
+  const [localProfileId, setProfileId] = useState(state.selectedProfileId ?? state.profiles[0]?.id ?? '')
+  const profileId = scopedProfileId ?? localProfileId
   const profile = state.profiles.find(item => item.id === profileId)
   const releaseVersions = versions.filter(item => item.type === 'release')
   const baseVersion = (value?: string) => releaseVersions.find(item => item.id === value || value?.startsWith(`${item.id}-`))?.id ?? releaseVersions[0]?.id ?? ''
@@ -200,6 +202,9 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
     setGameVersion(next === 'technic' ? 'all' : baseVersion(profile?.versionId))
   }
   useEffect(() => { setProfileId(state.selectedProfileId ?? state.profiles[0]?.id ?? ''); setInstalled([]) }, [state.selectedAccountId])
+  useEffect(() => {
+    if (scopedProfileId !== undefined) chooseProfile(scopedProfileId)
+  }, [scopedProfileId])
   useEffect(() => {
     if(source !== 'curseforge' || !connected) { setProviderCategories([]); return }
     let active=true
@@ -335,8 +340,8 @@ export function ModsPage({ state, versions, language, onState, onNotice, onDownl
       <section className={`mods-main ${source === 'curseforge' && !connected && !showFavorites ? 'provider-unavailable' : ''}`}>
         <div className="mods-setup">
           <div className="mods-setup-heading"><span className="mods-setup-icon"><img src={releaseIcon} alt="" /></span><div><strong>Minecraft · {source === 'custom' ? t('Özel') : providerName}</strong><small>{source === 'technic' ? t('Paketin oyun sürümü ve yükleyicisi kurulumda otomatik seçilir.') : t('Önce sürümü, sonra mod yükleyicisini seç.')}</small></div></div>
-          <div className={`mods-setup-fields ${packBrowsing ? 'pack' : ''}`}>
-            {!packBrowsing && <div className="mods-field"><span>{t('Profil')}</span><ModSelect label={t('Profil')} value={profileId} onChange={chooseProfile} options={state.profiles.map(item => ({ value: item.id, label: item.name }))} placeholder={t('Profil seç')} searchable /></div>}
+          <div className={`mods-setup-fields ${packBrowsing ? 'pack' : ''} ${scopedProfileId !== undefined ? 'profile-scoped' : ''}`}>
+            {!packBrowsing && scopedProfileId === undefined && <div className="mods-field"><span>{t('Profil')}</span><ModSelect label={t('Profil')} value={profileId} onChange={chooseProfile} options={state.profiles.map(item => ({ value: item.id, label: item.name }))} placeholder={t('Profil seç')} searchable /></div>}
             <div className="mods-field"><span>{t('Minecraft sürümü')}</span><ModSelect label={t('Minecraft sürümü')} value={gameVersion} onChange={setGameVersion} options={[...(source === 'technic' ? [{value:'all',label:t('Tüm sürümler')}] : []), ...releaseVersions.map(item => ({ value: item.id, label: item.id }))]} placeholder={t('Sürüm ara')} searchable /></div>
             {source !== 'technic' && <div className="mods-field"><span>{t('Mod yükleyicisi')}</span><ModSelect label={t('Mod yükleyicisi')} value={loader} onChange={value => setLoader(value as ModLoader)} options={loaders.map(item => ({ value: item.id, label: item.label, icon: item.icon }))} placeholder={t('Mod yükleyicisi')} /></div>}
           </div>

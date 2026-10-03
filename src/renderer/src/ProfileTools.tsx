@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Info, ArrowDownToLine, ArrowUpRight, Copy, FolderOpen, Image, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import { Info, ArrowDownToLine, ArrowUpRight, Copy, FolderOpen, Image, Layers3, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import type { InstalledMod, LauncherProfile, ModProvider, ProfileCover } from '../../shared/types'
 import { memoryGb } from '../../shared/memory'
 import { profileVersionLabel } from '../../shared/profile-version'
@@ -7,7 +7,7 @@ import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
 import './profiles.css'
 
-export type ProfileAction = 'edit' | 'cover' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
+export type ProfileAction = 'manage' | 'edit' | 'cover' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
 
 export function ProfileInformation({ profile, language, onClose }: { profile: LauncherProfile; language: Language; onClose: () => void }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
@@ -74,12 +74,13 @@ export function ProfileMenu({ profile, x, y, language, pending, onClose, onActio
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); main?.removeEventListener('scroll', onClose); window.removeEventListener('resize', onClose) }
   }, [])
   const actions = [
+    { id: 'manage', title: 'Profili yönet', icon: Layers3 },
     { id: 'edit', title: 'Profili düzenle', icon: Pencil }, { id: 'cover', title: 'Kapağı düzenle', icon: Image },
     { id: 'clone', title: 'Profili klonla', icon: Copy }, { id: 'export', title: 'Dışa aktar', icon: Upload },
     { id: 'repair', title: 'Dosyaları onar', icon: ShieldCheck }, { id: 'shortcut', title: 'Masaüstüne kısayol oluştur', icon: Monitor },
     { id: 'delete', title: 'Profili sil', icon: Trash2 }
   ] as const
-  return <div ref={root} className="version-context-menu profile-context-menu" role="menu" aria-label={t('Profil seçenekleri')} style={{ left: Math.max(10, Math.min(window.innerWidth - 270, x)), top: Math.max(50, Math.min(window.innerHeight - 386, y)) }}>
+  return <div ref={root} className="version-context-menu profile-context-menu" role="menu" aria-label={t('Profil seçenekleri')} style={{ left: Math.max(10, Math.min(window.innerWidth - 270, x)), top: Math.max(50, Math.min(window.innerHeight - 430, y)) }}>
     <div className="version-context-label">{profile.name}</div><div className="version-context-divider" />
     {actions.map(({ id, title, icon: Icon }) => <Fragment key={id}>{id === 'delete' && (modsPath && <button role="menuitem" className="profile-mods-folder" title={modsPath} onClick={() => { onClose(); onAction('mods-folder') }}><FolderOpen size={16} /><span><strong>{t('Mod klasörünü aç')}</strong><small>{modsPath}</small></span></button>)}{id === 'delete' && <div className="version-context-divider" role="separator" />}<button role="menuitem" className={id === 'delete' ? 'danger' : ''} disabled={pending && ['clone', 'export', 'repair', 'delete'].includes(id)} onClick={() => { onClose(); onAction(id) }}><Icon size={16} />{t(title)}</button></Fragment>)}
   </div>

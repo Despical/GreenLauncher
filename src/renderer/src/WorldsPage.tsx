@@ -12,17 +12,20 @@ import './worlds.css'
 
 type Props = {
   state: LauncherState; language: Language; launchBusy: boolean; instances: RunningInstance[]; isVisible: boolean
+  scopedProfileId?: string
+  onBusyChange?: (busy: boolean) => void
   onNotice: (message: string) => void; onJoin: (request: LaunchRequest) => void; onCreateProfile: () => void
   profilePicker: (value: string, onChange: (id: string) => void, disabled: boolean) => ReactNode
 }
-export function WorldsPage({ state, language, launchBusy, instances, isVisible, onNotice, onJoin, onCreateProfile, profilePicker }: Props) {
+export function WorldsPage({ state, language, launchBusy, instances, isVisible, scopedProfileId, onBusyChange, onNotice, onJoin, onCreateProfile, profilePicker }: Props) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
   const [choice, setChoice] = useState(state.selectedProfileId ?? state.profiles[0]?.id ?? '')
-  const profile = state.profiles.find(item => item.id === choice) ?? state.profiles.find(item => item.id === state.selectedProfileId) ?? state.profiles[0]
+  const profile = scopedProfileId !== undefined ? state.profiles.find(item => item.id === scopedProfileId) : state.profiles.find(item => item.id === choice) ?? state.profiles.find(item => item.id === state.selectedProfileId) ?? state.profiles[0]
   const profileId = profile?.id, scope = `${state.selectedAccountId}:${profileId}`, current = useRef(scope); current.current = scope
   const [worlds, setWorlds] = useState<SavedWorld[]>([]), [selected, setSelected] = useState(''), [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false), [pending, setPending] = useState(false)
   const [renaming, setRenaming] = useState<SavedWorld | null>(null), [name, setName] = useState(''), [deleting, setDeleting] = useState<SavedWorld | null>(null), [error, setError] = useState('')
+  useEffect(() => { onBusyChange?.(pending); return () => onBusyChange?.(false) }, [pending, onBusyChange])
   const request = useRef(0), busy = useRef(false)
   const update = async (refresh = false, select?: string) => {
     if (!profileId) return
@@ -74,7 +77,7 @@ export function WorldsPage({ state, language, launchBusy, instances, isVisible, 
   return <div className="content-page servers-page worlds-page">
     <div className="page-heading"><div><h2>{t('Dünyalar')}</h2><p>{t('Profilindeki dünyaları keşfet ve macerana devam et.')}</p></div><div className="servers-heading-actions"><button className="heading-action" disabled={!profileId || pending || loading} onClick={() => void act(async () => { await update(true) }, 'Dünya listesi güncellendi.')}><RefreshCw size={17} className={pending ? 'spin' : ''} />{t('Listeyi yenile')}</button><button className="heading-action primary" disabled={!profileId || locked} onClick={() => void act(() => window.launcher.importWorld(profileId!), 'Dünya eklendi.')}><Plus size={17} />{t('Dünya ekle')}</button></div></div>
     {!profileId ? <div className="servers-list-panel servers-empty worlds-profile-required"><Globe2 size={36} /><h3>{t('Önce bir profil oluştur')}</h3><p>{t('Dünyalarını görmek ve eklemek için önce bir profil oluştur.')}</p><button className="secondary" onClick={onCreateProfile}><Plus size={16} />{t('Yeni profil')}</button></div> : <div className="servers-workspace">
-      <section className="servers-list-panel"><div className="servers-toolbar"><div className="search-box"><Search size={17} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('Dünya ara') + '...'} /></div>{profilePicker(profileId, setChoice, pending || loading)}</div>
+      <section className="servers-list-panel"><div className="servers-toolbar"><div className="search-box"><Search size={17} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('Dünya ara') + '...'} /></div>{scopedProfileId === undefined && profilePicker(profileId, setChoice, pending || loading)}</div>
         <div className="worlds-table-head"><span>{t('Dünya adı ve ikonu')}</span><span>{t('Oyun modu')}</span><span>{t('Son oynanma')}</span><span>{t('Boyut')}</span></div>
         <div className="servers-list">{loading ? <div className="servers-empty"><LoaderCircle size={25} className="spin" />{t('Dünyalar yükleniyor...')}</div> : !worlds.length ? <div className="servers-empty"><Globe2 size={34} /><h3>{t('Henüz dünya yok')}</h3><p>{t('Oyunda oluşturduğun dünyalar burada görünür. Bir dünya klasörünü de elle ekleyebilirsin.')}</p><button className="secondary" disabled={locked} onClick={() => void act(() => window.launcher.importWorld(profileId), 'Dünya eklendi.')}><Plus size={16} />{t('Dünya ekle')}</button></div> : !filtered.length ? <div className="servers-empty"><Search size={25} />{t('Bu aramada dünya bulunamadı.')}</div> : filtered.map(item => <div className={`server-row ${selected === item.id ? 'selected' : ''}`} key={item.id}><button className="world-select" aria-pressed={selected === item.id} aria-label={item.name} onClick={() => setSelected(item.id)} onDoubleClick={() => join(item)}>
           <span className="world-identity"><span className="server-icon"><img src={item.icon ?? defaultIcon} alt="" draggable={false} /></span><strong title={item.name}>{item.name}</strong></span><span title={mode(item)}>{mode(item)}</span><span title={date(item.lastPlayed)}>{date(item.lastPlayed)}</span><span>{size(item.size)}</span>

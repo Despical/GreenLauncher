@@ -1,0 +1,21 @@
+.sidebar.profile-sidebar { min-height: 0; padding: 18px 14px 16px; }
+.profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin-bottom: 18px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
+.profile-workspace-back:hover { background: #21262d; color: #e6edf3; }
+.profile-workspace-back:focus-visible { outline: 1px solid #8397a7; outline-offset: -2px; }
+.profile-workspace-identity { display: flex; flex: none; align-items: center; gap: 9px; margin-bottom: 18px; padding: 0 0 18px; border-bottom: 1px solid #30363d; }
+.profile-workspace-icon { width: 35px; height: 35px; flex: none; }
+.profile-workspace-icon img { display: block; width: 35px; height: 35px; object-fit: contain; }
+.workspace-profile-select { flex: 1; min-width: 0; }
+.workspace-profile-select .dropdown-trigger { height: auto; min-height: 56px; padding: 7px 8px; border-color: transparent; background: transparent; }
+.workspace-profile-select .dropdown-trigger:hover:not(:disabled), .workspace-profile-select.open .dropdown-trigger { border-color: #484f58; background: #21262d; }
+.workspace-profile-select .dropdown-copy { gap: 5px; }
+.workspace-profile-select .dropdown-copy strong { font-size: 14px; }
+.workspace-profile-select .dropdown-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.profile-workspace-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #484f58 transparent; }
+.profile-workspace-nav > button { min-height: 44px; flex: none; }
+.profile-workspace-nav > button > svg { flex: none; }
+.profile-workspace-nav .nav-divider { flex: none; margin: 15px 10px; }
+.profile-workspace-footer { display: flex; flex: none; flex-direction: column; gap: 12px; padding: 18px 0 0; margin-top: 14px; border-top: 1px solid #30363d; }
+.profile-workspace-footer > span { color: #8b949e; text-align: center; font-size: 11px; }
+.mods-setup-fields.profile-scoped { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.server-scoped-profile { min-height: 42px; display: flex; align-items: center; padding: 0 12px; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; background: #161b22; }

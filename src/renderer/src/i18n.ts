@@ -10,6 +10,11 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  'Profillerim’e dön': ['Back to my profiles', 'Zurück zu meinen Profilen', 'Retour à mes profils', 'Вернуться к моим профилям', 'Wróć do moich profili'],
+  'Profili yönet': ['Manage profile', 'Profil verwalten', 'Gérer le profil', 'Управление профилем', 'Zarządzaj profilem'],
+  'Profil yönetimi': ['Profile management', 'Profilverwaltung', 'Gestion du profil', 'Управление профилем', 'Zarządzanie profilem'],
+  'Profil bilgileri': ['Profile information', 'Profilinformationen', 'Informations du profil', 'Информация о профиле', 'Informacje o profilu'],
+  '{name} sunucusuna açık profille katıl.': ['Join {name} with the open profile.', 'Tritt {name} mit dem geöffneten Profil bei.', 'Rejoins {name} avec le profil ouvert.', 'Подключись к {name} с открытым профилем.', 'Dołącz do {name} z otwartym profilem.'],
   "Diskte yeterli boş alan yok. Yer açıp yeniden dene.": ["Not enough disk space. Free up space and try again.", "Nicht genügend Speicherplatz. Gib Speicherplatz frei und versuche es erneut.", "Espace disque insuffisant. Libérez de l’espace et réessayez.", "Недостаточно места на диске. Освободите место и повторите попытку.", "Za mało miejsca na dysku. Zwolnij miejsce i spróbuj ponownie."],
   "Diskteki boş alan kontrol edilemedi. Yeniden dene.": ["Could not check available disk space. Try again.", "Der freie Speicherplatz konnte nicht geprüft werden. Versuche es erneut.", "Impossible de vérifier l’espace disque disponible. Réessayez.", "Не удалось проверить свободное место на диске. Повторите попытку.", "Nie udało się sprawdzić wolnego miejsca na dysku. Spróbuj ponownie."],
   "Daha küçük güncellemeler, güncel katalog": ["Smaller updates, fresh catalog", "Kleinere Updates, aktueller Katalog", "Mises à jour plus légères, catalogue à jour", "Меньше загрузки, актуальный каталог", "Mniejsze aktualizacje, świeży katalog"],
