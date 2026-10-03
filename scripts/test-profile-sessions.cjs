@@ -195,7 +195,10 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   const floodMarker=path.join(root,'startup-after-heavy-output.txt')
   for(let attempt=0;attempt<100&&!fs.existsSync(floodMarker);attempt++)await new Promise(resolve=>setTimeout(resolve,20))
   check('verbose game startup drains stdout and stderr without blocking on pipe capacity',()=>assert.equal(fs.readFileSync(floodMarker,'utf8'),'startup completed'))
+  check('real child stdout and stderr are captured in the matching game console session',()=>{const console=game.console.snapshot(b);assert.equal(console.session.instance.pid,children.at(-1).pid);assert.ok(console.lines.some(line=>line.text.startsWith('AAA')));assert.ok(console.lines.some(line=>line.text.startsWith('BBB')&&line.level==='error'))})
   await stop(children.at(-1))
+  for(let attempt=0;attempt<100&&game.console.snapshot(b).session.running;attempt++)await new Promise(resolve=>setTimeout(resolve,5))
+  check('closed game output remains readable after both process pipes close',()=>assert.equal(game.console.snapshot(b).session.running,false))
   const edit = changes => store.saveProfile({...store.get().profiles.find(p=>p.id===b),...changes})
   edit({autoJoinEnabled:true,autoJoinMode:'world',worldId:'World With Spaces',serverAddress:'localhost',accountOverride:true,launchAccountId:second,memoryOverride:false,memoryMb:8192,minMemoryMb:2048,hideLauncher:true,quitOnGameExit:false})
   const selectedAccount=store.get().selectedAccountId

@@ -24,7 +24,7 @@ try {
   assert.equal(await evaluate("document.querySelector('.profile-sidebar').firstElementChild.className"),'profile-workspace-back')
   assert.equal(await evaluate("document.querySelector('.profile-workspace-label').contains(document.querySelector('.profile-workspace-icon'))"),true)
   await hover('.profile-workspace-icon img');assert.deepEqual(await evaluate("({background:getComputedStyle(document.querySelector('.profile-workspace-label')).backgroundColor,filter:getComputedStyle(document.querySelector('.profile-workspace-label')).filter})"),brandHover,'hover over the profile icon matches the launcher brand')
-  await click('.profile-workspace-label'); assert.equal(await evaluate("document.querySelectorAll('.workspace-profile-select button,.profile-picker-menu').length"),0,'profile identity cannot open a picker')
+  await click('.profile-workspace-label'); assert.equal(await evaluate("document.querySelectorAll('.launcher-links-menu [role=menuitem]').length"),5,'profile identity opens the launcher menu');assert.equal(await evaluate("document.querySelectorAll('.profile-picker-menu').length"),0);await key('Escape',false)
   await click('.account-tile'); await until("document.querySelector('.account-switcher-menu')||document.querySelector('.account-switcher')")
   await click('.account-tile')
   const choose = async name => {

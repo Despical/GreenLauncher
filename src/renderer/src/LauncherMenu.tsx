@@ -3,8 +3,9 @@ import { ArrowUpRight, FileText, Github, Info } from 'lucide-react'
 import { translate, type Language } from './i18n'
 import { DiscordIcon } from './DiscordIcon'
 import logo from '../../../build/launcher-mark.png'
+import type { ReactNode } from 'react'
 
-export function LauncherMenu({ language, version, onAbout, onOpen }: { language: Language; version: string; onAbout: () => void; onOpen: (url: string) => void }) {
+export function LauncherMenu({ language, version, onAbout, onOpen, identity }: { language: Language; version: string; onAbout: () => void; onOpen: (url: string) => void; identity?: { name: string; detail: string; icon: ReactNode } }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null)
   const t = (source: string) => translate(language, source)
@@ -17,7 +18,7 @@ export function LauncherMenu({ language, version, onAbout, onOpen }: { language:
   }, [open])
   const external = (url: string) => { setOpen(false); onOpen(url) }
   return <div className="launcher-brand-menu" ref={root}>
-    <button ref={trigger} type="button" className="brand" aria-label="Green Launcher" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)} onKeyDown={event => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[role=menuitem]')?.focus()) } }}><img src={logo} alt="" draggable={false} /><div><strong>Green</strong><span>Launcher</span></div></button>
+    <button ref={trigger} type="button" className={`brand${identity ? ' profile-workspace-label' : ''}`} aria-label={identity?.name ?? 'Green Launcher'} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)} onKeyDown={event => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); requestAnimationFrame(() => root.current?.querySelector<HTMLButtonElement>('[role=menuitem]')?.focus()) } }}>{identity ? <>{identity.icon}<span className="dropdown-copy"><strong title={identity.name}>{identity.name}</strong><small>{identity.detail}</small></span></> : <><img src={logo} alt="" draggable={false} /><div><strong>Green</strong><span>Launcher</span></div></>}</button>
     {open && <div className="launcher-links-menu" role="menu" aria-label="Green Launcher" onKeyDown={event => { if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]')); const index = items.indexOf(document.activeElement as HTMLButtonElement); items[event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus() }}>
       <div className="launcher-links-heading"><strong>Green Launcher</strong><span>v{version} · Despical</span></div><div className="launcher-links-divider" role="separator" />
       <button role="menuitem" onClick={() => external('https://greenlauncher.org')}><img className="launcher-community-icon" src={logo} alt="" draggable={false} /><span>{t('Web sitesi')}</span><ArrowUpRight size={15} /></button>

@@ -45,12 +45,15 @@ import { LauncherStore } from './store'
 import { PlaytimeTracker } from './playtime'
 import { permGenArgument, profileJoinTarget, profileMemory } from '../shared/profile-settings'
 import { getDownloadManager } from './download-manager'
+import { GameConsole } from './game-console'
+import type { GameLogChange } from '../shared/types'
 
 const versionIdPattern = /^[a-zA-Z0-9._-]{1,90}$/
 const automaticOptifineSuffix = '-OptiFine_auto'
 const catalogFreshFor = 15 * 60_000
 
 export class GameService {
+  readonly console: GameConsole
   private versionCache: MinecraftVersion[] = []
   private optifineCatalog = new Set<string>()
   private refreshInFlight: Promise<void> | null = null
@@ -74,8 +77,10 @@ export class GameService {
     private readonly emit: (activity: LauncherActivity) => void,
     private readonly emitInstances: (instances: RunningInstance[]) => void = () => {},
     onPlaytimeChanged: () => void = () => {},
-    private readonly quitLauncher: () => void = () => {}
+    private readonly quitLauncher: () => void = () => {},
+    onGameLogChanged: (change: GameLogChange) => void = () => {}
   ) {
+    this.console = new GameConsole(onGameLogChanged)
     this.playtime = new PlaytimeTracker(session => {
       try { store.recordPlaySession(session); onPlaytimeChanged() }
       catch (error) { console.warn('Could not save local playtime:', message(error)) }
@@ -636,13 +641,14 @@ export class GameService {
         extraJVMArgs: [...(profile.jvmArgs?.trim() ? parseJvmArgs(profile.jvmArgs) : []), ...permGenArgument(profile, javaInfo?.majorVersion)],
         extraExecOption: { detached: false, windowsHide: true }
       })
-      // Unread output pipes can block Minecraft during verbose loader startup.
-      process.stdout?.resume()
-      process.stderr?.resume()
       if (!process.pid) throw new Error('Oyun işlemi başlatılamadı.')
       if (process.exitCode !== null || process.signalCode !== null) throw new Error(`Oyun başlatılırken kapandı (${process.exitCode ?? process.signalCode}).`)
       const id = randomUUID()
       this.sessions.set(id, { id, pid: process.pid, profileId: profile.id, profileName: profile.name, accountId: account.id, accountName: account.name, versionId, loader: /optifine/i.test(versionId) ? 'optifine' : versionId === profile.modLoaderVersion ? profile.modLoader : undefined, startedAt: new Date().toISOString() })
+      this.console.begin(this.sessions.get(id)!, accessToken ? [accessToken] : [])
+      this.console.attach(id, process.stdout, 'info')
+      this.console.attach(id, process.stderr, 'error')
+      process.once('close', () => this.console.finish(id))
       if (profileId !== null) this.store.markPlayed(profile.id, versionId)
       if (profileId !== null) this.playtime.start(this.sessions.get(id)!)
       this.emitInstances(this.getRunningInstances())

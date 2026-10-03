@@ -14,6 +14,7 @@ import { parseShortcut, shortcutArguments } from './shortcuts'
 import { appId, configureWindows, executable, navigationArgument, navigationItems, persistentIcon } from './windows-integration'
 import { translate } from '../renderer/src/i18n'
 import { GameService, message } from './game'
+import { uploadMinecraftLog } from './game-console'
 import { DiscordPresence, DISCORD_APPLICATION_ID } from './discord'
 import { ErrorLog } from './error-log'
 import { prepareDataPath } from './data-path'
@@ -208,7 +209,7 @@ else {
         const versionId = game.getRunningInstances()[0]?.versionId
         if (versionId) discord.setPlaying(versionId)
       } else if (!game.getRunningInstances().length && (activity.kind === 'idle' || activity.kind === 'error')) discord.clearPlaying()
-    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()), () => app.quit())
+    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()), () => app.quit(), change => send('launcher:gameLog', change))
     app.on('before-quit', () => game.flushPlaytime())
     keepForGames = () => game.getRunningInstances().length > 0
     const modpacks = new ModpackService(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
@@ -362,6 +363,22 @@ else {
     })
     handle('launcher:set-mod-favorite', (favorite: ModFavorite, saved: boolean) => favorites.set(favorite, saved === true))
     handle('launcher:get-running-instances', () => game.getRunningInstances())
+    const requireLogProfile = (profileId: string) => {
+      if (!store.get().profiles.some(profile => profile.id === profileId)) throw new Error('Profil bulunamadı.')
+    }
+    handle('launcher:get-game-log', (profileId: string, instanceId?: string, afterSeq?: number) => {
+      requireLogProfile(profileId)
+      return game.console.snapshot(profileId, instanceId, Number.isFinite(afterSeq) ? afterSeq : 0)
+    })
+    handle('launcher:clear-game-log', (profileId: string, instanceId: string) => { requireLogProfile(profileId); return game.console.clear(profileId, instanceId) })
+    handle('launcher:copy-game-log', (profileId: string, instanceId: string) => { requireLogProfile(profileId); clipboard.writeText(game.console.content(profileId, instanceId)) })
+    handle('launcher:upload-game-log', async (profileId: string, instanceId: string) => {
+      requireLogProfile(profileId)
+      const url = await uploadMinecraftLog(game.console.content(profileId, instanceId))
+      clipboard.writeText(url)
+      game.console.append(instanceId, `[Green Launcher/INFO]: mclo.gs · ${url}`)
+      return url
+    })
     handle('launcher:get-versions', async (refresh?: boolean | 'if-stale') => {
       const versions = await game.versions(refresh === true || refresh === 'if-stale' ? refresh : false)
       const known = (id: string | null): boolean => !!id && versions.some((version: GameVersion) => version.id === id || version.optifineVersions.some(variant => variant.id === id) || (version.optifineAvailable && `${version.id}-OptiFine_auto` === id))

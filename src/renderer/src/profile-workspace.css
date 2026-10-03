@@ -2,14 +2,13 @@
 .profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin-bottom: 12px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
 .profile-workspace-back:hover { background: #21262d; color: #e6edf3; }
 .profile-workspace-back:focus-visible { outline: 1px solid #8397a7; outline-offset: -2px; }
-.profile-workspace-identity { display: flex; flex: none; align-items: center; width: calc(100% - 24px); margin: -7px 12px 10px; padding: 0; }
+.profile-workspace-identity { flex: none; }
 .profile-workspace-icon { width: 49px; height: 49px; flex: none; display: flex; align-items: center; justify-content: center; }
 .profile-workspace-icon img { display: block; width: 44px; height: 44px; object-fit: contain; }
 .workspace-profile-select { flex: 1; min-width: 0; }
-.profile-workspace-label { display: flex; align-items: center; min-height: 63px; padding: 7px 0; gap: 11px; border-radius: 6px; }
-.profile-workspace-label:hover { background: #21262d; filter: brightness(1.14); }
+.profile-workspace-label { min-height: 63px; }
 .workspace-profile-select .dropdown-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; line-height: 1.05; }
-.workspace-profile-select .dropdown-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-profile-select .dropdown-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6edf3; }
 .workspace-profile-select .dropdown-copy strong { font: 700 21px 'Space Grotesk Variable', sans-serif; letter-spacing: -.8px; }
 .workspace-profile-select .dropdown-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
 .profile-workspace-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #484f58 transparent; }
@@ -39,6 +38,9 @@
 .profile-settings-fields.profile-settings-box { padding: 18px; border: 1px solid #30363d; border-radius: 6px; background: #161b22; transition: background-color .16s ease, border-color .16s ease; }
 .profile-settings-box[data-enabled=false] { background: #11161c; border-color: #252c34; }
 .profile-settings-box:disabled label { color: #8b949e; }
+.profile-settings-panel input:disabled, .profile-settings-panel textarea:disabled, .profile-settings-panel .dropdown-trigger:disabled { background: #161b22; border-color: #252c34; color: #6e7681; cursor: not-allowed; opacity: 1; }
+.profile-settings-panel input:disabled::placeholder, .profile-settings-panel textarea:disabled::placeholder { color: #6e7681; }
+.profile-settings-panel .dropdown-trigger:disabled .dropdown-copy strong { color: #6e7681; }
 .profile-setting-check, .profile-setting-radio { display: flex; align-items: center; gap: 10px; border: 0; padding: 4px 0; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 500; text-align: left; }
 .profile-setting-check:focus-visible, .profile-setting-radio:focus-visible { outline: 1px solid #8397a7; outline-offset: 4px; border-radius: 3px; }
 .profile-checkbox { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #6e7681; border-radius: 3px; background: #0d1117; flex: none; }

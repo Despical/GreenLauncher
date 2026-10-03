@@ -123,6 +123,14 @@ export interface RunningInstance {
   startedAt: string
 }
 export type LaunchResult = { status: 'started' } | { status: 'confirmation-required'; instances: RunningInstance[] }
+export type GameLogLevel = 'info' | 'warn' | 'error' | 'debug'
+export interface GameLogLine { seq: number; text: string; level: GameLogLevel }
+export interface GameLogSession { instance: RunningInstance; running: boolean }
+export interface GameLogSnapshot {
+  session: GameLogSession | null; sessions: GameLogSession[]; lines: GameLogLine[]
+  firstSeq: number; nextSeq: number; revision: number; dropped: number
+}
+export interface GameLogChange { profileId: string; instanceId: string }
 export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account'
 export interface LauncherPresenceContext {
   page: LauncherPage
@@ -171,6 +179,7 @@ export interface LauncherEvents {
   downloads: DownloadSnapshot
   skinUpdated: { accountId: string; skin: string | null }
   instances: RunningInstance[]
+  gameLog: GameLogChange
   navigate: LauncherPage
   launchRequest: LaunchRequest
   activity: LauncherActivity
@@ -216,6 +225,10 @@ export interface LauncherApi {
   getAccountCapes(id: string): Promise<AccountCape[]>
   setAccountCape(id: string, capeId: string): Promise<AccountCape[]>
   getRunningInstances(): Promise<RunningInstance[]>
+  getGameLog(profileId: string, instanceId?: string, afterSeq?: number): Promise<GameLogSnapshot>
+  clearGameLog(profileId: string, instanceId: string): Promise<GameLogSnapshot>
+  copyGameLog(profileId: string, instanceId: string): Promise<void>
+  uploadGameLog(profileId: string, instanceId: string): Promise<string>
   play(profileId: string, allowAdditional?: boolean, versionId?: string, serverAddress?: string, serverPreference?: ServerJoinPreference, worldId?: string): Promise<LaunchResult>
   install(versionId: string): Promise<void>
   deleteVersion(versionId: string): Promise<void>
