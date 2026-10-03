@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Check, FolderOpen, HardDrive, Monitor, Settings2 } from 'lucide-react'
+import { Check, FolderOpen, Monitor, Settings2 } from 'lucide-react'
 import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, SavedWorld } from '../../shared/types'
 import { serverLaunchMode } from '../../shared/server-launch'
 import { diagnoseError } from '../../shared/errors'
@@ -7,11 +7,11 @@ import { translate, type Language } from './i18n'
 import { profilePlaytime } from '../../shared/profile-settings'
 import javaIcon from '../assets/java-original.svg'
 
-type Tab = 'general' | 'java' | 'window' | 'storage'
+type Tab = 'general' | 'java' | 'window'
 const normalize = (profile: LauncherProfile): LauncherProfile => ({ ...profile, minMemoryMb: profile.minMemoryMb ?? Math.min(1024, profile.memoryMb), jvmArgs: profile.jvmArgs ?? '', fullscreen: profile.fullscreen ?? false, gameDirectory: profile.gameDirectory ?? '', serverAddress: profile.serverAddress ?? '' })
 
-export function ProfileSettingsPage({ profile, selectedProfileId, language, isVisible, settings, accounts, choicePicker, versionPicker, onState, onNotice, onOpenGeneral, onBusyChange }: {
-  profile: LauncherProfile; selectedProfileId: string | null; language: Language; isVisible: boolean
+export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccountId, language, isVisible, settings, accounts, choicePicker, versionPicker, onState, onNotice, onOpenGeneral, onBusyChange }: {
+  profile: LauncherProfile; selectedProfileId: string | null; selectedAccountId: string | null; language: Language; isVisible: boolean
   settings: LauncherSettings; accounts: GameAccount[]
   choicePicker: (value: string, options: Array<{ value: string; label: string; detail?: string }>, onChange: (value: string) => void, label: string, disabled?: boolean) => ReactNode
   versionPicker: (draft: LauncherProfile, onChange: (versionId: string) => void) => ReactNode
@@ -57,26 +57,27 @@ export function ProfileSettingsPage({ profile, selectedProfileId, language, isVi
     finally { setSaving(false) }
   }
   const checked = (label: string, value: boolean, onChange: () => void, className = '') => <button type="button" role="checkbox" aria-checked={value} className={`profile-setting-check ${className}`} onClick={onChange}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} />}</span><span>{t(label)}</span></button>
-  const sectionHeading = (id: string, title: string, description: string, value: boolean, onChange: () => void) => <>
-    <h3><button type="button" role="checkbox" aria-checked={value} aria-describedby={`profile-${id}-description`} className="profile-setting-check profile-section-enable" onClick={onChange}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} />}</span><span>{t(title)}</span></button></h3>
-    <p className="profile-section-description" id={`profile-${id}-description`}>{t(description)}</p>
+  const sectionHeading = (title: string, value: boolean, onChange: () => void) => <>
     <div className="profile-section-divider" role="separator" />
+    <h3><button type="button" role="checkbox" aria-checked={value} className="profile-setting-check profile-section-enable" onClick={onChange}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} />}</span><span>{t(title)}</span></button></h3>
   </>
   const toggle = (title: string, description: string, value: boolean, onChange: () => void) => <button type="button" role="switch" aria-checked={value} className="setting-toggle" onClick={onChange}><span><strong>{t(title)}</strong><small>{t(description)}</small></span><span aria-hidden="true" className={`switch ${value ? 'on' : ''}`} /></button>
   const autoJoin = draft.autoJoinEnabled ?? !!draft.serverAddress
   const memoryEnabled = draft.memoryOverride !== false
   const worldSupported = serverLaunchMode(draft.versionId) === 'quick-play'
-  const tabs = [{ id: 'general', label: 'Genel', icon: Settings2 }, { id: 'java', label: 'Java', icon: null }, { id: 'window', label: 'Pencere', icon: Monitor }, { id: 'storage', label: 'Depolama', icon: HardDrive }] as const
+  const effectiveAccountId = draft.accountOverride ? draft.launchAccountId ?? selectedAccountId ?? accounts[0]?.id ?? '' : selectedAccountId ?? accounts[0]?.id ?? ''
+  const tabs = [{ id: 'general', label: 'Genel', icon: Settings2 }, { id: 'java', label: 'Java', icon: null }, { id: 'window', label: 'Pencere', icon: Monitor }] as const
   return <div className="content-page settings-page profile-settings-page">
-    <div className="page-heading profile-settings-heading"><div><h2>{t('Ayarlar')}</h2><div className="profile-settings-intro"><p>{t('Buradaki ayarlar genel ayarları geçersiz kılar.')}</p><button type="button" className="heading-action profile-general-settings-link" onClick={() => onOpenGeneral(tab === 'java' ? 'java' : tab === 'storage' ? 'storage' : 'launcher')}><Settings2 size={17} />{t('Genel ayarları aç')}</button></div></div></div>
+    <div className="page-heading profile-settings-heading"><div><h2>{t('Ayarlar')}</h2><p>{t('Buradaki ayarlar genel ayarları geçersiz kılar.')}</p></div><button type="button" className="heading-action profile-general-settings-link" onClick={() => onOpenGeneral(tab === 'java' ? 'java' : 'launcher')}><Settings2 size={17} />{t('Genel ayarları aç')}</button></div>
     <div className="settings-tabs" role="tablist" aria-label={t('Profil ayarları')}>{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" id={`profile-settings-tab-${id}`} role="tab" aria-controls={`profile-settings-panel-${id}`} aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{Icon ? <Icon size={19} /> : <img className="java-icon" src={javaIcon} alt="" />}{label === 'Java' ? label : t(label)}</button>)}</div>
     <div className="settings-panel settings-tab-panel profile-settings-panel" role="tabpanel" id={`profile-settings-panel-${tab}`} aria-labelledby={`profile-settings-tab-${tab}`}>
       <fieldset className="profile-settings-fields" disabled={saving}>
         {tab === 'general' && <div className="form-grid">
           <label className="full">{t('Profil adı')}<input value={draft.name} maxLength={48} onChange={event => update({ name: event.target.value })} placeholder={t('Örn. Survival')} /></label>
           <div className="full profile-version-field"><label>{t('Minecraft sürümü')}</label>{versionPicker(draft, versionId => update({ versionId, modLoader: undefined, modLoaderVersion: undefined }))}</div>
+          <label className="full profile-game-directory">{t('Oyun klasörü')}<div className="input-with-button"><input value={draft.gameDirectory ?? ''} onChange={event => update({ gameDirectory: event.target.value })} placeholder={t('Profilin varsayılan klasörü')} /><button type="button" title={t('Klasör seç')} onClick={() => void browse('directory')}><FolderOpen size={17} /></button></div></label>
           <section className="full profile-settings-section profile-auto-join">
-            {sectionHeading('join', 'Otomatik katılım', 'Oyun açıldığında bir sunucuya veya dünyaya otomatik katıl.', autoJoin, () => update({ autoJoinEnabled: !autoJoin }))}
+            {sectionHeading('Otomatik katılım', autoJoin, () => update({ autoJoinEnabled: !autoJoin }))}
             <fieldset disabled={!autoJoin} data-enabled={autoJoin} className="profile-settings-fields profile-settings-box profile-auto-join-fields">
               <div className="profile-join-row"><button type="button" role="radio" aria-checked={draft.autoJoinMode !== 'world'} className="profile-setting-radio" disabled={!serverLaunchMode(draft.versionId)} onClick={() => update({ autoJoinMode: 'server' })}><span aria-hidden="true" /><span>{t('Başlangıç sunucusu')}</span></button><input aria-label={t('Sunucu adresi')} disabled={draft.autoJoinMode === 'world' || !serverLaunchMode(draft.versionId)} value={draft.serverAddress ?? ''} maxLength={260} onChange={event => update({ serverAddress: event.target.value })} placeholder="play.example.com:25565" /></div>
               <div className="profile-join-row"><button type="button" role="radio" aria-checked={draft.autoJoinMode === 'world'} className="profile-setting-radio" disabled={!worldSupported} onClick={() => update({ autoJoinMode: 'world' })}><span aria-hidden="true" /><span>{t('Tek oyunculu dünya')}</span></button>{choicePicker(draft.worldId ?? '', [...(draft.worldId && !worlds.some(world => world.id === draft.worldId) ? [{ value: draft.worldId, label: draft.worldId }] : []), ...worlds.map(world => ({ value: world.id, label: world.name }))], worldId => update({ worldId }), t(worldLoading ? 'Dünyalar yükleniyor...' : 'Dünya seç'), draft.autoJoinMode !== 'world' || !worldSupported || worldLoading || !worlds.length)}</div>
@@ -84,30 +85,29 @@ export function ProfileSettingsPage({ profile, selectedProfileId, language, isVi
               {worldError && <small className="profile-setting-description" role="alert">{worldError}</small>}
             </fieldset>
           </section>
-          <section className="full profile-settings-section profile-playtime-settings">{sectionHeading('playtime', 'Oyun süresi', 'Oynanan süreyi bu profil için göster ve kaydet.', draft.playtimeOverride === true, () => update({ playtimeOverride: !draft.playtimeOverride, showPlaytime: draft.showPlaytime ?? settings.showPlaytime !== false, savePlaytime: draft.savePlaytime ?? settings.savePlaytime !== false }))}
+          <section className="full profile-settings-section profile-playtime-settings">{sectionHeading('Oyun süresi', draft.playtimeOverride === true, () => update({ playtimeOverride: !draft.playtimeOverride, showPlaytime: draft.showPlaytime ?? settings.showPlaytime !== false, savePlaytime: draft.savePlaytime ?? settings.savePlaytime !== false }))}
             <fieldset className="profile-settings-fields profile-settings-box profile-setting-options" data-enabled={draft.playtimeOverride === true} disabled={!draft.playtimeOverride}>{checked('Bu profilde oynanan süreyi göster', profilePlaytime(draft, settings, 'showPlaytime'), () => update({ showPlaytime: draft.showPlaytime === false }))}{checked('Bu profilde oynanan süreyi kaydet', profilePlaytime(draft, settings, 'savePlaytime'), () => update({ savePlaytime: draft.savePlaytime === false }))}</fieldset>
           </section>
-          <section className="full profile-settings-section profile-account-override">{sectionHeading('account', 'Varsayılan hesabı geçersiz kıl', 'Bu profili başlatırken kullanılacak hesabı seç.', draft.accountOverride === true, () => update({ accountOverride: !draft.accountOverride, launchAccountId: draft.launchAccountId ?? accounts[0]?.id }))}
-            <fieldset className="profile-settings-fields profile-settings-box" data-enabled={draft.accountOverride === true} disabled={!draft.accountOverride}><div className="profile-setting-field"><label>{t('Hesap')}</label>{choicePicker(draft.launchAccountId ?? '', accounts.map(account => ({ value: account.id, label: account.name, detail: t(account.kind === 'offline' ? 'Çevrimdışı hesap' : 'Microsoft hesabı') })), launchAccountId => update({ launchAccountId }), t('Hesap seç'), !draft.accountOverride)}</div></fieldset>
+          <section className="full profile-settings-section profile-account-override">{sectionHeading('Varsayılan hesabı geçersiz kıl', draft.accountOverride === true, () => update({ accountOverride: !draft.accountOverride, launchAccountId: draft.launchAccountId ?? selectedAccountId ?? accounts[0]?.id }))}
+            <fieldset className="profile-settings-fields profile-settings-box" data-enabled={draft.accountOverride === true} disabled={!draft.accountOverride}><div className="profile-setting-field"><label>{t('Hesap')}</label>{choicePicker(effectiveAccountId, accounts.map(account => ({ value: account.id, label: account.name, detail: t(account.kind === 'offline' ? 'Çevrimdışı hesap' : 'Microsoft hesabı') })), launchAccountId => update({ launchAccountId }), t('Hesap seç'), !draft.accountOverride)}</div></fieldset>
           </section>
         </div>}
         {tab === 'java' && <div className="form-grid">
           <label className="full">{t('Java çalıştırılabilir dosyası')}<div className="input-with-button"><input value={draft.javaPath} onChange={event => update({ javaPath: event.target.value })} placeholder={t('Otomatik algıla')} /><button type="button" title={t('Java seç')} onClick={() => void browse('java')}><FolderOpen size={17} /></button></div></label>
-          <section className="full profile-settings-section profile-memory-settings">{sectionHeading('memory', 'Bellek', 'Bu profil için kullanılacak Java bellek değerlerini ayarla.', memoryEnabled, () => update({ memoryOverride: !memoryEnabled }))}
+          <section className="full profile-settings-section profile-memory-settings">{sectionHeading('Bellek', memoryEnabled, () => update({ memoryOverride: !memoryEnabled }))}
             <fieldset className="profile-settings-fields profile-settings-box form-grid" data-enabled={memoryEnabled} disabled={!memoryEnabled}>
               <label>{t('Minimum bellek (MB) (-Xms)')}<input type="number" min={512} max={32768} step={512} value={draft.minMemoryMb} onChange={event => update({ minMemoryMb: Number(event.target.value) })} /></label>
               <label>{t('Maksimum bellek (MB) (-Xmx)')}<input type="number" min={1024} max={32768} step={512} value={draft.memoryMb} onChange={event => update({ memoryMb: Number(event.target.value) })} /></label>
               <label className="full">{t('PermGen boyutu (MB) (-XX:PermSize)')}<input type="number" min={64} max={4096} step={64} value={draft.permGenMb ?? 128} onChange={event => update({ permGenMb: Number(event.target.value) })} /></label>
             </fieldset>
           </section>
-          <label className="full profile-jvm-args">{t('JVM argümanları')}<textarea rows={3} value={draft.jvmArgs ?? ''} onChange={event => update({ jvmArgs: event.target.value })} placeholder="-XX:+UseG1GC" /></label>
+          <label className="full profile-jvm-args"><div className="profile-section-divider" role="separator" />{t('JVM argümanları')}<textarea rows={3} value={draft.jvmArgs ?? ''} onChange={event => update({ jvmArgs: event.target.value })} placeholder="-XX:+UseG1GC" /></label>
         </div>}
         {tab === 'window' && <div className="form-grid">
           <label>{t('Genişlik')}<input type="number" min={640} max={7680} value={draft.width} onChange={event => update({ width: Number(event.target.value) })} /></label>
           <label>{t('Yükseklik')}<input type="number" min={480} max={4320} value={draft.height} onChange={event => update({ height: Number(event.target.value) })} /></label>
           <div className="full profile-window-options">{toggle('Tam ekran başlat', 'Açılışta ekran çözünürlüğünü tam ekran kullan.', draft.fullscreen === true, () => update({ fullscreen: !draft.fullscreen }))}{toggle('Oyun penceresi açıldığında başlatıcıyı gizle', 'Oyun çalışırken başlatıcıyı arka planda tut.', draft.hideLauncher ?? settings.closeOnLaunch, () => update({ hideLauncher: !(draft.hideLauncher ?? settings.closeOnLaunch) }))}{toggle('Oyun penceresi kapandığında başlatıcıdan çık', 'Tüm oyun pencereleri kapandığında başlatıcıyı kapat.', draft.quitOnGameExit === true, () => update({ quitOnGameExit: !draft.quitOnGameExit }))}</div>
         </div>}
-        {tab === 'storage' && <div className="form-grid"><label className="full">{t('Oyun klasörü')}<div className="input-with-button"><input value={draft.gameDirectory ?? ''} onChange={event => update({ gameDirectory: event.target.value })} placeholder={t('Profilin varsayılan klasörü')} /><button type="button" title={t('Klasör seç')} onClick={() => void browse('directory')}><FolderOpen size={17} /></button></div></label></div>}
       </fieldset>
     </div>
     {isVisible && dirty && <div className="save-bar profile-settings-save-bar"><span>{t('Kaydedilmemiş değişikliklerin var.')}</span><button type="button" disabled={saving} onClick={reset}>{t('Sıfırla')}</button><button type="button" className="save-confirm" disabled={saving || !draft.name.trim()} onClick={() => void save()}>{saving ? t('Kaydediliyor...') : t('Değişiklikleri kaydet')}</button></div>}

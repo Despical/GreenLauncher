@@ -9,6 +9,9 @@ try {
   const brand = await evaluate("(()=>{const t=document.querySelector('.brand strong').getBoundingClientRect(),i=document.querySelector('.brand img').getBoundingClientRect();return {textX:t.left,textY:t.top,iconX:i.left,iconY:i.top}})()")
   const hover = async selector => { const rect=await evaluate('document.querySelector('+JSON.stringify(selector)+').getBoundingClientRect().toJSON()');await call('Input.dispatchMouseEvent',{type:'mouseMoved',x:rect.x+rect.width/2,y:rect.y+rect.height/2});await wait(350) }
   await hover('.brand img');const brandHover=await evaluate("({background:getComputedStyle(document.querySelector('.brand')).backgroundColor,filter:getComputedStyle(document.querySelector('.brand')).filter})")
+  await nav('Ayarlar')
+  const headingStyle = "(()=>{const h=document.querySelector('.main-content .page-heading h2'),p=h.nextElementSibling;return {titleFont:getComputedStyle(h).font,descriptionFont:getComputedStyle(p).font,gap:p.getBoundingClientRect().top-h.getBoundingClientRect().bottom,height:h.parentElement.parentElement.getBoundingClientRect().height}})()"
+  const globalHeading = await evaluate(headingStyle)
   await nav('Modlar'); await until("document.querySelector('.mods-field .mod-select,.mods-field .custom-dropdown')")
   assert.equal(await evaluate("!!document.querySelector('.profile-sidebar')"),false,'global catalog retains launcher menu')
   assert.equal(await evaluate("document.querySelectorAll('.mods-field').length"),3)
@@ -19,20 +22,28 @@ try {
   const identity = await evaluate("(()=>{const t=document.querySelector('.workspace-profile-select strong').getBoundingClientRect(),i=document.querySelector('.profile-workspace-icon img').getBoundingClientRect();return {textX:t.left,textY:t.top,iconX:i.left,iconY:i.top}})()")
   assert.ok(Math.abs(identity.textX-brand.textX)<=1)
   assert.equal(await evaluate("document.querySelector('.profile-sidebar').firstElementChild.className"),'profile-workspace-back')
-  assert.equal(await evaluate("document.querySelector('.workspace-profile-select .dropdown-trigger').contains(document.querySelector('.profile-workspace-icon'))"),true)
-  await hover('.profile-workspace-icon img');assert.deepEqual(await evaluate("({background:getComputedStyle(document.querySelector('.workspace-profile-select .dropdown-trigger')).backgroundColor,filter:getComputedStyle(document.querySelector('.workspace-profile-select .dropdown-trigger')).filter})"),brandHover,'hover over the profile icon matches the launcher brand')
+  assert.equal(await evaluate("document.querySelector('.profile-workspace-label').contains(document.querySelector('.profile-workspace-icon'))"),true)
+  await hover('.profile-workspace-icon img');assert.deepEqual(await evaluate("({background:getComputedStyle(document.querySelector('.profile-workspace-label')).backgroundColor,filter:getComputedStyle(document.querySelector('.profile-workspace-label')).filter})"),brandHover,'hover over the profile icon matches the launcher brand')
+  await click('.profile-workspace-label'); assert.equal(await evaluate("document.querySelectorAll('.workspace-profile-select button,.profile-picker-menu').length"),0,'profile identity cannot open a picker')
   await click('.account-tile'); await until("document.querySelector('.account-switcher-menu')||document.querySelector('.account-switcher')")
   await click('.account-tile')
-  const choose = async name => {await click('.workspace-profile-select .dropdown-trigger');await until("document.querySelector('.profile-picker-menu')");await evaluate("[...document.querySelectorAll('.profile-picker-menu [role=option]')].find(e=>e.querySelector('strong').textContent==="+JSON.stringify(name)+").click()");await wait(100)}
+  const choose = async name => {
+    const activePage = await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent.trim()")
+    await click('.profile-workspace-back'); await until("document.querySelector('.page-profiles')")
+    await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3').textContent==="+JSON.stringify(name)+").dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+    await until("document.querySelector('.workspace-profile-select strong').textContent==="+JSON.stringify(name))
+    if(activePage) await nav(activePage)
+  }
   await choose('Test World 2'); await nav('Ayarlar'); await until("document.querySelector('.profile-settings-page')")
-  assert.equal(await evaluate("document.querySelectorAll('.profile-settings-page [role=tab]').length"),4)
+  assert.equal(await evaluate("document.querySelectorAll('.profile-settings-page [role=tab]').length"),3)
+  assert.deepEqual(await evaluate(headingStyle),globalHeading,'profile heading uses the global settings font and spacing')
   const textarea = async value => {await evaluate("(()=>{const e=document.querySelector('.profile-jvm-args textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,"+JSON.stringify(value)+");e.dispatchEvent(new Event('input',{bubbles:true}))})()");await wait(100)}
   const tab = async name => {await evaluate("document.querySelector('.profile-settings-page #profile-settings-tab-"+name+"').click()");await wait(50)}
-  for(const name of ['general','java','window','storage']) {
+  for(const name of ['general','java','window']) {
     await tab(name)
     assert.equal(await evaluate("document.querySelector('.profile-settings-heading p').textContent"),'Buradaki ayarlar genel ayarları geçersiz kılar.')
     await click('.profile-general-settings-link'); await until("document.querySelector('.page-settings')")
-    const expected = name==='java'?'Java':name==='storage'?'Depolama':'Launcher'
+    const expected = name==='java'?'Java':'Launcher'
     assert.equal(await evaluate("document.querySelector('.settings-page:not(.profile-settings-page) .settings-tabs [aria-selected=true]').textContent.trim()"),expected)
     await key('5'); await until("document.querySelector('.profile-sidebar')"); await nav('Ayarlar')
   }
@@ -58,8 +69,9 @@ try {
   await tab('general')
   const versionGap = await evaluate("(()=>{const f=document.querySelector('.profile-version-field');return f.querySelector('.custom-dropdown').getBoundingClientRect().top-f.querySelector('label').getBoundingClientRect().bottom})()")
   assert.ok(versionGap>=9,'version title has the shared field gap')
-  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-auto-join .profile-section-description')).fontWeight"),'400')
-  assert.equal(await evaluate("[...document.querySelectorAll('.profile-settings-section')].every(s=>!s.querySelector('.profile-settings-box').contains(s.querySelector('.profile-section-enable'))&&!s.querySelector('.profile-settings-box').contains(s.querySelector('.profile-section-description')))"),true,'headings and descriptions remain outside the option boxes')
+  assert.equal(await evaluate("[...document.querySelectorAll('.profile-settings-section')].every(s=>!s.querySelector('.profile-settings-box').contains(s.querySelector('.profile-section-enable'))&&s.firstElementChild.getAttribute('role')==='separator')"),true,'headings remain outside boxes with separators above')
+  assert.equal(await evaluate("document.querySelectorAll('.profile-section-description').length"),0)
+  assert.equal(await evaluate("document.querySelector('.profile-version-field').nextElementSibling.classList.contains('profile-game-directory')"),true)
   const disabledColor=await evaluate("getComputedStyle(document.querySelector('.profile-auto-join .profile-settings-box')).backgroundColor")
   await click('.profile-auto-join .profile-section-enable')
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.profile-auto-join .profile-settings-box')).backgroundColor"),disabledColor)
@@ -72,9 +84,14 @@ try {
   await click('.profile-playtime-settings .profile-section-enable')
   await click('.profile-playtime-settings .profile-setting-options [role=checkbox]:last-child')
   assert.equal(await evaluate("document.querySelector('.profile-account-override .dropdown-trigger').disabled"),true,'disabled account picker remains visible')
+  assert.equal(await evaluate("document.querySelector('.profile-account-override .dropdown-copy strong').textContent"),before.accounts.find(a=>a.id===before.selectedAccountId).name)
   await click('.profile-account-override .profile-section-enable');await until("document.querySelector('.profile-account-override .dropdown-trigger')")
   assert.equal(await evaluate("document.querySelector('.profile-account-override .dropdown-copy strong').textContent"),'DesignQA')
   await tab('java');assert.equal(await evaluate("document.querySelector('.profile-jvm-args textarea').rows"),3);assert.ok(await evaluate("document.querySelector('.profile-jvm-args textarea').getBoundingClientRect().height>=82"));assert.equal(await evaluate("document.querySelector('.profile-memory-settings label:last-child input').value"),'128')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-jvm-args textarea')).resize"),'none')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-jvm-args textarea')).marginTop"),'9px')
+  assert.equal(await evaluate("document.querySelector('.profile-memory-settings').firstElementChild.getAttribute('role')"),'separator')
+  assert.equal(await evaluate("document.querySelector('.profile-jvm-args').firstElementChild.getAttribute('role')"),'separator')
   await click('.profile-memory-settings .profile-section-enable');assert.equal(await evaluate("document.querySelector('.profile-memory-settings fieldset').disabled"),true)
   await textarea('-Doptions=profile')
   await tab('window');await click('.profile-window-options [role=switch]:nth-child(2)');await click('.profile-window-options [role=switch]:nth-child(3)')
@@ -98,11 +115,11 @@ try {
   for(const language of ['tr','en','de','fr','ru','pl']) {
     await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit')
     await evaluate("document.querySelector('.profile-workspace-nav button:last-child').click()");await until("document.querySelector('.profile-settings-page')")
-    for(const name of ['general','java','window','storage']) {
+    for(const name of ['general','java','window']) {
       await tab(name);await call('Emulation.setDeviceMetricsOverride',{width:1080,height:700,deviceScaleFactor:1,mobile:false})
       assert.equal(await evaluate("document.querySelector('.profile-general-settings-link').scrollWidth<=document.querySelector('.profile-general-settings-link').clientWidth"),true)
       assert.equal(await evaluate("document.querySelector('.profile-settings-page').scrollWidth<=document.querySelector('.profile-settings-page').clientWidth"),true,language+' settings fit')
-      assert.ok(await evaluate("(()=>{const p=document.querySelector('.profile-settings-intro p').getBoundingClientRect(),b=document.querySelector('.profile-general-settings-link').getBoundingClientRect();return Math.abs(p.top+p.height/2-b.top-b.height/2)<1})()"),'general button aligns with explanation')
+      assert.equal(await evaluate("document.querySelector('.profile-settings-heading h2').nextElementSibling.tagName"),'P','same heading structure as global settings')
       assert.equal(await evaluate("[...document.querySelectorAll('.profile-settings-page [role=tab]')].every(b=>b.scrollWidth<=b.clientWidth)"),true,language+' tabs fit')
     }
   }
@@ -117,7 +134,7 @@ try {
   await nav('Modlar');await until("document.querySelector('.mods-source-nav')")
   assert.equal(await evaluate("!!document.querySelector('.profile-sidebar')"),false,'catalog remains accessible with no profiles')
   assert.equal(errors.length,0,JSON.stringify(errors))
-  console.log('PASS profile double-click, brand alignment, retained account switcher, global catalog with/without profiles, four settings tabs/general links, draft persistence, isolated profile save, home/global settings preservation, invalid memory, automatic world target, account/playtime/memory/window options, provider icon, modpack lock and six-language minimum layout')
+  console.log('PASS profile double-click, brand alignment, retained account switcher, global catalog with/without profiles, three settings tabs/general links, draft persistence, isolated profile save, home/global settings preservation, invalid memory, automatic world target, account/playtime/memory/window options, provider icon, modpack lock and six-language minimum layout')
 }finally{socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)

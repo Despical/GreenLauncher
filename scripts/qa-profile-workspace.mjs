@@ -13,10 +13,11 @@ try {
   assert.equal(await evaluate("document.querySelector('.workspace-profile-select .dropdown-copy strong').textContent"),'Test World')
   assert.equal(await evaluate("document.querySelectorAll('.worlds-page .servers-list-profile-select').length"),0)
   const choose = async name => {
-    await click('.workspace-profile-select .dropdown-trigger')
-    await until("document.querySelector('.profile-picker-menu')")
-    await evaluate("[...document.querySelectorAll('.profile-picker-menu [role=option]')].find(e=>e.querySelector('strong').textContent==="+JSON.stringify(name)+").click()")
-    await until("document.querySelector('.workspace-profile-select .dropdown-copy strong').textContent==="+JSON.stringify(name))
+    const activePage = await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent.trim()")
+    await click('.profile-workspace-back'); await until("document.querySelector('.page-profiles')")
+    await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3').textContent==="+JSON.stringify(name)+").dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+    await until("document.querySelector('.workspace-profile-select strong').textContent==="+JSON.stringify(name))
+    if(activePage) await nav(activePage)
   }
   await choose('Test World 2'); await until("!document.querySelector('.worlds-page .spin')")
   assert.equal(await evaluate("document.querySelectorAll('.world-select').length"),0)
