@@ -13,6 +13,13 @@ export function redactGameLog(text: string, secrets: string[] = []): string {
 }
 
 export function gameLogLevel(text: string, fallback: GameLogLevel = 'info'): GameLogLevel {
+  // A structured severity takes priority over words in the message itself.
+  const declared = text.match(/\[[^\]\r\n]*\/(INFO|WARN|WARNING|ERROR|FATAL|SEVERE|DEBUG|TRACE)\]:/i)?.[1]
+    ?? text.match(/\blevel=["'](INFO|WARN|WARNING|ERROR|FATAL|SEVERE|DEBUG|TRACE)["']/i)?.[1]
+  if (declared) {
+    const level = declared.toUpperCase()
+    return ['ERROR', 'FATAL', 'SEVERE'].includes(level) ? 'error' : ['WARN', 'WARNING'].includes(level) ? 'warn' : ['DEBUG', 'TRACE'].includes(level) ? 'debug' : 'info'
+  }
   if (/(?:^|\/|\[|\s)(?:ERROR|FATAL|SEVERE)(?:\]|\s|:)/i.test(text) || /level=["'](?:ERROR|FATAL)["']/i.test(text) || /^(?:Exception in thread|Caused by:)/.test(text)) return 'error'
   if (/(?:^|\/|\[|\s)WARN(?:ING)?(?:\]|\s|:)/i.test(text) || /level=["']WARN["']/i.test(text)) return 'warn'
   if (/(?:^|\/|\[|\s)(?:DEBUG|TRACE)(?:\]|\s|:)/i.test(text) || /level=["'](?:DEBUG|TRACE)["']/i.test(text)) return 'debug'

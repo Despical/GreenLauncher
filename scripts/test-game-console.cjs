@@ -21,6 +21,19 @@ const changes=[], logs = new GameConsole(change=>changes.push(change))
   assert.ok(!logs.content('profile-a','a').includes('private-fixture-token'));assert.ok(!logs.content('profile-a','a').includes('\x1b'))
   assert.ok(!JSON.stringify(snapshot).includes('private-fixture-token'))
   assert.equal(gameLogLevel('<log4j:Event level="ERROR">'),'error');assert.equal(gameLogLevel('WARNING: something'),'warn')
+  const sample = [
+    '[17:07:33] [Render thread/INFO]: [SDLNativesLoader] Loading SDL3 version: SdlVersionNumber[major=3, minor=4, micro=12]. Java bindings targeting: SdlVersionNumber[major=3, minor=4, micro=14]',
+    '[17:07:33] [Render thread/WARN]: [SDLNativesLoader] SDL3 NATIVE LIBRARY VERSION MISMATCH! Java bindings are targeting a different version of SDL3 than the loaded native library. This may cause issues.',
+    '[17:07:33] [Download-2/INFO]: Could not authorize you against Realms server: java.lang.RuntimeException: Failed to parse into SignedJWT: 0',
+    "[17:07:33] [Download-2/ERROR]: Couldn't connect to realms",
+    "com.mojang.realmsclient.exception.RealmsServiceException: Realms authentication error with message 'java.lang.RuntimeException: Failed to parse into SignedJWT: 0'"
+  ].join('\n')
+  const sampleLogs = new GameConsole(), sampleStream = new PassThrough()
+  sampleLogs.begin(instance('sample'));sampleLogs.attach('sample',sampleStream,'info');sampleStream.end(sample)
+  await once(sampleStream,'end')
+  assert.equal(sampleLogs.content('profile-a','sample'),sample,'preserve raw Minecraft format including multiline exceptions')
+  assert.equal(sampleLogs.snapshot('profile-a','sample').lines.map(line=>line.level).join(','),'info,warn,info,error,error')
+  assert.equal(gameLogLevel('[17:07:33] [Render thread/INFO]: WARN: error: message mentions other levels'),'info')
   assert.ok(!redactGameLog('{"accessToken": "fixture-secret", "password": "private-password"}').includes('fixture-secret'))
   assert.ok(!redactGameLog('Authorization: Bearer private-bearer').includes('private-bearer'))
   logs.begin(instance('b','profile-b'));logs.append('b','profile B only')

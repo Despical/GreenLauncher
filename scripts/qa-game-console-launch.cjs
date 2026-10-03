@@ -18,7 +18,7 @@ ipcMain.handle=(channel,handler)=>register(channel,async(event,...args)=>{
   if(channel==='launcher:save-settings'&&args[0]?.qaGameLog){
     const {qaGameLog:control,...settings}=args[0];args[0]=settings
     if(control.start)start(control.start,control.profileId,control.pid)
-    if(control.append)for(const line of control.append)logs.append(control.id??'log-second',line)
+    if(control.append){let level='info';for(const line of control.append)level=logs.append(control.id??'log-second',line,level)}
     if(control.finish){logs.finish(control.finish);sessions.delete(control.finish);send('instances',[...sessions.values()])}
     if(control.failUpload!==undefined)failUpload=control.failUpload
     if(control.failRead!==undefined)failRead=control.failRead
@@ -31,6 +31,6 @@ register('launcher:clear-game-log',(_event,profile,id)=>logs.clear(profile,id))
 register('launcher:copy-game-log',(_event,profile,id)=>{copied=logs.content(profile,id)})
 register('launcher:upload-game-log',async(_event,profile,id)=>{
   const url=await uploadMinecraftLog(logs.content(profile,id),async(endpoint,options)=>{uploads.push({endpoint,content:JSON.parse(options.body).content});await new Promise(resolve=>setTimeout(resolve,180));return {ok:!failUpload,json:async()=>({success:true,id:'Fixture123',url:'https://mclo.gs/Fixture123'})}})
-  copied=url;logs.append(id,`[Green Launcher/INFO]: mclo.gs · ${url}`);return url
+  copied=url;logs.append(id,`[17:07:33] [Green Launcher/INFO]: Günlük mclo.gs’a yüklendi. ${url}`);return url
 })
 require('./qa-profile-workspace-launch.cjs')

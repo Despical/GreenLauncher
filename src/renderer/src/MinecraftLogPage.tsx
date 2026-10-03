@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowDownToLine, Check, Copy, LoaderCircle, Search, Trash2, Upload } from 'lucide-react'
+import { ArrowDownToLine, Check, Copy, LoaderCircle, Search, Terminal, Trash2, Upload } from 'lucide-react'
 import type { GameLogLine, GameLogSnapshot, LauncherProfile, RunningInstance } from '../../shared/types'
 import { diagnoseError } from '../../shared/errors'
 import { translate, type Language } from './i18n'
@@ -18,7 +18,6 @@ export function MinecraftLogPage({ profile, language, isVisible, instances, onNo
   const [follow, setFollow] = useState(true), [wrap, setWrap] = useState(true), [colors, setColors] = useState(true)
   const [query, setQuery] = useState(''), [found, setFound] = useState<number | null>(null)
   const [error, setError] = useState(''), [pending, setPending] = useState<'copy' | 'upload' | 'clear' | null>(null)
-  const [uploaded, setUploaded] = useState('')
   const [retry, setRetry] = useState(0)
   const lastRetry = useRef(0)
   const busy = useRef(false), consoleRef = useRef<HTMLDivElement>(null), atBottom = useRef(true)
@@ -84,13 +83,13 @@ export function MinecraftLogPage({ profile, language, isVisible, instances, onNo
     try {
       if (kind === 'clear') {
         const next = await window.launcher.clearGameLog(profile.id, id)
-        current.current = next; setSnapshot(next); setFound(null); setUploaded(''); atBottom.current = true
+        current.current = next; setSnapshot(next); setFound(null); atBottom.current = true
       } else if (kind === 'copy') { await window.launcher.copyGameLog(profile.id, id); onNotice(t('Günlük panoya kopyalandı.')) }
-      else { const url = await window.launcher.uploadGameLog(profile.id, id); setUploaded(url); onNotice(t('Günlük yüklendi. Bağlantı panoya kopyalandı.')) }
+      else { await window.launcher.uploadGameLog(profile.id, id); onNotice(t('Günlük yüklendi. Bağlantı panoya kopyalandı.')) }
     } catch (failure) { onNotice(t(diagnoseError(failure).message)) }
     finally { busy.current = false; setPending(null) }
   }
-  const checkbox = (label: string, value: boolean, change: () => void) => <button type="button" role="checkbox" aria-checked={value} className="minecraft-log-check" onClick={change}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} />}</span>{t(label)}</button>
+  const checkbox = (label: string, value: boolean, change: () => void) => <button type="button" role="checkbox" aria-checked={value} className="minecraft-log-check" onClick={change}><span className="profile-checkbox" aria-hidden="true">{value && <Check size={13} strokeWidth={3} />}</span>{t(label)}</button>
   const highlighted = (line: GameLogLine) => {
     if (!needle) return line.text || '\u00a0'
     const pieces: ReactNode[] = [], lower = line.text.toLocaleLowerCase()
@@ -101,11 +100,17 @@ export function MinecraftLogPage({ profile, language, isVisible, instances, onNo
   return <div className="content-page minecraft-log-page">
     <div className="page-heading"><div><h2>{t('Minecraft günlüğü')}</h2><p>{t('Bu profilin oyun çıktısını anlık olarak takip et.')}</p></div><button className="heading-action minecraft-log-upload-action" disabled={!lines.length || !!pending} onClick={() => void act('upload')}>{pending === 'upload' ? <LoaderCircle className="spin" size={17} /> : <Upload size={17} />}{t('Yükle')}</button></div>
     <div className="minecraft-log-panel">
-      <div className="minecraft-log-toolbar"><div className="minecraft-log-context"><div className="minecraft-log-status"><span className={`minecraft-log-state${snapshot?.session?.running ? ' running' : ''}`}><span aria-hidden="true" />{t(snapshot?.session ? snapshot.session.running ? 'Oyun çalışıyor' : 'Oyun kapandı' : 'Oyun çıktısı bekleniyor...')}{snapshot?.session && <small>PID {snapshot.session.instance.pid}</small>}</span><span className="minecraft-log-count">{needle ? t('{count} eşleşme', { count: matches.length }) : t('{count} satır', { count: lines.length })}</span></div>{snapshot && snapshot.sessions.length > 1 && sessionPicker(choice || snapshot.session?.instance.id || '', snapshot.sessions.map(session => ({ value: session.instance.id, label: `${new Date(session.instance.startedAt).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · PID ${session.instance.pid}`, detail: t(session.running ? 'Oyun çalışıyor' : 'Oyun kapandı') })), value => { setChoice(value); setFound(null); setUploaded(''); atBottom.current = true })}</div><div className="minecraft-log-search"><Search size={17} aria-hidden="true" /><input aria-label={t('Günlükte ara')} placeholder={t('Günlükte ara')} value={query} onChange={event => { setQuery(event.target.value); setFound(null) }} onKeyDown={event => { if (event.key === 'Enter' && needle) find() }} /><button disabled={!needle || !lines.length} onClick={find}>{t('Bul')}</button></div></div>
+      <div className="minecraft-log-toolbar">
+        <div className="minecraft-log-context">
+          {snapshot && snapshot.sessions.length > 1
+            ? sessionPicker(choice || snapshot.session?.instance.id || '', snapshot.sessions.map(session => ({ value: session.instance.id, label: `${new Date(session.instance.startedAt).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · PID ${session.instance.pid}`, detail: t(session.running ? 'Oyun çalışıyor' : 'Oyun kapandı') })), value => { setChoice(value); setFound(null); atBottom.current = true })
+            : <span className={`minecraft-log-state${snapshot?.session?.running ? ' running' : ''}`}><span aria-hidden="true" />{t(snapshot?.session ? snapshot.session.running ? 'Oyun çalışıyor' : 'Oyun kapandı' : 'Oyun çıktısı bekleniyor...')}</span>}
+        </div>
+        <div className="minecraft-log-search"><div className="minecraft-log-search-field"><Search size={17} aria-hidden="true" /><input aria-label={t('Günlükte ara')} placeholder={t('Günlükte ara')} value={query} onChange={event => { setQuery(event.target.value); setFound(null) }} onKeyDown={event => { if (event.key === 'Enter' && needle) find() }} /></div><button disabled={!needle || !lines.length} onClick={find}>{t('Bul')}</button></div>
+      </div>
       {error && <div className="minecraft-log-error" role="alert">{t(error)}<button onClick={() => setRetry(retry + 1)}>{t('Yeniden dene')}</button></div>}
-      {uploaded && <button className="minecraft-log-upload" onClick={() => void window.launcher.openExternal(uploaded).catch(failure => onNotice(t(diagnoseError(failure).message)))}>{uploaded}</button>}
       <div ref={consoleRef} className={`minecraft-console${wrap ? ' wrap' : ''}${colors ? ' colored' : ''}`} role="log" aria-label={t('Minecraft günlüğü')} aria-live="off" tabIndex={0} onScroll={event => { const node = event.currentTarget; atBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 36 }}>
-        {!lines.length ? <div className="minecraft-console-empty">{t(snapshot?.session ? 'Konsol boş. Yeni oyun çıktıları burada görünecek.' : 'Bu profil başlatıldığında oyun çıktıları burada görünecek.')}</div> : chunks.map(chunk => <div className="minecraft-log-chunk" key={chunk[0].seq}>{chunk.map(line => <div className={`minecraft-console-line level-${line.level}${found === line.seq ? ' found' : ''}`} key={line.seq} data-seq={line.seq}><span className="minecraft-line-number" aria-hidden="true">{line.seq}</span><span className="minecraft-line-text">{highlighted(line)}</span></div>)}</div>)}
+        {!lines.length ? <div className="minecraft-console-empty"><Terminal size={28} aria-hidden="true" /><h3>{t('Henüz günlük yok')}</h3><p>{t(snapshot?.session ? 'Yeni oyun çıktıları burada görünecek.' : 'Bu profil başlatıldığında oyun çıktıları burada görünecek.')}</p></div> : chunks.map(chunk => <div className="minecraft-log-chunk" key={chunk[0].seq}>{chunk.map(line => <div className={`minecraft-console-line level-${line.level}${found === line.seq ? ' found' : ''}`} key={line.seq} data-seq={line.seq}><span className="minecraft-line-text">{highlighted(line)}</span></div>)}</div>)}
       </div>
       <div className="minecraft-log-footer"><div className="minecraft-log-options">{checkbox('Güncellemeye devam et', follow, () => setFollow(!follow))}{checkbox('Satırları kaydır', wrap, () => setWrap(!wrap))}{checkbox('Satırları renklendir', colors, () => setColors(!colors))}</div><div className="minecraft-log-actions"><button className="minecraft-log-copy" disabled={!lines.length || !!pending} onClick={() => void act('copy')}>{pending === 'copy' ? <LoaderCircle className="spin" size={16} /> : <Copy size={16} />}{t('Kopyala')}</button><button className="minecraft-log-clear" disabled={!lines.length || !!pending} onClick={() => void act('clear')}><Trash2 size={16} />{t('Temizle')}</button><button className="minecraft-log-bottom" onClick={bottom}><ArrowDownToLine size={16} />{t('En altta')}</button></div></div>
       {!!snapshot?.dropped && <p className="minecraft-log-limit">{t('{count} eski satır bellek sınırı nedeniyle kaldırıldı.', { count: snapshot.dropped })}</p>}

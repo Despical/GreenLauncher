@@ -376,7 +376,9 @@ else {
       requireLogProfile(profileId)
       const url = await uploadMinecraftLog(game.console.content(profileId, instanceId))
       clipboard.writeText(url)
-      game.console.append(instanceId, `[Green Launcher/INFO]: mclo.gs · ${url}`)
+      const language = store.get().settings.language
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false })
+      game.console.append(instanceId, `[${time}] [Green Launcher/INFO]: ${translate(language, 'Günlük mclo.gs’a yüklendi.')} ${url}`)
       return url
     })
     handle('launcher:get-versions', async (refresh?: boolean | 'if-stale') => {
