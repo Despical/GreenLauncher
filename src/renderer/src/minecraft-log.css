@@ -1,6 +1,7 @@
 .minecraft-log-page { max-width: 1500px; height: 100%; min-height: 580px; display: flex; flex-direction: column; padding-bottom: 24px; }
 .minecraft-log-page > .page-heading { flex: none; }
-.minecraft-log-upload-action { flex: none; }
+.minecraft-log-upload-action { flex: none; background: var(--action-green); border-color: var(--action-green-border); color: #fff; }
+.minecraft-log-upload-action:hover:enabled { background: var(--action-green-hover); border-color: var(--action-green-hover-border); }
 .minecraft-log-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 18px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; }
 .minecraft-log-toolbar, .minecraft-log-options, .minecraft-log-actions, .minecraft-log-footer { display: flex; align-items: center; gap: 12px; }
 .minecraft-log-toolbar { justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #30363d; }

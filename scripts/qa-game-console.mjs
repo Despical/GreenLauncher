@@ -48,7 +48,7 @@ try {
   assert.equal(await evaluate("window.launcher.getState().then(s=>s.qaLogUploads.length)"),0,'opening confirmation never uploads')
   assert.match(await evaluate("document.querySelector('.minecraft-log-confirm').textContent"),/api.mclo.gs/)
   await click('.minecraft-log-confirm .secondary');assert.equal(await evaluate("window.launcher.getState().then(s=>s.qaLogUploads.length)"),0,'cancel does not upload')
-  await click('.minecraft-log-upload-action');await until("document.querySelector('.minecraft-log-confirm')");await shot('qa-minecraft-log-upload-confirm');await click('.minecraft-log-confirm .modal-primary');await until("document.querySelector('.minecraft-console').textContent.includes('https://mclo.gs/Fixture123')")
+  await click('.minecraft-log-upload-action');await until("document.querySelector('.minecraft-log-confirm')");assert.equal(await evaluate("document.querySelector('.minecraft-log-confirm .account-dialog-symbol')===null"),true);assert.equal(await evaluate("getComputedStyle(document.querySelector('.minecraft-log-upload-action')).backgroundColor"),'rgb(44, 109, 67)');assert.ok(await evaluate("document.querySelector('.minecraft-log-confirm .modal-primary').getBoundingClientRect().width")<150);await shot('qa-minecraft-log-upload-confirm');await click('.minecraft-log-confirm .modal-primary');await until("document.querySelector('.minecraft-console').textContent.includes('https://mclo.gs/Fixture123')")
   const state=await evaluate('window.launcher.getState()')
   assert.equal(state.qaCopiedLog,'https://mclo.gs/Fixture123');assert.match(state.qaLogUploads[0].content,/Minecraft started/);assert.match(state.qaLogUploads[0].content,/Search target 79/)
   assert.equal(state.qaLogUploads[0].content.includes('fixture-private-token'),false)

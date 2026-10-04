@@ -12,6 +12,7 @@ ipcMain.handle = (channel, handler) => {
     if (channel === 'launcher:get-state') { const state = await handler(event, ...args); return { ...state, profiles: [...state.profiles, ...addedProfiles], qaVersionRequests: requests } }
     if (channel === 'launcher:save-settings' && args[0]?.qaVersion) {
       const { qaVersion: control, ...settings } = args[0]; args[0] = settings; fail = control.fail ?? fail; locked = control.locked ?? locked; noDates = control.noDates ?? noDates
+      if(control.extraLogs) for(let i=0;i<40;i++) fixtureLogs.set('logs/archive-'+i+'.log','Archived file '+i);
       if(control.navigate) for(const window of BrowserWindow.getAllWindows()) window.webContents.send('launcher:navigate',control.navigate)
       const state = await stateHandler(event), profile = state.profiles.find(p => p.id === 'qa-profile')
       if (profile) profile.modpack = locked ? { projectId: 'qa', versionId: 'qa', title: 'Fixture pack', fileCount: 1, provider: 'modrinth', sourceUrl: 'https://modrinth.com/modpack/qa', loader: 'fabric' } : undefined

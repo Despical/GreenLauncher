@@ -119,3 +119,10 @@
 
 .resource-format .resource-incompatible-indicator { color: #f0887e; font-size: 12px; font-weight: 600; }
 .resource-supported-versions { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; }
+.supported-versions { position: relative; display: block; }
+.supported-versions-text { display: block; max-height: 3.2em; overflow: hidden; padding-right: 25px; }
+.supported-versions.expanded .supported-versions-text { max-height: none; padding-right: 0; }
+.supported-versions-toggle { position: absolute; bottom: 0; right: 0; padding: 0 3px; border: 0; background: #161b22; color: #79c0ff; font: inherit; cursor: pointer; }
+.supported-versions-toggle:hover { text-decoration: underline; }
+.supported-versions.expanded .supported-versions-toggle { position: static; margin-top: 6px; padding: 0; }
+.resource-installed-detail .resource-incompatible-note { border-top: 1px solid #30363d; margin: 14px 0 0; padding-top: 14px; color: #f0887e; font-size: 13px; line-height: 1.6; }

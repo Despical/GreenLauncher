@@ -337,7 +337,6 @@ export function ModsPage({ state, versions, language, scopedProfileId, requested
         <button className={source === 'modrinth' ? 'active' : ''} onClick={() => selectSource('modrinth')}><img src={modrinthIcon} alt="" /> Modrinth</button>
         <button className={source === 'curseforge' ? 'active' : ''} onClick={() => selectSource('curseforge')}><img src={curseforgeIcon} alt="" /> CurseForge</button>
         <button className={source === 'technic' ? 'active' : ''} onClick={() => selectSource('technic')}><img src={technicIcon} alt="" /> Technic</button>
-        <div className="mods-source-foot" title={profile?.modpack?.title}><Package size={17} /><span>{profile ? profile.modpack ? t('Mod paketi kurulu') : `${installed.length} ${t('kurulu mod')}` : t('Profil seç')}</span></div>
       </aside>
       <section className={`mods-main ${source === 'curseforge' && !connected && !showFavorites ? 'provider-unavailable' : ''}`}>
         <div className="mods-setup">

@@ -1,3 +1,4 @@
+import { SupportedVersions } from './SupportedVersions'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDownToLine, Check, Clock3, ExternalLink, FileText, Globe, Image, Package, Sparkles, LoaderCircle, RefreshCw, Search, Tag, UserRound } from 'lucide-react'
 import type { DownloadSnapshot, InstalledResourcePack, LauncherProfile, ModProject, ModSearchHit, ModSort, ModVersion, ProfileContentKind, ProfileContentUpdate } from '../../shared/types'
@@ -136,7 +137,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { finishAction(); if (mounted.current) setBusy(false) }
   }
-  const updateText = (value?: ProfileContentUpdate) => t(!value ? 'Güncellemeler kontrol edilmedi.' : value.status === 'update' ? 'Uyumlu güncelleme var' : value.status === 'current' ? 'Güncel ve uyumlu' : value.status === 'incompatible' ? 'Profil sürümüyle uyumsuz' : value.status === 'unknown' ? 'Kaynak bilinmiyor' : 'Kontrol başarısız')
+  const updateText = (value?: ProfileContentUpdate) => t(!value ? 'Güncellemeler kontrol edilmedi.' : value.status === 'update' ? 'Uyumlu güncelleme var' : value.status === 'current' ? 'Güncel ve uyumlu' : value.status === 'incompatible' ? 'Profil sürümüyle uyumlu olmayabilir' : value.status === 'unknown' ? 'Kaynak bilinmiyor' : 'Kontrol başarısız')
   const changeProvider = (next: 'modrinth' | 'curseforge') => { setProvider(next); setMode('browse'); setSelected(null); setQuery(''); setSearch('') }
   const visiblePacks = packs.filter(pack => `${pack.title} ${pack.filename} ${pack.description}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   const chosen = visiblePacks.find(pack => pack.filename === selectedPack) ?? visiblePacks[0]
@@ -166,20 +167,20 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
         <dl>
           <dt><FileText size={14} />{t('Dosya adı')}</dt><dd><button className="resource-file-link" title={t('Klasörde göster')} onClick={() => void window.launcher.revealProfileContent(profile.id, kind, chosen.filename).catch(error => onNotice(t(String(error.message ?? error))))}>{chosen.filename}</button></dd>
           <dt><Tag size={14} />{t('Paket sürümü')}</dt><dd>{chosen.versionNumber || '—'}</dd>
-          <dt><Tag size={14} />{t('Desteklenen Minecraft sürümleri')}</dt><dd className="resource-supported-versions">{chosenUpdate?.gameVersions?.join(', ') || t('Bilinmiyor')}</dd>
+          <dt><Tag size={14} />{t('Desteklenen Minecraft sürümleri')}</dt><dd className="resource-supported-versions"><SupportedVersions key={chosen.filename} versions={chosenUpdate?.gameVersions} language={language} /></dd>
           <dt><Clock3 size={14} />{t('Son değiştirme')}</dt><dd>{new Date(chosen.modifiedAt).toLocaleString(language)}</dd>
           <dt><Globe size={14} />{t('Sağlayıcı')}</dt><dd className="resource-detail-provider">{chosen.provider && <img src={chosen.provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />}{chosen.provider === 'modrinth' ? 'Modrinth' : chosen.provider === 'curseforge' ? 'CurseForge' : t('Bilinmiyor')}</dd>
         </dl>
         {!chosen.provider && <p className="resource-source-note">{t('Dosya bu profilde kurulu, ancak Modrinth veya CurseForge kaynağı henüz doğrulanamadı.')}</p>}
         <div className="resource-update-summary" data-update-status={chosenUpdate?.status ?? 'unchecked'}><strong>{updateText(chosenUpdate)}</strong>
           {chosenUpdate?.error && <p role="alert">{t(chosenUpdate.error)}</p>}
-          {chosenUpdate?.compatible === false && chosenUpdate.status === 'update' && <p>{t('Kurulu sürüm bu profille uyumlu olmayabilir.')}</p>}
           {chosenUpdate?.status === 'unknown' && <p>{t('Yerel dosyalar için kaynak doğrulanmadan otomatik güncelleme yapılamaz.')}</p>}
           {chosenUpdate?.latest && <><p>{chosen.versionNumber} → {chosenUpdate.latest.versionNumber}</p><small>{chosenUpdate.latest.filename}</small><button className="heading-action resource-update-button" data-toggling={toggling && !running && !checking} disabled={busy || running || checking} onClick={() => void update(chosen)}>{busy && !toggling ? <LoaderCircle className="spin" size={16} /> : <ArrowDownToLine size={16} />}{t('Güncelle')}</button></>}
         </div>
       </> : <p>{t(copy.details)}</p>}
       {kind === 'shader' && <p className="resource-running-note">{t('Shader paketlerini kullanmak için Iris, Oculus veya OptiFine gerekir.')} {t('Aynı anda yalnızca bir shader paketi etkin olabilir.')}</p>}
       {running && <p className="resource-running-note">{t('Paketleri değiştirmek için oyunu kapat.')}</p>}
+      {chosen && chosenUpdate?.compatible === false && <p className="resource-incompatible-note">{t('Kurulu sürüm bu profille uyumlu olmayabilir.')}</p>}
       </aside></div>
     </> : <div className="mods-layout resource-browser-layout"><aside className="mods-source-nav" aria-label={t('Sağlayıcı')}><span className="mods-source-label">{t('KAYNAKLAR')}</span><button className={provider === 'modrinth' ? 'active' : ''} onClick={() => changeProvider('modrinth')}><img src={modrinthIcon} alt="" />Modrinth</button><button className={provider === 'curseforge' ? 'active' : ''} onClick={() => changeProvider('curseforge')}><img src={curseforgeIcon} alt="" />CurseForge</button></aside><section className="mods-main">
       <div className="resource-catalog-toolbar"><div className="mods-search"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={t(copy.browse)} aria-label={t(copy.browse)} /></div><ModSelect value={sort} label={t('Sırala')} placeholder={t('Sırala')} onChange={value => setSort(value as ModSort)} options={(['relevance', 'downloads', 'updated', 'newest'] as const).map(value => ({ value, label: t({ relevance: 'İlgiye göre', downloads: 'En çok indirilen', updated: 'Son güncellenen', newest: 'En yeni' }[value]) }))} /></div>
@@ -192,7 +193,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
         <div className="mods-detail-meta"><span>{t('Lisans')}: <strong>{project.license}</strong></span><span>{t('Güncelleme')}: <strong>{selected?.updated ? new Date(selected.updated).toLocaleDateString(language) : '—'}</strong></span></div>
         <div className="mods-detail-text">{plainDescription(project.body) || project.description}</div></div>
         <div className="resource-download-summary"><div className="mods-field"><span>{t('Paket sürümü')}</span><ModSelect label={t('Paket sürümü')} value={versionId} onChange={setVersionId} placeholder={t('Uyumlu paket sürümü bulunamadı.')} options={versions.map(version => ({ value: version.id, label: `${version.versionNumber} · ${t(version.type === 'release' ? 'Kararlı sürüm' : version.type === 'beta' ? 'Beta' : 'Alfa')}` }))} up /></div>
-          <dl><dt><FileText size={14} />{t('Dosya adı')}</dt><dd>{version?.filename ?? '—'}</dd><dt><Tag size={14} />{t('Desteklenen Minecraft sürümleri')}</dt><dd className="resource-supported-versions">{version?.gameVersions.join(', ') || t('Bilinmiyor')}</dd><dt><Globe size={14} />{t('Sağlayıcı')}</dt><dd className="resource-detail-provider"><img src={provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />{provider === 'modrinth' ? 'Modrinth' : 'CurseForge'}</dd><dt><UserRound size={14} />{t('Profil')}</dt><dd>{profile.name} · Minecraft {gameVersion}</dd></dl>
+          <dl><dt><FileText size={14} />{t('Dosya adı')}</dt><dd>{version?.filename ?? '—'}</dd><dt><Tag size={14} />{t('Desteklenen Minecraft sürümleri')}</dt><dd className="resource-supported-versions"><SupportedVersions key={version?.id} versions={version?.gameVersions} language={language} /></dd><dt><Globe size={14} />{t('Sağlayıcı')}</dt><dd className="resource-detail-provider"><img src={provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />{provider === 'modrinth' ? 'Modrinth' : 'CurseForge'}</dd><dt><UserRound size={14} />{t('Profil')}</dt><dd>{profile.name} · Minecraft {gameVersion}</dd></dl>
           {installed && <small>{t('Kurulu')}: {installed.versionNumber}</small>}
           {activeJob && <div className="resource-download-progress"><span>{t(activeJob.detail || 'İndiriliyor...')}</span><progress max={activeJob.totalBytes || 100} value={activeJob.totalBytes ? activeJob.downloadedBytes : 0} /></div>}
           {running && <small>{t('Paketleri değiştirmek için oyunu kapat.')}</small>}

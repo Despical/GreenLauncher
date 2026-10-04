@@ -48,11 +48,11 @@ export function MicrosoftMark({ size = 18 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 18 18" aria-hidden="true"><path fill="#f25022" d="M0 0h8v8H0z" /><path fill="#7fba00" d="M10 0h8v8h-8z" /><path fill="#00a4ef" d="M0 10h8v8H0z" /><path fill="#ffb900" d="M10 10h8v8h-8z" /></svg>
 }
 
-export function DialogHeading({ title, description, closeLabel, onClose, locked = false, icon, titleId, descriptionId }: { title: ReactNode; description: ReactNode; closeLabel: string; onClose: () => void; locked?: boolean; icon?: ReactNode; titleId?: string; descriptionId?: string }) {
-  return <div className="dialog-heading">{icon && <span className="account-dialog-symbol">{icon}</span>}<div className="dialog-heading-copy"><h2 id={titleId}>{title}</h2><p id={descriptionId}>{description}</p></div><button type="button" className="modal-close" disabled={locked} aria-label={closeLabel} onClick={onClose}><X size={19} /></button></div>
+export function DialogHeading({ title, description, closeLabel, onClose, locked = false, titleId, descriptionId }: { title: ReactNode; description: ReactNode; closeLabel: string; onClose: () => void; locked?: boolean; icon?: ReactNode; titleId?: string; descriptionId?: string }) {
+  return <div className="dialog-heading"><div className="dialog-heading-copy"><h2 id={titleId}>{title}</h2><p id={descriptionId}>{description}</p></div><button type="button" className="modal-close" disabled={locked} aria-label={closeLabel} onClick={onClose}><X size={19} /></button></div>
 }
 
-export function AccountDialog({ title, description, closeLabel, children, onClose, locked = false, className = '', icon }: { title: string; description: string; closeLabel: string; children: ReactNode; onClose: () => void; locked?: boolean; className?: string; icon?: ReactNode }) {
+export function AccountDialog({ title, description, closeLabel, children, onClose, locked = false, className = '' }: { title: string; description: string; closeLabel: string; children: ReactNode; onClose: () => void; locked?: boolean; className?: string; icon?: ReactNode }) {
   const root = useRef<HTMLDivElement>(null)
   const close = useRef(onClose)
   close.current = onClose
@@ -71,7 +71,7 @@ export function AccountDialog({ title, description, closeLabel, children, onClos
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
       }
     }}>
-      <DialogHeading title={title} description={description} closeLabel={closeLabel} onClose={onClose} locked={locked} icon={icon !== null ? icon ?? <UsersRound size={22} /> : undefined} titleId="account-dialog-title" descriptionId="account-dialog-description" />
+      <DialogHeading title={title} description={description} closeLabel={closeLabel} onClose={onClose} locked={locked} titleId="account-dialog-title" descriptionId="account-dialog-description" />
       {children}
     </div>
   </div>

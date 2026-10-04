@@ -1138,7 +1138,12 @@ const dictionary: Record<string, [string, string, string, string, string]> = {
   "Günlük dosyası çok büyük.": ["The log file is too large.", "Die Protokolldatei ist zu groß.", "Le fichier journal est trop volumineux.", "Файл журнала слишком большой.", "Plik dziennika jest zbyt duży."],
   "Profil dosyasında bağlantı bulundu.": ["A filesystem link was found in the profile.", "Im Profil wurde eine Dateisystemverknüpfung gefunden.", "Un lien de système de fichiers a été trouvé dans le profil.", "В профиле обнаружена ссылка файловой системы.", "W profilu znaleziono dowiązanie systemu plików."],
   "Profil kurulum bilgisi geçersiz.": ["Invalid profile installation metadata.", "Ungültige Profilinstallationsdaten.", "Métadonnées d’installation du profil invalides.", "Недопустимые сведения об установке профиля.", "Nieprawidłowe metadane instalacji profilu."],
-  "Profil değişti. İşlemi yeniden başlatın.": ["The profile changed. Restart the operation.", "Das Profil wurde geändert. Starte den Vorgang erneut.", "Le profil a changé. Recommence l’opération.", "Профиль изменился. Повторите операцию.", "Profil uległ zmianie. Uruchom operację ponownie."]
+  "Profil değişti. İşlemi yeniden başlatın.": ["The profile changed. Restart the operation.", "Das Profil wurde geändert. Starte den Vorgang erneut.", "Le profil a changé. Recommence l’opération.", "Профиль изменился. Повторите операцию.", "Profil uległ zmianie. Uruchom operację ponownie."],
+  "Minecraft {version} için": ["for Minecraft {version}", "für Minecraft {version}", "pour Minecraft {version}", "для Minecraft {version}", "dla Minecraft {version}"],
+  "Profil sürümüyle uyumlu olmayabilir": ["May be incompatible with the profile version", "Möglicherweise nicht mit der Profilversion kompatibel", "Peut être incompatible avec la version du profil", "Может быть несовместимо с версией профиля", "Może być niezgodne z wersją profilu"],
+  "Daha az göster": ["Show less", "Weniger anzeigen", "Afficher moins", "Показать меньше", "Pokaż mniej"],
+  "Tüm sürümleri göster": ["Show all versions", "Alle Versionen anzeigen", "Afficher toutes les versions", "Показать все версии", "Pokaż wszystkie wersje"],
+  "Günlük dosyaları": ["Log files", "Protokolldateien", "Fichiers journaux", "Файлы журналов", "Pliki dziennika"]
 }
 
 

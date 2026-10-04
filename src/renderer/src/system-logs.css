@@ -1,14 +1,7 @@
-.system-logs-toolbar { display: flex; align-items: center; gap: 10px; padding: 16px; }
-.system-logs-toolbar .custom-dropdown { flex: 1; min-width: 0; }
-.system-logs-toolbar button, .system-logs-search button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex: none; padding: 9px 12px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #e6edf3; font-size: 13px; }
-.system-logs-toolbar button:hover:enabled, .system-logs-search button:hover:enabled { background: #30363d; }
-.system-logs-toolbar .dropdown-trigger { width: 100%; }
-.system-logs-options { border-top: 1px solid #30363d; border-bottom: 1px solid #30363d; }
-.system-logs-search { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-top: 1px solid #30363d; color: #8b949e; }
-.system-logs-search input { flex: 1; min-width: 80px; border: 1px solid #30363d; border-radius: 6px; padding: 10px 12px; background: #0d1117; color: #e6edf3; }
-.system-logs-search > span { flex: none; font-size: 12px; }
-.system-logs-page .minecraft-log-panel { overflow: visible; }
+.system-log-picker { width: 270px; max-width: 100%; }
+.system-log-picker .dropdown-trigger { min-height: 50px; }
 .system-logs-page .minecraft-console { min-height: 230px; }
-.system-log-loading, .system-log-upload { display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #8b949e; font-size: 13px; }
-.system-logs-options label { display: inline-flex; align-items: center; gap: 8px; color: #c9d1d9; font-size: 13px; }
-.system-logs-options input { accent-color: #8b949e; width: 15px; height: 15px; }
+.system-log-loading, .system-log-upload { display: flex; align-items: center; gap: 8px; padding: 0 0 12px; color: #8b949e; font-size: 13px; }
+.system-log-delete-list { max-height: 200px; overflow-y: auto; margin: 0; padding: 8px 14px; list-style: none; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; font: 13px/1.6 Consolas, monospace; scrollbar-width: thin; scrollbar-color: #484f58 transparent; }
+.system-log-delete-list li { padding: 7px 0; overflow-wrap: anywhere; }
+.system-log-delete-list li + li { border-top: 1px solid #21262d; }

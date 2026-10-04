@@ -37,8 +37,8 @@ try {
  }
  await evaluate("window.launcher.saveSettings({language:'tr',qaVersion:{navigate:'mods'}})");await until("document.querySelector('.mods-setup')")
  assert.equal(await evaluate("document.querySelector('.resource-packs-page[data-content-kind=mod]')===null"),true,'tray Mods opens the global catalog from a managed profile')
- assert.equal(await evaluate("getComputedStyle(document.querySelector('.mods-setup')).backgroundColor"),'rgb(13, 17, 23)')
- await until("document.querySelector('.mods-welcome')");assert.equal(await evaluate("getComputedStyle(document.querySelector('.mods-welcome')).backgroundColor"),'rgb(13, 17, 23)')
+ assert.equal(await evaluate("getComputedStyle(document.querySelector('.mods-setup')).backgroundColor"),'rgb(22, 27, 34)')
+ await until("document.querySelector('.mods-welcome')");assert.equal(await evaluate("getComputedStyle(document.querySelector('.mods-welcome')).backgroundColor"),'rgb(22, 27, 34)')
  assert.equal(errors.length,0,JSON.stringify(errors));console.log('PASS original OptiFine, inset identity hover/animated back arrow, common dropdown and green colors, supported versions/red incompatibility in all content tables, unlocked pack controls and six-language pack layout')
 } finally {socket.close()}
 `
