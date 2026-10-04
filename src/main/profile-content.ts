@@ -197,8 +197,12 @@ export class ProfileContent {
   }
   async updates(profileId: string, kind: ProfileContentKind, force = true): Promise<ProfileContentUpdate[]> {
     const items = await this.list(profileId, kind), profile = this.profile(profileId, kind)
-    const fingerprint = createHash('sha256').update(JSON.stringify([profile.versionId, profile.modLoader, profile.modLoaderVersion, this.curseforge.connected, items.map(item => [item.filename, item.provider, item.projectId, item.versionId, item.modifiedAt])])).digest('hex')
-    return this.updateCache.get(`${profileId}:${kind}`, fingerprint, force, () => this.checkItems(profileId, kind, items))
+    const names = new Map<string, number>()
+    for (const item of items) names.set(canonical(item.filename), (names.get(canonical(item.filename)) ?? 0) + 1)
+    const name = (filename: string) => kind === 'mod' && names.get(canonical(filename)) === 1 ? canonical(filename) : filename
+    const fingerprint = createHash('sha256').update(JSON.stringify([profile.versionId, profile.modLoader, profile.modLoaderVersion, this.curseforge.connected, items.map(item => [name(item.filename), item.provider, item.projectId, item.versionId, item.modifiedAt])])).digest('hex')
+    const cached = await this.updateCache.get(`${profileId}:${kind}`, fingerprint, force, async () => (await this.checkItems(profileId, kind, items)).map(item => ({ ...item, filename: name(item.filename) })))
+    return cached.flatMap(result => { const item = items.find(item => name(item.filename) === result.filename); return item ? [{ ...result, filename: item.filename }] : [] })
   }
   private async checkItems(profileId: string, kind: ProfileContentKind, items: InstalledResourcePack[]): Promise<ProfileContentUpdate[]> {
     const results: ProfileContentUpdate[] = []

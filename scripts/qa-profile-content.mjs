@@ -20,24 +20,24 @@ try {
   await input(base+' .resource-search input',first);await until('document.querySelectorAll('+JSON.stringify(base+' .resource-pack-row')+').length===1');
   assert.equal(await evaluate('(()=>{const l='+q('.resource-installed-list')+'.getBoundingClientRect(),r='+q('.resource-pack-row')+'.getBoundingClientRect();return Math.abs(l.bottom-r.bottom)<=1})()'),true,'filtered list ends at the final row');
   assert.equal(await evaluate('getComputedStyle('+q('.resource-pack-row')+').borderBottomLeftRadius'),'7px');
-  assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .resource-provider img')+').length'),0,'provider cells use text');
+  assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .resource-provider img')+').length'),1,'provider cells use official logos');
   if(kind==='mod' && await evaluate(q('.resource-pack-icon img')+'!==null')) {
    await until(q('.resource-pack-icon img')+'.complete');assert.equal(await evaluate(q('.resource-pack-icon img')+'.naturalWidth>0'),true,'installed icon decodes');
    assert.equal(await evaluate(q('.resource-large-icon')+'===null'),true,'installed detail has no redundant large icon');
   }
-  await click(base+' .resource-enable');await until(q('.resource-enable')+"?.getAttribute('aria-checked')==='false'")
+  await click(base+' .resource-check-updates');await until(q('.resource-update-summary')+"?.getAttribute('data-update-status')==='update'");await click(base+' .resource-enable');await until(q('.resource-enable')+"?.getAttribute('aria-checked')==='false'");assert.equal(await evaluate(q('.resource-update-summary')+"?.getAttribute('data-update-status')"),'update','toggle retains update status immediately');assert.ok(await evaluate(q('.resource-format')+"?.textContent.includes('Güncelleme var')"),'toggle retains update badge')
   assert.equal(await evaluate('getComputedStyle('+q('.resource-pack-select')+').opacity'),'0.55','disabled content is dimmed');
   assert.equal(await evaluate('getComputedStyle('+q('.resource-provider')+',"::before").width'),'1px','provider divider');
-  assert.equal(await evaluate('getComputedStyle('+q('.resource-provider')+',"::before").top'),'-12px','divider fills row padding');
+  assert.equal(await evaluate('getComputedStyle('+q('.resource-provider')+',"::before").top'),'-12px','divider fills row padding');assert.equal(await evaluate('getComputedStyle('+q('.resource-format')+',"::before").width'),'1px','separator left of version values');assert.equal(await evaluate('getComputedStyle('+q('.resource-table-head > span:last-child')+',"::before").content'),'none','headers have no vertical lines');assert.equal(await evaluate('getComputedStyle('+q('.resource-check-updates')+').backgroundColor'),'rgb(45, 121, 80)','standard green update check');assert.equal(await evaluate('getComputedStyle('+q('.resource-update-button')+').backgroundColor'),'rgb(45, 121, 80)','standard green update action');assert.equal(await evaluate('(()=>{const r='+q('.resource-installed-detail')+'.getBoundingClientRect(),s='+q('.resource-update-summary')+'.getBoundingClientRect();return r.bottom-s.bottom<=17})()'),kind==='shader'?false:true,'compact detail footer');assert.equal(await evaluate(q('.resource-detail-separator')+'!==null'),true,'description separator');
   assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .resource-installed-detail dt svg')+').length'),4,'detail label icons');
-  assert.equal(await evaluate('[...document.querySelectorAll('+JSON.stringify(base+' .resource-installed-detail dt')+')].every(e=>e.textContent.endsWith(":"))'),true,'detail labels have colons');
+  assert.equal(await evaluate('[...document.querySelectorAll('+JSON.stringify(base+' .resource-installed-detail dt')+')].every(e=>!e.textContent.endsWith(":"))'),true,'installed detail labels have no colons');
   assert.equal(await evaluate(q('.resource-detail-provider img')+'!==null'),true,'provider branding in details');
   const link=await evaluate(q('.resource-title-link')+'!==null');if(link){await click(base+' .resource-title-link');assert.equal((await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='external-link').at(-1).url,kind==='resourcepack'?'https://modrinth.com/resourcepack/fresh-animations':'https://modrinth.com/mod/fixture')}
-  for(const selector of ['.resource-file-link',...(link?['.resource-title-link']:[])]){const rect=await evaluate(q(selector)+'.getBoundingClientRect().toJSON()');await call('Input.dispatchMouseEvent',{type:'mouseMoved',x:rect.x+rect.width/2,y:rect.y+rect.height/2});assert.equal(await evaluate('getComputedStyle('+q(selector)+').textDecorationLine'),'underline','detail links underline on hover')}
+  for(const selector of ['.resource-file-link',...(link?['.resource-title-link']:[])]){const rect=await evaluate(q(selector)+'.getBoundingClientRect().toJSON()');await call('Input.dispatchMouseEvent',{type:'mouseMoved',x:rect.x+rect.width/2,y:rect.y+rect.height/2});assert.equal(await evaluate('getComputedStyle('+q(selector === '.resource-title-link' ? selector+' > span' : selector)+').textDecorationLine'),'underline','detail text links underline on hover');if(selector === '.resource-title-link')assert.equal(await evaluate('getComputedStyle('+q(selector+' svg')+').borderBottomWidth'),'0px','external icon is not underlined')}
   await click(base+' .resource-file-link');const reveal=(await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='reveal-content').at(-1);assert.equal(reveal.kind,kind);assert.equal(reveal.id,'qa-profile');assert.ok(reveal.filename.endsWith(kind==='mod'?'.jar.disabled':'.zip'));
   await click(base+' .resource-check-updates');await until(q('.resource-update-summary')+"?.getAttribute('data-update-status')==='update'")
-  assert.equal(await evaluate(q('.resource-format')+"?.textContent.includes('1.0')"),kind==='resourcepack'?false:true,'installed version remains visible beside update indication');
-  assert.equal(await evaluate(q('.resource-update-summary')+"?.textContent.includes('1.0 → 2.0')"),kind==='resourcepack'?false:true)
+  assert.equal(await evaluate(q('.resource-format')+'?.textContent.includes('+JSON.stringify(kind==='resourcepack'?'1.9.0':'1.0')+')'),true,'installed version remains visible beside update indication');
+  assert.equal(await evaluate(q('.resource-update-summary')+'?.textContent.includes('+JSON.stringify((kind==='resourcepack'?'1.9.0':'1.0')+' → 2.0')+')'),true)
   await shot('qa-profile-content-'+kind+'-installed')
   await until(q('.resource-update-button')+'?.disabled===false');await click(base+' .resource-update-button');await until(q('.resource-installed-detail dd:nth-child(4)')+"?.textContent==='2.0'")
   assert.equal(await evaluate(q('.resource-enable')+"?.getAttribute('aria-checked')"),'false','updates preserve disabled state')
@@ -88,6 +88,18 @@ try {
  await shot('qa-profile-mod-details-long-list')
  await evaluate("window.launcher.saveSettings({qaResource:{extraMods:0}})")
  const updateChecks=(await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='check-updates');assert.ok(updateChecks.some(r=>r.force===false),'automatic checks request cached results');assert.ok(updateChecks.some(r=>r.force===true),'manual checks request fresh results')
+ await click(base+' .resource-mode-bar [role=tab]:last-child');await until(q('.mods-source-nav'));await click(base+' .mods-source-nav > button:last-child');await until(q('.provider-connection-state'))
+ assert.equal(await evaluate('getComputedStyle('+q('.provider-connection-state')+').backgroundColor'),'rgb(13, 17, 23)','unconfigured CurseForge uses the neutral dark surface')
+ await click(base+' .provider-connection-state .heading-action');await until("document.querySelector('.provider-connect-dialog')")
+ assert.equal(await evaluate("document.querySelectorAll('.provider-connect-dialog .account-dialog-symbol').length"),0,'no connection heading icon or background')
+ assert.equal(await evaluate("document.querySelectorAll('.curseforge-connect-actions button').length"),1,'only the Connect action remains')
+ assert.equal(await evaluate("document.querySelector('.provider-key-label input').type"),'password');assert.equal(await evaluate("document.querySelector('.curseforge-connect-actions button').disabled"),true)
+ assert.equal(await evaluate("(()=>{const r=document.querySelector('.provider-connect-dialog').getBoundingClientRect(),b=document.querySelector('.curseforge-connect-actions button').getBoundingClientRect();return r.bottom-b.bottom<=18})()"),true,'compact connection footer')
+ await shot('qa-curseforge-connection-polish')
+ await input('.provider-key-label input','QA_REJECTED_VALUE_NOT_A_CREDENTIAL');await click('.curseforge-connect-actions button');await until("document.querySelector('.provider-connect-error')")
+ assert.equal(await evaluate("document.querySelector('.provider-connect-error').textContent.includes('QA_REJECTED')"),false,'provider errors never echo credentials')
+ for(const language of ['tr','en','de','fr','ru','pl']){await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');assert.equal(await evaluate("(()=>{const d=document.querySelector('.provider-connect-dialog'),r=d.getBoundingClientRect();return d.scrollWidth<=d.clientWidth&&r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight})()"),true,language+' connection dialog fits')}
+ await click('.provider-connect-dialog .modal-close');await until("!document.querySelector('.provider-connect-dialog')");await evaluate("window.launcher.saveSettings({language:'tr'})")
  assert.equal(errors.length,0,JSON.stringify(errors));console.log('PASS profile Mods/Resources/Shaders installed lists, disabled updates and unknown/error/current states, provider/version/file review, inline installs, single shader selection, six languages at 1080x700 and profile ownership; isolated in-memory catalogs')
 } finally {socket.close()}
 `

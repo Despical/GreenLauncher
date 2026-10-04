@@ -17,17 +17,21 @@
 .resource-installed-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .resource-installed-toolbar .resource-search { flex: 1; margin: 0; }
 .resource-check-updates { margin-left: auto; flex: none; }
-.resource-update-summary { border-top: 1px solid #30363d; padding-top: 16px; margin: 20px 0; color: #8b949e; font-size: 12px; }
+.resource-packs-page .resource-check-updates, .resource-packs-page .resource-update-button { background: #2d7950; border-color: #448d65; color: #fff; }
+.resource-packs-page .resource-check-updates:hover:not(:disabled), .resource-packs-page .resource-update-button:hover:not(:disabled) { background: #38895c; border-color: #68ad82; }
+.resource-packs-page .resource-check-updates:disabled, .resource-packs-page .resource-update-button:disabled { opacity: .48; }
+.resource-update-summary { border-top: 1px solid #30363d; padding-top: 16px; margin: 18px 0 0; color: #8b949e; font-size: 12px; }
+.resource-update-summary > :last-child { margin-bottom: 0; }
 .resource-update-summary strong { font-weight: 500; }
 .resource-update-summary p { margin: 10px 0; font-size: 12px; }
 .resource-update-summary small { display: block; overflow-wrap: anywhere; }
 .resource-update-summary[data-update-status=update] > strong, .resource-update-indicator { color: #d2b36f; }
 .resource-update-summary[data-update-status=incompatible] > strong, .resource-update-summary[data-update-status=error] > strong { color: #f0887e; }
-.resource-update-button { width: 100%; justify-content: center; margin-top: 14px; }
+.resource-update-button { width: 100%; justify-content: center; margin-top: 14px; display: flex; }
 .resource-installed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 20px; align-items: start; }
 .resource-installed-list, .resource-installed-detail { border: 1px solid #30363d; border-radius: 8px; background: #161b22; min-width: 0; }
 .resource-installed-list { overflow: hidden; }
-.resource-table-head, .resource-pack-row { display: grid; grid-template-columns: 48px minmax(0,1fr) 92px 108px; align-items: center; gap: 10px; padding: 12px; }
+.resource-table-head, .resource-pack-row { display: grid; grid-template-columns: 48px minmax(0,1fr) 104px 140px; align-items: center; gap: 10px; padding: 12px; }
 .resource-table-head { color: #a5adb8; font: 600 13px/1.5 'Inter Variable', 'Segoe UI', sans-serif; border-bottom: 1px solid #30363d; }
 .resource-table-head > span:first-child, .resource-table-head > span:nth-child(n+3) { text-align: center; }
 .resource-table-head > span:nth-child(2) { padding-left: 50px; }
@@ -50,16 +54,19 @@
 .resource-pack-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: none; color: #8b949e; }
 .resource-pack-icon img { width: 38px; height: 38px; object-fit: contain; image-rendering: pixelated; }
 .resource-format, .resource-provider { color: #a5adb8; font: 400 13px/1.5 'Inter Variable', 'Segoe UI', sans-serif; overflow-wrap: anywhere; text-align: center; }
-.resource-format { display: flex; flex-direction: column; gap: 4px; font-variant-numeric: tabular-nums; }
-.resource-provider, .resource-table-head > span:last-child { position: relative; align-self: stretch; display: flex; justify-content: center; align-items: center; }
-.resource-provider::before, .resource-table-head > span:last-child::before { content: ''; position: absolute; left: -5px; top: -12px; bottom: -12px; width: 1px; background: #30363d; }
+.resource-format { display: flex; flex-direction: column; justify-content: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.resource-provider { display: flex; justify-content: center; align-items: center; }
+.resource-provider > span { display: inline-flex; justify-content: center; align-items: center; gap: 7px; }
+.resource-provider img { width: 16px; height: 16px; object-fit: contain; flex: none; }
+.resource-format, .resource-provider { position: relative; align-self: stretch; }
+.resource-format::before, .resource-provider::before { content: ''; position: absolute; left: -5px; top: -12px; bottom: -12px; width: 1px; background: #30363d; }
 .resource-update-indicator { font-size: 12px; }
-.resource-installed-detail { padding: 20px; }
+.resource-installed-detail { padding: 20px 20px 16px; }
+.resource-detail-separator { height: 1px; background: #30363d; margin-top: 16px; }
 .resource-installed-detail h3 { margin: 0 0 10px; font-size: 17px; overflow-wrap: anywhere; }
 .resource-title-link, .resource-file-link { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; }
-.resource-title-link svg { display: inline; vertical-align: middle; margin-left: 6px; border-bottom: 1px solid transparent; }
-.resource-title-link:hover, .resource-title-link:focus-visible, .resource-file-link:hover, .resource-file-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
-.resource-title-link:hover svg, .resource-title-link:focus-visible svg { border-bottom-color: currentColor; }
+.resource-title-link svg { display: inline; vertical-align: middle; margin-left: 6px; }
+.resource-title-link:hover > span, .resource-title-link:focus-visible > span, .resource-file-link:hover, .resource-file-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 .resource-installed-detail p { color: #8b949e; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .resource-packs-page dl { display: grid; grid-template-columns: 1fr; gap: 6px; margin: 20px 0; font: 400 13px/1.6 'Inter Variable', 'Segoe UI', sans-serif; }
 .resource-packs-page dt { color: #a5adb8; margin-top: 10px; font-weight: 500; display: flex; align-items: center; gap: 7px; }
@@ -92,9 +99,9 @@
 @media (max-width: 1200px) {
   .resource-browser-layout { grid-template-columns: 130px minmax(0,1fr); gap: 16px; }
   .resource-installed-layout { grid-template-columns: minmax(0,1fr) 220px; gap: 16px; }
-  .resource-table-head, .resource-pack-row { grid-template-columns: 42px minmax(0,1fr) 72px 92px; gap: 8px; }
+  .resource-table-head, .resource-pack-row { grid-template-columns: 42px minmax(0,1fr) 84px 124px; gap: 8px; }
   .resource-catalog-body { grid-template-columns: minmax(190px,.85fr) minmax(250px,1.15fr); }
-  .resource-provider::before, .resource-table-head > span:last-child::before { left: -4px; }
+  .resource-format::before, .resource-provider::before { left: -4px; }
 }
 
 .resource-packs-page .page-heading > div { min-width: 0; }

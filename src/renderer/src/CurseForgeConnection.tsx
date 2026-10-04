@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExternalLink, KeyRound, LoaderCircle } from 'lucide-react'
+import { LoaderCircle } from 'lucide-react'
 import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
 import './curseforge-connection.css'
@@ -23,12 +23,12 @@ export function CurseForgeConnection({ language, onClose, onConnected }: { langu
       setError(t('Bağlantı doğrulanamadı. Anahtarı ve internet bağlantını kontrol et.'))
     } finally { setBusy(false) }
   }
-  return <AccountDialog className="provider-connect-dialog" title={t('CurseForge bağlantısı')} description={t('Uygulamaya ait API anahtarını gir. Windows üzerinde şifrelenerek saklanır.')} closeLabel={t('Kapat')} onClose={onClose} locked={busy} icon={<KeyRound size={22} />}>
+  return <AccountDialog className="provider-connect-dialog" title={t('CurseForge bağlantısı')} description={t('Uygulamaya ait API anahtarını gir. Windows üzerinde şifrelenerek saklanır.')} closeLabel={t('Kapat')} onClose={onClose} locked={busy} icon={null}>
     <form className="curseforge-connect-form" onSubmit={connect}>
       <label className="provider-key-label">{t('API anahtarı')}<input type="password" autoComplete="off" spellCheck={false} value={key} maxLength={512} disabled={busy} onChange={event => { setKey(event.target.value); setError('') }} /></label>
       <p className="curseforge-connect-note">{t('Minecraft launcher anahtarları CurseForge başvurusu onaylandıktan sonra verilir.')}</p>
       {error && <p className="provider-connect-error" role="alert">{error}</p>}
-      <div className="curseforge-connect-actions"><button type="button" disabled={busy} onClick={() => window.launcher.openExternal('https://support.curseforge.com/support/solutions/articles/9000208346').catch(() => setError(t('Bağlantı açılamadı.')))}><ExternalLink size={15} />{t('API başvurusu')}</button><button type="submit" className="primary" disabled={busy || key.trim().length < 20}>{busy && <LoaderCircle className="spin" size={16} />}{t('Bağlan')}</button></div>
+      <div className="curseforge-connect-actions"><button type="submit" className="primary" disabled={busy || key.trim().length < 20}>{busy && <LoaderCircle className="spin" size={16} />}{t('Bağlan')}</button></div>
     </form>
   </AccountDialog>
 }

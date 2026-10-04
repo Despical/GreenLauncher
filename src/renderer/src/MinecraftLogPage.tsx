@@ -106,11 +106,11 @@ export function MinecraftLogPage({ profile, requestedSession, language, isVisibl
     <div className="page-heading"><div><h2>{t('Minecraft günlüğü')}</h2><p>{t('Bu profilin oyun çıktısını anlık olarak takip et.')}</p></div><button className="heading-action minecraft-log-upload-action" disabled={!lines.length || !!pending} onClick={() => setUploadTarget(current.current?.session?.instance.id ?? null)}>{pending === 'upload' ? <LoaderCircle className="spin" size={17} /> : <Upload size={17} />}{t('Yükle')}</button></div>
     <div className="minecraft-log-panel">
       <div className="minecraft-log-toolbar">
-        {snapshot?.session && <div className="minecraft-log-context">
-          {snapshot && snapshot.sessions.length > 1
+        <div className="minecraft-log-context">
+          {snapshot?.session && snapshot.sessions.length > 1
             ? sessionPicker(choice || snapshot.session?.instance.id || '', snapshot.sessions.map(session => ({ value: session.instance.id, label: sessionLabel(session.instance), detail: t(session.running ? 'Oyun çalışıyor' : 'Oyun kapandı') })), value => { setChoice(value); setFound(null); atBottom.current = true })
             : <div className="minecraft-log-session minecraft-log-session-info"><div className="dropdown-copy"><strong>{snapshot?.session ? sessionLabel(snapshot.session.instance) : t('Oyun oturumu')}</strong><small>{t(snapshot?.session ? snapshot.session.running ? 'Oyun çalışıyor' : 'Oyun kapandı' : 'Oyun çıktısı bekleniyor...')}</small></div></div>}
-        </div>}
+        </div>
         <div className="minecraft-log-search"><div className="minecraft-log-search-field"><Search size={17} aria-hidden="true" /><input aria-label={t('Günlükte ara')} placeholder={t('Günlükte ara')} value={query} onChange={event => { setQuery(event.target.value); setFound(null) }} onKeyDown={event => { if (event.key === 'Enter' && needle) find() }} /></div><button disabled={!needle || !lines.length} onClick={find}>{t('Bul')}</button></div>
       </div>
       {error && <div className="minecraft-log-error" role="alert">{t(error)}<button onClick={() => setRetry(retry + 1)}>{t('Yeniden dene')}</button></div>}

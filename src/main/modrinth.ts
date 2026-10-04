@@ -97,7 +97,8 @@ export class ModrinthService {
     return join(this.store.profilePath(profileId), 'green-launcher-mods.json')
   }
 
-  async identify(hashes: string[]): Promise<Map<string, Omit<InstalledMod, 'filename'>>> {
+  async identify(hashes: string[], kind: 'mod' | 'resourcepack' | 'shader' = 'mod'): Promise<Map<string, Omit<InstalledMod, 'filename'>>> {
+    if (!['mod', 'resourcepack', 'shader'].includes(kind)) throw new Error('Geçersiz içerik türü.')
     const matches = new Map<string, Omit<InstalledMod, 'filename'>>()
     const unique = [...new Set(hashes)]
     if (unique.some(hash => !/^[a-f0-9]{40}$/.test(hash))) throw new Error('Geçersiz dosya özeti.')
@@ -105,13 +106,13 @@ export class ModrinthService {
       const response = await fetch(`${api}/version_files`, { method: 'POST', headers: { 'User-Agent': 'Despical/GreenLauncher', 'Content-Type': 'application/json' }, body: JSON.stringify({ hashes: unique.slice(offset, offset + 100), algorithm: 'sha1' }), signal: AbortSignal.timeout(5000) })
       if (!response.ok) throw new Error(`Modrinth isteği başarısız (${response.status}).`)
       const versions = await response.json() as Record<string, ApiVersion>
-      const valid = Object.entries(versions).filter(([hash, version]) => unique.includes(hash) && idPattern.test(version.id) && idPattern.test(version.project_id) && version.files?.some(file => file.hashes?.sha1 === hash && /\.(jar|litemod)$/i.test(file.filename)))
+      const valid = Object.entries(versions).filter(([hash, version]) => unique.includes(hash) && idPattern.test(version.id) && idPattern.test(version.project_id) && version.files?.some(file => file.hashes?.sha1 === hash && (kind === 'mod' ? /\.(jar|litemod)$/i : /\.zip$/i).test(file.filename)))
       const ids = [...new Set(valid.map(([, version]) => version.project_id))]
       if (!ids.length) continue
       const projects = await request<Array<{ id: string; slug: string; title: string; description: string; icon_url: string | null; project_type: string }>>('/projects', new URLSearchParams({ ids: JSON.stringify(ids) }))
       for (const [hash, version] of valid) {
-        const project = projects.find(project => project.id === version.project_id && project.project_type === 'mod')
-        if (project) matches.set(hash, { provider: 'modrinth', projectId: project.id, versionId: version.id, versionNumber: version.version_number, title: project.title, description: project.description, icon: project.icon_url ?? undefined, sourceUrl: `https://modrinth.com/mod/${encodeURIComponent(project.slug)}`, fileHash: hash })
+        const project = projects.find(project => project.id === version.project_id && project.project_type === kind)
+        if (project) matches.set(hash, { provider: 'modrinth', projectId: project.id, versionId: version.id, versionNumber: version.version_number, title: project.title, description: project.description, icon: project.icon_url ?? undefined, sourceUrl: `https://modrinth.com/${kind}/${encodeURIComponent(project.slug)}`, fileHash: hash })
       }
     }
     return matches

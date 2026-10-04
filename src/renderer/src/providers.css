@@ -46,7 +46,7 @@
 .error-log-list::-webkit-scrollbar-thumb, .changelog-body::-webkit-scrollbar-thumb { border:2px solid #1c2933; border-radius:9px; background:#506371; }
 .error-log-list::-webkit-scrollbar-thumb:hover, .changelog-body::-webkit-scrollbar-thumb:hover { background:#718999; }
 @media(prefers-reduced-motion:reduce) { .changelog-dialog *, .account-backdrop:has(.changelog-dialog), .changelog-dialog { animation:none!important; transition:none!important; } }
-.provider-connection-state { flex:1; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:13px; padding:28px; border:1px solid #3c4b57; border-radius:9px; background:#16212a; }
+.provider-connection-state { flex:1; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:13px; padding:28px; border:1px solid #30363d; border-radius:9px; background:#0d1117; }
 .provider-connection-state>img { width:40px; height:40px; }
 .provider-connection-state h3 { margin:0; font-size:18px; }
 .provider-connection-state p { margin:0 0 5px; max-width:350px; font-size:14px; line-height:1.6; color:#a8bcc9; }

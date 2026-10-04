@@ -123,6 +123,12 @@ try {
   await until("document.querySelector('.minecraft-console').textContent.includes('Minecraft started')")
   await control({consoleRequest:{profileId:'qa-profile',instanceId:'log-new'}})
   await until("document.querySelector('.minecraft-console').textContent.includes('İşlem 0 çıkış koduyla sonlandı.')")
+  await click('.profile-workspace-back');await until("document.querySelector('.profile-card')");await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3').textContent==='Test World 3').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))");await nav('Minecraft günlüğü');await until("document.querySelector('.minecraft-console-empty')")
+  assert.equal(await evaluate("document.querySelector('.minecraft-log-session-info strong').textContent"),'Oyun oturumu','empty log keeps the top-left session card')
+  assert.equal(await evaluate("document.querySelector('.minecraft-log-session-info small').textContent"),'Oyun çıktısı bekleniyor...')
+  assert.equal(await evaluate("document.querySelectorAll('.minecraft-log-context .dropdown-trigger').length"),0,'empty session has no interactive selector')
+  for(const language of ['tr','en','de','fr','ru','pl']){await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');assert.equal(await evaluate("(()=>{const c=document.querySelector('.minecraft-log-context');return c.getBoundingClientRect().width>0&&c.scrollWidth<=c.clientWidth})()"),true,language+' empty session card fits')}
+  await evaluate("window.launcher.saveSettings({language:'tr'})");await shot('qa-minecraft-log-no-session')
   assert.equal(errors.length,0,JSON.stringify(errors))
   console.log('PASS profile launcher menu/hover contract, disabled input colors, live console levels/wrapping/pause/resume, full-buffer copy/upload, redaction, find/next/bottom, clear/new output, process/profile isolation, exited sessions, 2000-line burst and six-language minimum layout; uploads mocked')
 }finally{socket.close()}

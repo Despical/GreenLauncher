@@ -13,7 +13,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const gameVersion = profile.versionId.split(/-OptiFine_/i)[0]
   const loader = profile.modLoader ?? 'fabric'
   const needsLoader = kind === 'mod' && (!profile.modLoader || !profile.modLoaderVersion)
-  const copy = kind === 'mod' ? { title: 'Modlar', description: 'Bu profilin modlarını yönet ve uyumlu sürümleri keşfet.', search: 'Kurulu modlarda ara', item: 'Mod', format: 'Sürüm', empty: 'Henüz mod yok', discover: 'Modları keşfet', enable: '{name} modunu etkinleştir', details: 'Bilgilerini görmek için bir mod seç.', browse: 'Mod ara...', loading: 'Modlar yükleniyor...', noResults: 'Bu sürüme uygun mod bulunamadı.', installed: '{name} modu kuruldu.' } : kind === 'shader' ? { title: 'Shader paketleri', description: 'Bu profilin shader paketlerini yönet, yeni görünümleri keşfet.', search: 'Kurulu shader paketlerinde ara', item: 'Paket', format: 'Sürüm', empty: 'Henüz shader paketi yok', discover: 'Paketleri keşfet', enable: '{name} paketini etkinleştir', details: 'Bilgilerini görmek için bir shader paketi seç.', browse: 'Shader paketi ara...', loading: 'Shader paketleri yükleniyor...', noResults: 'Bu sürüme uygun shader paketi bulunamadı.', installed: '{name} shader paketi kuruldu.' } : { title: 'Kaynak paketleri', description: 'Bu profilin paketlerini yönet, yeni görünümleri keşfet.', search: 'Kurulu paketlerde ara', item: 'Paket', format: 'Paket formatı', empty: 'Henüz kaynak paketi yok', discover: 'Paketleri keşfet', enable: '{name} paketini etkinleştir', details: 'Bilgilerini görmek için bir kaynak paketi seç.', browse: 'Kaynak paketi ara...', loading: 'Kaynak paketleri yükleniyor...', noResults: 'Bu sürüme uygun kaynak paketi bulunamadı.', installed: '{name} kaynak paketi kuruldu.' }
+  const copy = kind === 'mod' ? { title: 'Modlar', description: 'Bu profilin modlarını yönet ve uyumlu sürümleri keşfet.', search: 'Kurulu modlarda ara', item: 'Mod', format: 'Sürüm', empty: 'Henüz mod yok', discover: 'Modları keşfet', enable: '{name} modunu etkinleştir', details: 'Bilgilerini görmek için bir mod seç.', browse: 'Mod ara...', loading: 'Modlar yükleniyor...', noResults: 'Bu sürüme uygun mod bulunamadı.', installed: '{name} modu kuruldu.' } : kind === 'shader' ? { title: 'Shader paketleri', description: 'Bu profilin shader paketlerini yönet, yeni görünümleri keşfet.', search: 'Kurulu shader paketlerinde ara', item: 'Paket', format: 'Sürüm', empty: 'Henüz shader paketi yok', discover: 'Paketleri keşfet', enable: '{name} paketini etkinleştir', details: 'Bilgilerini görmek için bir shader paketi seç.', browse: 'Shader paketi ara...', loading: 'Shader paketleri yükleniyor...', noResults: 'Bu sürüme uygun shader paketi bulunamadı.', installed: '{name} shader paketi kuruldu.' } : { title: 'Kaynak paketleri', description: 'Bu profilin paketlerini yönet, yeni görünümleri keşfet.', search: 'Kurulu paketlerde ara', item: 'Paket', format: 'Sürüm', empty: 'Henüz kaynak paketi yok', discover: 'Paketleri keşfet', enable: '{name} paketini etkinleştir', details: 'Bilgilerini görmek için bir kaynak paketi seç.', browse: 'Kaynak paketi ara...', loading: 'Kaynak paketleri yükleniyor...', noResults: 'Bu sürüme uygun kaynak paketi bulunamadı.', installed: '{name} kaynak paketi kuruldu.' }
   const [updates, setUpdates] = useState<ProfileContentUpdate[]>([]), [checking, setChecking] = useState(false)
   const checkBusy = useRef(false)
   const list = () => kind === 'resourcepack' ? window.launcher.getResourcePacks(profile.id) : window.launcher.getProfileContent(profile.id, kind)
@@ -28,6 +28,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const [downloads, setDownloads] = useState<DownloadSnapshot | null>(null)
   const resultsRef = useRef<HTMLDivElement>(null), pageInFlight = useRef(false)
   const token = useRef(0), actionBusy = useRef(false), mounted = useRef(true)
+  const contentRevision = useRef(0)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => { window.launcher.getProviderStatus().then(status => { if (mounted.current) setConnected(status.curseforge) }).catch(() => {}) }, [])
   useEffect(() => { const timeout = window.setTimeout(() => setSearch(query.trim()), 300); return () => window.clearTimeout(timeout) }, [query])
@@ -75,14 +76,14 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   }
   const enable = async (pack: InstalledResourcePack) => {
     if (actionBusy.current) return
-    actionBusy.current = true; setBusy(true)
-    try { const next = kind === 'resourcepack' ? await window.launcher.setResourcePackEnabled(profile.id, pack.filename, !pack.enabled) : await window.launcher.setProfileContentEnabled(profile.id, kind, pack.filename, !pack.enabled); if (mounted.current) { setPacks(next); setUpdates([]); setSelectedPack(next.find(item => item.filename.replace(/\.disabled$/i, '') === pack.filename.replace(/\.disabled$/i, ''))?.filename ?? pack.filename) } }
+    actionBusy.current = true; contentRevision.current++; setBusy(true)
+    try { const next = kind === 'resourcepack' ? await window.launcher.setResourcePackEnabled(profile.id, pack.filename, !pack.enabled) : await window.launcher.setProfileContentEnabled(profile.id, kind, pack.filename, !pack.enabled); if (mounted.current) { setPacks(next); setUpdates(current => current.flatMap(update => { const before = packs.find(item => item.filename === update.filename); const after = before && next.find(item => item.filename.replace(/\.disabled$/i, '') === before.filename.replace(/\.disabled$/i, '') && item.projectId === before.projectId && item.versionId === before.versionId && item.modifiedAt === before.modifiedAt); return after ? [{ ...update, filename: after.filename }] : [] })); setSelectedPack(next.find(item => item.filename.replace(/\.disabled$/i, '') === pack.filename.replace(/\.disabled$/i, ''))?.filename ?? pack.filename) } }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
   }
   const install = async () => {
     if (!project || !versionId || actionBusy.current) return
-    actionBusy.current = true; setBusy(true)
+    actionBusy.current = true; contentRevision.current++; setBusy(true)
     try { const next = kind === 'resourcepack' ? await window.launcher.installResourcePack(profile.id, versionId, provider, { title: project.title, iconUrl: project.iconUrl }) : await window.launcher.installProfileContent(profile.id, kind, versionId, provider, { title: project.title, iconUrl: project.iconUrl }); if (mounted.current) { setPacks(next); setUpdates([]) }; onNotice(t(copy.installed, { name: project.title })) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
@@ -90,7 +91,8 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const checkUpdates = async (force = true) => {
     if (checkBusy.current || actionBusy.current) return
     checkBusy.current = true; setChecking(true)
-    try { const result = await window.launcher.checkProfileContentUpdates(profile.id, kind, force); const next = await list(); if (mounted.current) { setUpdates(result); setPacks(next) } }
+    const revision = contentRevision.current
+    try { const result = await window.launcher.checkProfileContentUpdates(profile.id, kind, force); const next = await list(); if (mounted.current && revision === contentRevision.current) { setUpdates(result); setPacks(next) } }
     catch (error) { if (force) onNotice(t(String((error as Error).message ?? error))) }
     finally { checkBusy.current = false; if (mounted.current) setChecking(false) }
   }
@@ -104,7 +106,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   }, [profile.id, kind, isVisible, mode, packs.length, busy, running])
   const update = async (pack: InstalledResourcePack) => {
     if (actionBusy.current) return
-    actionBusy.current = true; setBusy(true)
+    actionBusy.current = true; contentRevision.current++; setBusy(true)
     try { const next = await window.launcher.updateProfileContent(profile.id, kind, pack.filename, { title: pack.title, iconUrl: pack.icon ?? null }); if (mounted.current) { setPacks(next); setUpdates(current => current.filter(item => item.filename !== pack.filename)); setSelectedPack(next.find(item => item.provider === pack.provider && item.projectId === pack.projectId)?.filename ?? '') }; onNotice(t('{name} güncellendi.', { name: pack.title })) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
@@ -131,16 +133,16 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
         {visiblePacks.map(pack => <div key={pack.filename} data-enabled={pack.enabled} className={`resource-pack-row ${chosen?.filename === pack.filename ? 'selected' : ''}`}>
           <button className="resource-enable" role="checkbox" aria-checked={pack.enabled} aria-label={t(copy.enable, { name: pack.title })} disabled={busy || running} onClick={() => void enable(pack)}><span className="profile-checkbox">{pack.enabled && <Check size={13} strokeWidth={3} />}</span></button>
           <button className="resource-pack-select" onClick={() => setSelectedPack(pack.filename)} aria-pressed={chosen?.filename === pack.filename}><span className="resource-pack-icon">{packIcon(pack)}</span><span><strong>{pack.title}</strong><small>{pack.description || pack.filename}</small></span></button>
-          <span className="resource-format" title={updates.find(item => item.filename === pack.filename) ? updateText(updates.find(item => item.filename === pack.filename)) : undefined}><span>{kind === 'resourcepack' ? pack.format ?? '—' : pack.versionNumber || '—'}</span>{updates.find(item => item.filename === pack.filename)?.status === 'update' && <span className="resource-update-indicator">{t('Güncelleme var')}</span>}</span><span className="resource-provider" title={!pack.provider ? t('Dosya bu profilde kurulu, ancak Modrinth veya CurseForge kaynağı henüz doğrulanamadı.') : undefined}><span>{pack.provider === 'modrinth' ? 'Modrinth' : pack.provider === 'curseforge' ? 'CurseForge' : t('Bilinmiyor')}</span></span>
+          <span className="resource-format" title={updates.find(item => item.filename === pack.filename) ? updateText(updates.find(item => item.filename === pack.filename)) : undefined}><span>{pack.versionNumber || '—'}</span>{updates.find(item => item.filename === pack.filename)?.status === 'update' && <span className="resource-update-indicator">{t('Güncelleme var')}</span>}</span><span className="resource-provider" title={!pack.provider ? t('Dosya bu profilde kurulu, ancak Modrinth veya CurseForge kaynağı henüz doğrulanamadı.') : undefined}><span>{pack.provider && <img src={pack.provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />}{pack.provider === 'modrinth' ? 'Modrinth' : pack.provider === 'curseforge' ? 'CurseForge' : t('Bilinmiyor')}</span></span>
         </div>)}
       </div><aside className="resource-installed-detail">{chosen ? <>
         <h3>{chosen.sourceUrl ? <button className="resource-title-link" onClick={() => void window.launcher.openExternal(chosen.sourceUrl!).catch(error => onNotice(String(error)))} aria-label={`${chosen.title}: ${t('Proje sayfasında aç')}`}><span>{chosen.title}</span><ExternalLink size={15} /></button> : chosen.title}</h3>
-        {chosen.description && <p>{chosen.description}</p>}
+        {chosen.description && <p>{chosen.description}</p>}<div className="resource-detail-separator" role="separator" />
         <dl>
-          <dt><FileText size={14} />{t('Dosya adı')}:</dt><dd><button className="resource-file-link" title={t('Klasörde göster')} onClick={() => void window.launcher.revealProfileContent(profile.id, kind, chosen.filename).catch(error => onNotice(t(String(error.message ?? error))))}>{chosen.filename}</button></dd>
-          <dt><Tag size={14} />{t('Paket sürümü')}:</dt><dd>{chosen.versionNumber || '—'}</dd>
-          <dt><Clock3 size={14} />{t('Son değiştirme')}:</dt><dd>{new Date(chosen.modifiedAt).toLocaleString(language)}</dd>
-          <dt><Globe size={14} />{t('Sağlayıcı')}:</dt><dd className="resource-detail-provider">{chosen.provider && <img src={chosen.provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />}{chosen.provider === 'modrinth' ? 'Modrinth' : chosen.provider === 'curseforge' ? 'CurseForge' : t('Bilinmiyor')}</dd>
+          <dt><FileText size={14} />{t('Dosya adı')}</dt><dd><button className="resource-file-link" title={t('Klasörde göster')} onClick={() => void window.launcher.revealProfileContent(profile.id, kind, chosen.filename).catch(error => onNotice(t(String(error.message ?? error))))}>{chosen.filename}</button></dd>
+          <dt><Tag size={14} />{t('Paket sürümü')}</dt><dd>{chosen.versionNumber || '—'}</dd>
+          <dt><Clock3 size={14} />{t('Son değiştirme')}</dt><dd>{new Date(chosen.modifiedAt).toLocaleString(language)}</dd>
+          <dt><Globe size={14} />{t('Sağlayıcı')}</dt><dd className="resource-detail-provider">{chosen.provider && <img src={chosen.provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />}{chosen.provider === 'modrinth' ? 'Modrinth' : chosen.provider === 'curseforge' ? 'CurseForge' : t('Bilinmiyor')}</dd>
         </dl>
         {!chosen.provider && <p className="resource-source-note">{t('Dosya bu profilde kurulu, ancak Modrinth veya CurseForge kaynağı henüz doğrulanamadı.')}</p>}
         <div className="resource-update-summary" data-update-status={chosenUpdate?.status ?? 'unchecked'}><strong>{updateText(chosenUpdate)}</strong>
@@ -164,7 +166,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
         <div className="mods-detail-meta"><span>{t('Lisans')}: <strong>{project.license}</strong></span><span>{t('Güncelleme')}: <strong>{selected?.updated ? new Date(selected.updated).toLocaleDateString(language) : '—'}</strong></span></div>
         <div className="mods-detail-text">{plainDescription(project.body) || project.description}</div></div>
         <div className="resource-download-summary"><div className="mods-field"><span>{t('Paket sürümü')}</span><ModSelect label={t('Paket sürümü')} value={versionId} onChange={setVersionId} placeholder={t('Uyumlu paket sürümü bulunamadı.')} options={versions.map(version => ({ value: version.id, label: `${version.versionNumber} · ${t(version.type === 'release' ? 'Kararlı sürüm' : version.type === 'beta' ? 'Beta' : 'Alfa')}` }))} up /></div>
-          <dl><dt><FileText size={14} />{t('Dosya adı')}:</dt><dd>{version?.filename ?? '—'}</dd><dt><Globe size={14} />{t('Sağlayıcı')}:</dt><dd className="resource-detail-provider"><img src={provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />{provider === 'modrinth' ? 'Modrinth' : 'CurseForge'}</dd><dt><UserRound size={14} />{t('Profil')}:</dt><dd>{profile.name} · Minecraft {gameVersion}</dd></dl>
+          <dl><dt><FileText size={14} />{t('Dosya adı')}</dt><dd>{version?.filename ?? '—'}</dd><dt><Globe size={14} />{t('Sağlayıcı')}</dt><dd className="resource-detail-provider"><img src={provider === 'modrinth' ? modrinthIcon : curseforgeIcon} alt="" />{provider === 'modrinth' ? 'Modrinth' : 'CurseForge'}</dd><dt><UserRound size={14} />{t('Profil')}</dt><dd>{profile.name} · Minecraft {gameVersion}</dd></dl>
           {installed && <small>{t('Kurulu')}: {installed.versionNumber}</small>}
           {activeJob && <div className="resource-download-progress"><span>{t(activeJob.detail || 'İndiriliyor...')}</span><progress max={activeJob.totalBytes || 100} value={activeJob.totalBytes ? activeJob.downloadedBytes : 0} /></div>}
           {running && <small>{t('Paketleri değiştirmek için oyunu kapat.')}</small>}

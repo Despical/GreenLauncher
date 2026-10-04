@@ -2,16 +2,17 @@ import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSy
 import { basename, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import yauzl from 'yauzl'
-import type { InstalledResourcePack } from '../shared/types'
+import type { InstalledMod, InstalledResourcePack } from '../shared/types'
 import type { LauncherStore } from './store'
 import type { ModrinthService } from './modrinth'
 import type { CurseForgeService } from './curseforge'
 import { downloadVerified } from './modrinth-download'
 import { diskSpace } from './disk-space'
 import { inspectShaderPack, shaderConfiguration, readShaderSelection, writeShaderSelection } from './shader-packs'
+import { modFileHash } from './mod-metadata'
 
 type PackMetadata = { description: string; format?: string; icon?: string }
-type ManagedPack = Pick<InstalledResourcePack, 'filename' | 'title' | 'provider' | 'projectId' | 'versionId' | 'versionNumber' | 'sourceUrl'>
+type ManagedPack = Pick<InstalledResourcePack, 'filename' | 'title' | 'provider' | 'projectId' | 'versionId' | 'versionNumber' | 'sourceUrl' | 'fileHash' | 'icon'>
 const validName = (name: string) => typeof name === 'string' && !!name && basename(name) === name && !/[\\/:\x00-\x1f]/.test(name) && name !== '.' && name !== '..'
 const noLink = (path: string) => { if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error('Kaynak paketi yolu doğrulanamadı.') }
 function metadata(bytes: Buffer, icon?: Buffer): PackMetadata {
@@ -55,6 +56,9 @@ export async function inspectResourcePack(path: string): Promise<PackMetadata> {
 }
 
 export class ResourcePacks {
+  private listing = new Map<string, Promise<InstalledResourcePack[]>>()
+  private metadata = new Map<string, { signature: string; hashed: boolean; task: Promise<{ info?: PackMetadata; hash?: string }> }>()
+  private identified = new Map<string, { retryAt: number; match?: Omit<InstalledMod, 'filename'> }>()
   constructor(private store: LauncherStore, private modrinth: ModrinthService, private curseforge: CurseForgeService, private busy: (profileId: string) => boolean = () => false, private kind: 'resourcepack' | 'shader' = 'resourcepack') {}
   private paths(profileId: string) {
     const profile = this.store.get().profiles.find(profile => profile.id === profileId)
@@ -83,18 +87,76 @@ export class ResourcePacks {
     writeFileSync(temp, next, 'utf8'); renameSync(temp, path)
   }
   async list(profileId: string): Promise<InstalledResourcePack[]> {
+    const pending = this.listing.get(profileId)
+    if (pending) return pending
+    const task = this.listFiles(profileId).finally(() => { if (this.listing.get(profileId) === task) this.listing.delete(profileId) })
+    this.listing.set(profileId, task)
+    return task
+  }
+  private remember(profileId: string, records: ManagedPack[]) {
+    const { manifest } = this.paths(profileId)
+    if (existsSync(manifest)) {
+      try { const parsed = JSON.parse(readFileSync(manifest, 'utf8')); if (!Array.isArray(parsed) || this.managed(manifest).length !== parsed.length) return } catch { return }
+    }
+    const current = this.managed(manifest)
+    for (const record of records) {
+      const index = current.findIndex(item => item.filename === record.filename)
+      if (index < 0) current.push(record)
+      else if (current[index].fileHash || !current[index].versionId || !current[index].projectId) current[index] = record
+    }
+    mkdirSync(this.store.profilePath(profileId), { recursive: true })
+    const temporary = `${manifest}.${randomUUID()}.tmp`
+    writeFileSync(temporary, JSON.stringify(current, null, 2)); renameSync(temporary, manifest)
+  }
+  private async listFiles(profileId: string): Promise<InstalledResourcePack[]> {
     const { directory, manifest, options } = this.paths(profileId)
     if (!existsSync(directory)) return []
     const known = new Map(this.managed(manifest).map(pack => [pack.filename, pack])), { packs } = this.selected(options)
     const items = readdirSync(directory, { withFileTypes: true }).filter(item => !item.isSymbolicLink() && (item.isDirectory() || item.isFile() && /\.zip$/i.test(item.name)))
-    const result: InstalledResourcePack[] = []
-    // Sequential inspection bounds open descriptors and ZIP decompression memory.
-    for (const file of items) {
-      const path = join(directory, file.name)
-      let info: PackMetadata
-      try { info = await this.inspect(path) } catch { if (file.isDirectory()) continue; info = { description: '' } }
-      result.push({ ...known.get(file.name), filename: file.name, title: known.get(file.name)?.title ?? file.name.replace(/\.zip$/i, ''), ...info, modifiedAt: statSync(path).mtime.toISOString(), enabled: packs.includes(`file/${file.name}`) || packs.includes(`file:${file.name}`) || packs.includes(file.name) })
+    const signature = (info: { size: number; mtimeMs: number; ctimeMs: number }) => `${info.size}:${info.mtimeMs}:${info.ctimeMs}`
+    const inspected: Array<{ filename: string; signature: string; modifiedAt: string; info: PackMetadata; hash?: string; record?: ManagedPack }> = []
+    let cursor = 0
+    await Promise.all(Array.from({ length: Math.min(3, items.length) }, async () => {
+      while (cursor < items.length) {
+        const file = items[cursor++], path = join(directory, file.name)
+        noLink(path)
+        const stats = statSync(path), key = signature(stats)
+        let record = known.get(file.name), cached = this.metadata.get(path)
+        const hashRequired = file.isFile() && stats.size <= 256 * 1024 * 1024 && (!record?.versionId || !record.projectId || !!record.fileHash)
+        // Directory packs are inexpensive and their child metadata can change independently.
+        if (!cached || cached.signature !== key || file.isDirectory() || hashRequired && !cached.hashed) {
+          cached = { signature: key, hashed: hashRequired, task: Promise.all([this.inspect(path).catch(() => undefined), hashRequired ? modFileHash(path).catch(() => undefined) : Promise.resolve(undefined)]).then(([info, hash]) => ({ info, hash })) }
+          this.metadata.set(path, cached)
+          if (this.metadata.size > 512) this.metadata.delete(this.metadata.keys().next().value!)
+        }
+        const { info, hash } = await cached.task
+        if (!info && file.isDirectory()) continue
+        if (record?.fileHash && record.fileHash !== hash) record = undefined
+        inspected.push({ filename: file.name, signature: key, modifiedAt: stats.mtime.toISOString(), info: info ?? { description: '' }, hash, record })
+      }
+    }))
+    const hashes = [...new Set(inspected.filter(item => !item.record?.versionId || !item.record.projectId).flatMap(item => item.hash && (this.identified.get(item.hash)?.retryAt ?? 0) <= Date.now() ? [item.hash] : []))]
+    if (hashes.length && this.modrinth.identify) {
+      try { const matches = await this.modrinth.identify(hashes, this.kind); for (const hash of hashes) this.identified.set(hash, { retryAt: Date.now() + 10 * 60_000, match: matches.get(hash) }) }
+      catch { for (const hash of hashes) this.identified.set(hash, { retryAt: Date.now() + 60_000 }) }
+      while (this.identified.size > 2000) this.identified.delete(this.identified.keys().next().value!)
     }
+    if (this.paths(profileId).directory !== directory) throw new Error('Profil ayarları değişti. Tekrar dene.')
+    const result: InstalledResourcePack[] = [], recovered: ManagedPack[] = []
+    for (const item of inspected) {
+      const path = join(directory, item.filename)
+      if (!existsSync(path)) continue
+      noLink(path)
+      if (signature(statSync(path)) !== item.signature) continue
+      let record = item.record
+      const match = item.hash ? this.identified.get(item.hash)?.match : undefined
+      if ((!record?.versionId || !record.projectId) && match?.provider === 'modrinth') {
+        record = { filename: item.filename, title: match.title, provider: 'modrinth', projectId: match.projectId, versionId: match.versionId, versionNumber: match.versionNumber, sourceUrl: match.sourceUrl, icon: match.icon, fileHash: item.hash }
+        recovered.push(record)
+      }
+      result.push({ ...record, filename: item.filename, title: record?.title ?? item.filename.replace(/\.zip$/i, ''), ...item.info, icon: item.info.icon ?? record?.icon, modifiedAt: item.modifiedAt, enabled: packs.includes(`file/${item.filename}`) || packs.includes(`file:${item.filename}`) || packs.includes(item.filename) })
+    }
+    if (recovered.length) this.remember(profileId, recovered)
     return result.sort((a, b) => a.title.localeCompare(b.title))
   }
   async enable(profileId: string, filename: string, enabled: boolean): Promise<InstalledResourcePack[]> {
@@ -110,6 +172,7 @@ export class ResourcePacks {
     const next = this.kind === 'shader' && enabled ? [] : packs.filter(pack => ![filename, `file/${filename}`, `file:${filename}`].includes(pack))
     if (enabled) next.push(`file/${filename}`)
     this.writeSelection(options, text, next)
+    this.listing.delete(profileId)
     return this.list(profileId)
   }
   async install(profileId: string, versionId: string, provider: 'modrinth' | 'curseforge'): Promise<InstalledResourcePack[]> {
@@ -137,6 +200,7 @@ export class ResourcePacks {
     const staging = join(this.store.dataPath, 'cache', this.kind === 'shader' ? 'shaderpacks' : 'resourcepacks'); mkdirSync(staging, { recursive: true })
     const archive = join(staging, `${randomUUID()}.zip`)
     await download(archive); await this.inspect(archive)
+    if (statSync(archive).size <= 256 * 1024 * 1024) record.fileHash = await modFileHash(archive)
     if (this.busy(profileId)) throw new Error('Kaynak paketlerini değiştirmek için oyunu kapat.')
     // Revalidate after asynchronous requests. Game options are read at commit time.
     const fresh = this.paths(profileId)
@@ -160,6 +224,7 @@ export class ResourcePacks {
     const next = [...managed.filter(pack => pack.provider !== provider || pack.projectId !== record.projectId), record]
     const temp = `${manifest}.${randomUUID()}.tmp`; writeFileSync(temp, JSON.stringify(next, null, 2), 'utf8'); renameSync(temp, manifest)
     if (packs !== selected.packs) this.writeSelection(options, selected.text, packs)
+    this.listing.delete(profileId)
     return this.list(profileId)
   }
 }
