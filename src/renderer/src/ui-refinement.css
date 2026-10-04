@@ -211,7 +211,7 @@ button:not([aria-expanded]):active > svg.lucide-chevron-down { transform: rotate
 .profile-modal .profile-version-field .dropdown-trigger { height: 58px; }
 .profile-modal .profile-server-field small { display: block; font-size: 12px; font-weight: 400; color: #98a8b6; line-height: 1.6; margin: 9px 0 0; }
 .launcher-brand-menu { position: relative; z-index: 1001; flex: none; }
-.launcher-brand-menu .brand { padding: 7px 0; margin: -7px 12px 10px; }
+.launcher-brand-menu .brand { min-height: 48px; width: calc(100% - 22px); padding: 8px 10px; margin: 0 11px 12px; border-radius: 6px; }
 .launcher-brand-menu .brand:hover, .launcher-brand-menu .brand[aria-expanded="true"] { background: #21262d; }
 .launcher-links-menu { position: absolute; top: calc(100% - 8px); left: 10px; width: 280px; padding: 8px; border: 1px solid #484f58; border-radius: 8px; background: #202c36; box-shadow: 0 12px 32px #0006; }
 .launcher-links-heading { display: flex; flex-direction: column; gap: 6px; padding: 10px; }

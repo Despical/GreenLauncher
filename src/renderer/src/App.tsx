@@ -37,7 +37,7 @@ import customIcon from '../assets/cracked-stone-bricks.svg'
 import releaseIcon from '../assets/minecraft-release.png'
 import snapshotIcon from '../assets/minecraft-snapshot.png'
 import classicIcon from '../assets/minecraft-classic.png'
-import optifineIcon from '../assets/loaders/optifine.svg'
+import optifineIcon from '../assets/optifine-mark.png'
 import javaIcon from '../assets/java-original.svg'
 import overworldImage from '../assets/green-landscape.png'
 import netherImage from '../assets/nether-landscape.png'
@@ -52,11 +52,12 @@ const WorldsPage = lazy(() => import('./WorldsPage').then(module => ({ default: 
 const ServersPage = lazy(() => import('./ServersPage').then(module => ({ default: module.ServersPage })))
 const ModsPage = lazy(() => import('./ModsPage').then(module => ({ default: module.ModsPage })))
 const ResourcePacksPage = lazy(() => import('./ResourcePacksPage').then(module => ({ default: module.ResourcePacksPage })))
+const SystemLogsPage = lazy(() => import('./SystemLogsPage').then(module => ({ default: module.SystemLogsPage })))
 const MinecraftLogPage = lazy(() => import('./MinecraftLogPage').then(module => ({ default: module.MinecraftLogPage })))
 const Changelog = lazy(() => import('./Changelog').then(module => ({ default: module.Changelog })))
 
-type Page = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'profile-settings' | 'minecraft-log' | 'resource-packs' | 'shader-packs' | 'profile-version'
-const profileWorkspacePages: Page[] = ['servers', 'worlds', 'mods', 'gallery', 'profile-settings', 'minecraft-log', 'resource-packs', 'shader-packs', 'profile-version']
+type Page = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'profile-settings' | 'system-logs' | 'minecraft-log' | 'resource-packs' | 'shader-packs' | 'profile-version'
+const profileWorkspacePages: Page[] = ['servers', 'worlds', 'mods', 'gallery', 'profile-settings', 'system-logs', 'minecraft-log', 'resource-packs', 'shader-packs', 'profile-version']
 type Filter = VersionType | 'all'
 type Scope = 'all' | 'installed' | 'optifine' | 'custom'
 type ProfileDraft = Omit<LauncherProfile, 'id' | 'createdAt' | 'lastPlayed'> & { id?: string }
@@ -366,7 +367,7 @@ function App() {
   const [accountView, setAccountView] = useState<'account' | 'capes'>('account')
   useEffect(() => {
     const section = changelogOpen ? 'changelog' : coverProfileId ? 'profile-cover' : profileDraft ? 'edit-profile' : page === 'settings' ? settingsTab : page === 'account' ? accountView : undefined
-    const presencePage = page === 'profile-settings' || page === 'minecraft-log' || page === 'profile-version' ? 'profiles' : page
+    const presencePage = page === 'profile-settings' || page === 'system-logs' || page === 'minecraft-log' || page === 'profile-version' ? 'profiles' : page
     const context = section ? { page: presencePage, section } : page === 'profile-settings' ? { page: presencePage, section: 'edit-profile' } : page === 'mods' ? modsPresence : { page: presencePage }
     void window.launcher.setPresenceContext(context).catch(() => {})
   }, [page, settingsTab, accountView, modsPresence, changelogOpen, coverProfileId, !!profileDraft])
@@ -784,6 +785,7 @@ function App() {
           <div className="nav-divider" />
           <button className={page === 'gallery' ? 'active' : ''} aria-current={page === 'gallery' ? 'page' : undefined} onClick={() => setPage('gallery')}><ImageIcon size={19} />{t('Ekran görüntüleri')}</button>
           <button data-profile-page="minecraft-log" className={page === 'minecraft-log' ? 'active' : ''} aria-current={page === 'minecraft-log' ? 'page' : undefined} onClick={() => setPage('minecraft-log')}><FileText size={19} />{t('Minecraft günlüğü')}</button>
+          <button data-profile-page="system-logs" className={page === 'system-logs' ? 'active' : ''} aria-current={page === 'system-logs' ? 'page' : undefined} onClick={() => setPage('system-logs')}><FileText size={19} />{t('Diğer sistem kayıtları')}</button>
         </nav>
       </> : <><LauncherMenu language={language} version={packageJson.version} onAbout={() => { setPage('settings'); setSettingsTab('about') }} onOpen={url => run(() => window.launcher.openExternal(url))} /><div className="brand-separator" />
         <nav className="side-nav">
@@ -801,6 +803,7 @@ function App() {
         </>}<AccountSwitcher state={state} t={t} onState={setState} onNotice={setToast} open={accountSwitcherOpen} setOpen={setAccountSwitcherOpen} active={page === 'account'} onManage={() => setAccountOpen(true)} onOffline={() => setOfflineCreateOpen(true)} onProfile={() => setPage('account')} />
       </aside>
       <main ref={main} onScroll={() => { if (main.current) scrollPositions.current[page] = main.current.scrollTop }} className={`main-content page-${page}`}>
+        {visited.has('system-logs') && managedProfile && <div className="retained-page" hidden={page !== 'system-logs'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><SystemLogsPage key={managedProfile.id} profile={managedProfile} language={language} isVisible={page === 'system-logs'} running={instances.some(instance => instance.profileId === managedProfile.id)} onNotice={notifyCape} picker={(value, options, onChange) => <Dropdown className="system-log-picker" language={language} value={value} options={options} onChange={onChange} placeholder={t('Günlük dosyası')} showAll searchable />} /></Suspense></div>}
         {visited.has('minecraft-log') && managedProfile && <div className="retained-page" hidden={page !== 'minecraft-log'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><MinecraftLogPage key={managedProfile.id} profile={managedProfile} requestedSession={consoleTarget?.profileId === managedProfile.id ? consoleTarget : undefined} language={language} isVisible={page === 'minecraft-log'} instances={instances} onNotice={notifyCape} sessionPicker={(value, options, onChange) => <Dropdown className="minecraft-log-session" language={language} value={value} options={options} onChange={onChange} placeholder={t('Oyun oturumu')} showAll />} /></Suspense></div>}
         {visited.has('profile-version') && managedProfile && <div className="retained-page" hidden={page !== 'profile-version'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><ProfileVersionPage key={managedProfile.id} profile={managedProfile} versions={versions} language={language} isVisible={page === 'profile-version'} running={instances.some(instance => instance.profileId === managedProfile.id)} onState={setState} onVersions={setVersions} onNotice={setToast} picker={(value, options, onChange, label, disabled, searchable) => <Dropdown className="profile-version-choice" language={language} value={value} options={options} onChange={onChange} placeholder={label} disabled={disabled} searchable={searchable} searchPlaceholder={t('Sürüm ara')} showAll />} /></Suspense></div>}
         {visited.has('profile-settings') && managedProfile && <div className="retained-page" hidden={page !== 'profile-settings'}><ProfileSettingsPage profile={managedProfile} selectedProfileId={state.selectedProfileId} selectedAccountId={state.selectedAccountId} language={language} isVisible={page === 'profile-settings'} settings={state.settings} accounts={state.accounts} choicePicker={(value, options, onChange, label, disabled) => <Dropdown className="profile-setting-select" language={language} value={value} options={options} onChange={onChange} placeholder={label} disabled={disabled} showAll />} onState={setState} onNotice={setToast} onBusyChange={setProfileSettingsBusy} onOpenGeneral={tab => { setSettingsTab(tab); setPage('settings') }} /></div>}

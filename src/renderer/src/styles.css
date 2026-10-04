@@ -470,7 +470,7 @@ button:focus-visible, input:focus-visible, .version-row:focus-visible { outline:
 .variant-menu-footer { display: flex; justify-content: space-between; gap: 7px; margin-top: 6px; padding-top: 7px; border-top: 1px solid #30363d; }
 .variant-menu-footer button { display: flex; align-items: center; gap: 4px; padding: 7px 8px; border: 0; border-radius: 4px; background: transparent; color: #9fc4e4; font-size: 11px; font-weight: 700; }
 .variant-menu-footer button:hover { background: #30363d; color: #d3e9ff; }
-.optifine-glyph { image-rendering: auto; }
+.optifine-glyph { image-rendering: pixelated; }
 .row-actions button[title="Sürümü kaldır"]:hover { border-color: #a35e5e; background: #3b282c; color: #ffb3b3; }
 
 /* Settings and profile forms. */

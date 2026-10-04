@@ -159,6 +159,9 @@ export type ProfileLoader = 'none' | 'optifine' | ModLoader
 export type ProfileVersionResult = { status: 'configured'; state: LauncherState } | { status: 'confirmation-required'; activeMods: number }
 export type ModLoader = 'neoforge' | 'forge' | 'fabric' | 'quilt' | 'liteloader'
 export type ModProvider = 'modrinth' | 'curseforge' | 'technic'
+export type ModpackInstallTarget = 'current' | 'copy' | 'new'
+export interface SystemLogFile { filename: string; bytes: number; modifiedAt: string; compressed: boolean }
+export interface SystemLogDocument { filename: string; truncated: boolean; lines: GameLogLine[] }
 export interface ProviderStatus { curseforge: boolean }
 export type ModContentType = 'mod' | 'modpack' | 'resourcepack' | 'shader'
 export type ProfileContentKind = 'mod' | 'resourcepack' | 'shader'
@@ -302,6 +305,12 @@ export interface LauncherApi {
   installResourcePack(profileId: string, versionId: string, provider: 'modrinth' | 'curseforge', content?: DownloadContent): Promise<InstalledResourcePack[]>
   installMod(profileId: string, versionId: string, provider?: ModProvider, content?: DownloadContent): Promise<InstalledMod[]>
   installModpack(versionId: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, content?: DownloadContent): Promise<{ state: LauncherState; profileId: string }>
+  installProfileModpack(profileId: string, versionId: string, gameVersion: string, loader: ModLoader, target: ModpackInstallTarget): Promise<{ state: LauncherState; profileId: string }>
+  getSystemLogFiles(profileId: string): Promise<SystemLogFile[]>
+  getSystemLog(profileId: string, filename: string): Promise<SystemLogDocument>
+  deleteSystemLogs(profileId: string, filenames: string[]): Promise<void>
+  copySystemLog(profileId: string, filename: string): Promise<void>
+  uploadSystemLog(profileId: string, filename: string): Promise<string>
   getInstalledMods(profileId: string): Promise<InstalledMod[]>
   getProfileMods(profileId: string): Promise<InstalledMod[]>
   configureProfileVersion(profileId: string, minecraftVersion: string, loader?: ProfileLoader, acknowledged?: boolean): Promise<ProfileVersionResult>

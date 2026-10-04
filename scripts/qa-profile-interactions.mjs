@@ -9,7 +9,7 @@ try {
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.page-loading')).borderTopStyle"),'none','cold lazy page has no dashed placeholder')
  assert.equal(await evaluate("document.querySelector('.retained-page:not([hidden]) .library-empty')===null"),true,'empty content card is never used as the loading frame')
  await until(q('.world-select'))
- assert.deepEqual(await evaluate("[...document.querySelectorAll('.profile-workspace-nav>button')].map(b=>b.textContent.trim())"),['Dünyalar','Sunucular','Modlar','Kaynak paketleri','Shader paketleri','Sürüm','Ayarlar','Ekran görüntüleri','Minecraft günlüğü'])
+ assert.deepEqual(await evaluate("[...document.querySelectorAll('.profile-workspace-nav>button')].map(b=>b.textContent.trim())"),['Dünyalar','Sunucular','Modlar','Kaynak paketleri','Shader paketleri','Sürüm','Ayarlar','Ekran görüntüleri','Minecraft günlüğü','Diğer sistem kayıtları'])
  assert.equal(await evaluate("document.querySelector('.workspace-profile-select small')===null"),true,'compact identity shows only profile name')
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-workspace-icon img')).width"),'28px')
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.workspace-profile-select strong')).fontSize"),'14px')

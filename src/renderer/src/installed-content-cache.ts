@@ -1,7 +1,7 @@
 import type { InstalledResourcePack, LauncherProfile, ProfileContentKind, ProfileContentUpdate } from '../../shared/types'
 
 type Snapshot = { packs: InstalledResourcePack[]; updates: ProfileContentUpdate[]; selected: string }
-export const installedContentScope = (profile: LauncherProfile, kind: ProfileContentKind) => JSON.stringify([profile.id, profile.gameDirectory ?? '', profile.versionId, profile.modLoader ?? '', profile.modLoaderVersion ?? '', kind])
+export const installedContentScope = (profile: LauncherProfile, kind: ProfileContentKind) => JSON.stringify([profile.id, profile.gameDirectory ?? '', profile.versionId, profile.modLoader ?? '', profile.modLoaderVersion ?? '', profile.modpack?.versionId ?? '', kind])
 
 export function retainContentUpdates(before: InstalledResourcePack[], after: InstalledResourcePack[], updates: ProfileContentUpdate[]) {
   return updates.flatMap(update => {

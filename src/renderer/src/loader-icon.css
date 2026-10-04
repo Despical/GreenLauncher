@@ -1,2 +1,3 @@
 .profile-loader-icon { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; }
 .profile-loader-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.profile-loader-icon[data-loader="optifine"] img { image-rendering: pixelated; }

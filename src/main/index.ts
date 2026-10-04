@@ -15,7 +15,9 @@ import { parseShortcut, shortcutArguments } from './shortcuts'
 import { appId, configureWindows, executable, navigationArgument, navigationItems, persistentIcon } from './windows-integration'
 import { translate } from '../renderer/src/i18n'
 import { GameService, message } from './game'
-import { publishGameLog } from './game-console'
+import { publishGameLog, uploadMinecraftLog } from './game-console'
+import { ProfileSystemLogs } from './profile-system-logs'
+import { ProfilePackInstalls } from './profile-pack-installs'
 import { DiscordPresence, DISCORD_APPLICATION_ID } from './discord'
 import { ErrorLog } from './error-log'
 import { prepareDataPath } from './data-path'
@@ -227,6 +229,8 @@ else {
     const technic = new TechnicService()
     const providerPacks = new ProviderPacks(store, game, curseforge, technic, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const profilePackages = new ProfilePackages(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
+    const systemLogs = new ProfileSystemLogs(store, game)
+    const profilePackInstalls = new ProfilePackInstalls(store, game, profilePackages, (version, minecraft, loader, source) => source === 'modrinth' ? modpacks.install(version, minecraft, loader) : providerPacks.install(source, version))
     const customClients = new CustomClients(store.minecraftPath, id => game.isInstalled(id) ? Promise.resolve() : game.install(id))
     let installingContent = false
     const profileVersions = new ProfileVersions(store, game, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId), async profileId => (await profileContent.list(profileId, 'mod')).filter(mod => mod.enabled).length)
@@ -383,6 +387,11 @@ else {
       return game.console.snapshot(profileId, instanceId, Number.isFinite(afterSeq) ? afterSeq : 0)
     })
     handle('launcher:clear-game-log', (profileId: string, instanceId: string) => { requireLogProfile(profileId); return game.console.clear(profileId, instanceId) })
+    handle('launcher:get-system-log-files', (profileId: string) => systemLogs.list(profileId))
+    handle('launcher:get-system-log', (profileId: string, filename: string) => systemLogs.read(profileId, filename))
+    handle('launcher:delete-system-logs', (profileId: string, filenames: string[]) => systemLogs.remove(profileId, filenames))
+    handle('launcher:copy-system-log', async (profileId: string, filename: string) => clipboard.writeText((await systemLogs.read(profileId, filename)).lines.map(line => line.text).join('\n')))
+    handle('launcher:upload-system-log', async (profileId: string, filename: string) => uploadMinecraftLog((await systemLogs.read(profileId, filename)).lines.map(line => line.text).join('\n')))
     handle('launcher:copy-game-log', (profileId: string, instanceId: string) => { requireLogProfile(profileId); clipboard.writeText(game.console.content(profileId, instanceId)) })
     handle('launcher:upload-game-log', async (profileId: string, instanceId: string) => {
       requireLogProfile(profileId)
@@ -566,6 +575,11 @@ else {
     handle('launcher:configure-profile-version', (profileId: string, minecraftVersion: string, loader?: ProfileLoader, acknowledged?: boolean) => queue(`Minecraft ${minecraftVersion}`, () => installContent(async () => {
       const result = await profileVersions.configure(profileId, minecraftVersion, loader, acknowledged === true)
       if (result.status === 'configured') changed(result.state)
+      return result
+    }), profileId))
+    handle('launcher:install-profile-modpack', (profileId: string, version: string, minecraft: string, loader: ModLoader, target: import('../shared/types').ModpackInstallTarget) => queue('Mod paketi kurulumu', () => installContent(async () => {
+      const result = await profilePackInstalls.install(profileId, version, minecraft, loader, target)
+      changed(result.state)
       return result
     }), profileId))
     handle('launcher:install-mod-loader', (profileId: string, gameVersion: string, loader: ModLoader) => queue(`${loader} · Minecraft ${gameVersion}`, async () => {

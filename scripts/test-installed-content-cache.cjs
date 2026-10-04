@@ -20,6 +20,7 @@ const { InstalledContentCache, installedContentScope } = mod.exports
   assert.notEqual(key, installedContentScope({ id: 'a', versionId: '1.21.1', gameDirectory: 'other' }, 'mod'))
   assert.notEqual(key, installedContentScope({ id: 'b', versionId: '1.21.1' }, 'mod'))
   assert.notEqual(key, installedContentScope({ id: 'a', versionId: '1.21.1' }, 'shader'))
+  assert.notEqual(installedContentScope({ id: 'a', versionId: '1.21.1', modpack: { versionId: 'old' } }, 'mod'), installedContentScope({ id: 'a', versionId: '1.21.1', modpack: { versionId: 'new' } }, 'mod'), 'pack changes invalidate cached artifacts even with the same runtime')
   for (let i = 0; i < 25; i++) cache.remember(String(i), { packs: [], updates: [], selected: '' })
   assert.equal(cache.peek(key), undefined, 'bounded cache evicts old profile snapshots')
   console.log('PASS installed content cache: synchronous stale view, request coalescing, mutation ordering, update retention and scoped bounded entries')

@@ -25,7 +25,14 @@
 .profile-version-progress progress { width: 100%; height: 5px; accent-color: #8b949e; }
 @media (max-width: 1100px) { .profile-version-section { gap: 20px; grid-template-columns: minmax(150px,.7fr) minmax(0,1.3fr); } .profile-version-controls { grid-template-columns: minmax(0,1fr) 162px; gap: 10px; } }
 
-.profile-pack-section { margin-top: 24px; padding: 24px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; }
+.profile-pack-section { margin: 0; padding: 25px 0; border-top: 1px solid #30363d; }
+.profile-pack-version { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-pack-latest { color: #e3a45c; }
+.profile-pack-destinations { display: grid; gap: 10px; margin-top: 20px; }
+.profile-pack-destinations > button { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 15px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #e6edf3; text-align: left; white-space: normal; font: inherit; cursor: pointer; }
+.profile-pack-destinations > button:hover:enabled { background: #30363d; border-color: #484f58; }
+.profile-pack-destinations > button:disabled { opacity: .5; cursor: default; }
+.profile-pack-destinations span { color: #8b949e; font-size: 13px; line-height: 1.5; }
 .profile-pack-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .profile-pack-heading h3 { display: flex; align-items: center; gap: 9px; font-size: 15px; margin: 0; }
 .profile-pack-section > p { font-size: 13px; line-height: 1.6; color: #8b949e; }
