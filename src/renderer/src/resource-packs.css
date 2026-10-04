@@ -20,6 +20,7 @@
 .resource-packs-page .resource-check-updates, .resource-packs-page .resource-update-button { background: #2d7950; border-color: #448d65; color: #fff; }
 .resource-packs-page .resource-check-updates:hover:not(:disabled), .resource-packs-page .resource-update-button:hover:not(:disabled) { background: #38895c; border-color: #68ad82; }
 .resource-packs-page .resource-check-updates:disabled, .resource-packs-page .resource-update-button:disabled { opacity: .48; }
+.resource-packs-page .resource-check-updates[data-toggling=true]:disabled, .resource-packs-page .resource-update-button[data-toggling=true]:disabled { opacity: 1; }
 .resource-update-summary { border-top: 1px solid #30363d; padding-top: 16px; margin: 18px 0 0; color: #8b949e; font-size: 12px; }
 .resource-update-summary > :last-child { margin-bottom: 0; }
 .resource-update-summary strong { font-weight: 500; }
@@ -31,7 +32,7 @@
 .resource-installed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 20px; align-items: start; }
 .resource-installed-list, .resource-installed-detail { border: 1px solid #30363d; border-radius: 8px; background: #161b22; min-width: 0; }
 .resource-installed-list { overflow: hidden; }
-.resource-table-head, .resource-pack-row { display: grid; grid-template-columns: 48px minmax(0,1fr) 104px 140px; align-items: center; gap: 10px; padding: 12px; }
+.resource-table-head, .resource-pack-row { display: grid; grid-template-columns: 48px minmax(0,1fr) 140px 140px; align-items: center; gap: 10px; padding: 12px; }
 .resource-table-head { color: #a5adb8; font: 600 13px/1.5 'Inter Variable', 'Segoe UI', sans-serif; border-bottom: 1px solid #30363d; }
 .resource-table-head > span:first-child, .resource-table-head > span:nth-child(n+3) { text-align: center; }
 .resource-table-head > span:nth-child(2) { padding-left: 50px; }
@@ -99,7 +100,7 @@
 @media (max-width: 1200px) {
   .resource-browser-layout { grid-template-columns: 130px minmax(0,1fr); gap: 16px; }
   .resource-installed-layout { grid-template-columns: minmax(0,1fr) 220px; gap: 16px; }
-  .resource-table-head, .resource-pack-row { grid-template-columns: 42px minmax(0,1fr) 84px 124px; gap: 8px; }
+  .resource-table-head, .resource-pack-row { grid-template-columns: 42px minmax(0,1fr) 124px 124px; gap: 8px; }
   .resource-catalog-body { grid-template-columns: minmax(190px,.85fr) minmax(250px,1.15fr); }
   .resource-format::before, .resource-provider::before { left: -4px; }
 }

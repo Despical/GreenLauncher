@@ -20,6 +20,17 @@
 .account-identity strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e5ecef; font-size: 14px; font-weight: 650; line-height: 20px; }
 .account-identity small { display: flex; align-items: center; gap: 7px; color: #b0bec9; font-size: 12px; font-weight: 450; line-height: 18px; }
 .account-identity small svg { flex: none; }
+.profile-account-select .dropdown-trigger { min-height: 62px; gap: 11px; padding: 9px; }
+.profile-account-select .dropdown-copy, .profile-account-menu .dropdown-option-copy { gap: 5px; }
+.profile-account-select .dropdown-copy strong, .profile-account-menu .dropdown-option-copy strong { font-size: 13px; font-weight: 650; line-height: 20px; }
+.profile-account-select .dropdown-copy small, .profile-account-menu .dropdown-option-copy small { display: flex; align-items: center; gap: 7px; color: #b0bec9; font-size: 12px; line-height: 18px; }
+.profile-account-menu { padding: 8px; border-radius: 12px; background: #192129; border: 1px solid #3b4853; box-shadow: 0 18px 46px #0008, 0 2px 8px #0005; }
+.profile-account-menu .dropdown-options { padding: 0; }
+.profile-account-menu .dropdown-options button { min-height: 62px; padding: 9px; gap: 11px; border-radius: 8px; }
+.profile-account-menu .dropdown-options button[aria-selected=true] { border-color: #40634c; background: #223b2c; box-shadow: none; }
+.profile-account-menu .dropdown-options button:hover, .profile-account-menu .dropdown-options button:focus-visible { background: #2b3741; border-color: #435462; }
+.profile-account-menu .dropdown-options button[aria-selected=true]:hover, .profile-account-menu .dropdown-options button[aria-selected=true]:focus-visible { background: #294634; border-color: #547c60; }
+.profile-account-select:has(.dropdown-trigger:disabled) .player-avatar { opacity: .5; }
 .sidebar-account .account-switcher-list .account-identity strong { font-size: 13px; }
 .sidebar-account .account-switcher-list .account-identity small { font-size: 12px; color: #b0bec9; }
 .account-identity small .lucide-wifi-off { color: #b5c7d3; stroke-width: 2; }

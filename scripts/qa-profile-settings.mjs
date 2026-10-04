@@ -40,6 +40,7 @@ try {
   const textarea = async value => {await evaluate("(()=>{const e=document.querySelector('.profile-jvm-args textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,"+JSON.stringify(value)+");e.dispatchEvent(new Event('input',{bubbles:true}))})()");await wait(100)}
   const tab = async name => {await evaluate("document.querySelector('.profile-settings-page #profile-settings-tab-"+name+"').click()");await wait(50)}
   await tab('general');const generalPadding=await evaluate("(()=>{const style=getComputedStyle(document.querySelector('.profile-setting-options .setting-toggle'));return [style.paddingLeft,style.paddingRight]})()")
+  assert.equal(await evaluate("[...document.querySelectorAll('.profile-setting-options')].every(box=>{const [a,b]=box.children;return Math.abs(a.getBoundingClientRect().bottom-b.getBoundingClientRect().top)<1&&getComputedStyle(b).borderTopWidth==='1px'&&getComputedStyle(box).padding==='0px'})"),true,'playtime and console switches form one contiguous card with a divider')
   await tab('window');const windowPadding=await evaluate("(()=>{const style=getComputedStyle(document.querySelector('.profile-window-options .setting-toggle'));return [style.paddingLeft,style.paddingRight]})()")
   assert.deepEqual(generalPadding,windowPadding,'general and window switch cards share horizontal insets');assert.deepEqual(generalPadding,['13px','13px'])
   for(const name of ['general','java','window']) {
@@ -89,6 +90,13 @@ try {
   assert.equal(await evaluate("document.querySelector('.profile-account-override .dropdown-copy strong').textContent"),before.accounts.find(a=>a.id===before.selectedAccountId).name)
   await click('.profile-account-override .profile-section-enable');await until("document.querySelector('.profile-account-override .dropdown-trigger')")
   assert.equal(await evaluate("document.querySelector('.profile-account-override .dropdown-copy strong').textContent"),'DesignQA')
+  await until("document.querySelector('.profile-account-select .player-avatar img')?.naturalWidth>0")
+  await click('.profile-account-override .dropdown-trigger');await until("document.querySelector('.profile-account-menu [role=option]')")
+  assert.equal(await evaluate("document.querySelector('.profile-account-menu [role=option] .player-avatar img')?.naturalWidth>0"),true,'account choice includes the cached skin head')
+  assert.equal(await evaluate("document.querySelector('.profile-account-menu small svg')!==null"),true,'account type has its sidebar icon')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-account-menu [aria-selected=true]')).backgroundColor"),'rgb(41, 70, 52)','focused account selection matches sidebar hover style')
+  await shot('qa-profile-account-picker');await evaluate("document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))")
+  assert.equal(await evaluate("document.activeElement===document.querySelector('.profile-account-override .dropdown-trigger')"),true,'account picker returns focus on Escape')
   assert.equal(await evaluate("document.querySelectorAll('.profile-console-settings [role=switch]').length"),2)
   assert.equal(await evaluate("[...document.querySelectorAll('.profile-console-settings [role=switch]')].every(button=>button.matches(':disabled'))"),true)
   await click('.profile-console-settings .profile-section-enable')

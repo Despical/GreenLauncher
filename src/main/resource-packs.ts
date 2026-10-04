@@ -12,7 +12,7 @@ import { inspectShaderPack, shaderConfiguration, readShaderSelection, writeShade
 import { modFileHash } from './mod-metadata'
 
 type PackMetadata = { description: string; format?: string; icon?: string }
-type ManagedPack = Pick<InstalledResourcePack, 'filename' | 'title' | 'provider' | 'projectId' | 'versionId' | 'versionNumber' | 'sourceUrl' | 'fileHash' | 'icon'>
+type ManagedPack = Pick<InstalledResourcePack, 'filename' | 'title' | 'provider' | 'projectId' | 'versionId' | 'versionNumber' | 'sourceUrl' | 'fileHash' | 'icon'> & { description?: string }
 const validName = (name: string) => typeof name === 'string' && !!name && basename(name) === name && !/[\\/:\x00-\x1f]/.test(name) && name !== '.' && name !== '..'
 const noLink = (path: string) => { if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error('Kaynak paketi yolu doğrulanamadı.') }
 function metadata(bytes: Buffer, icon?: Buffer): PackMetadata {
@@ -56,6 +56,7 @@ export async function inspectResourcePack(path: string): Promise<PackMetadata> {
 }
 
 export class ResourcePacks {
+  private descriptions = new Map<string, { expires: number; task: Promise<string> }>()
   private listing = new Map<string, Promise<InstalledResourcePack[]>>()
   private metadata = new Map<string, { signature: string; hashed: boolean; task: Promise<{ info?: PackMetadata; hash?: string }> }>()
   private identified = new Map<string, { retryAt: number; match?: Omit<InstalledMod, 'filename'> }>()
@@ -68,6 +69,17 @@ export class ResourcePacks {
     return { profile, directory, options, manifest }
   }
   private inspect(path: string): Promise<PackMetadata> { return this.kind === 'shader' ? inspectShaderPack(path) : inspectResourcePack(path) }
+  private description(pack: ManagedPack): Promise<string> {
+    const key = `${pack.provider}:${pack.projectId}`, cached = this.descriptions.get(key)
+    if (cached && cached.expires > Date.now()) return cached.task
+    const service = pack.provider === 'modrinth' ? this.modrinth : this.curseforge
+    if (!pack.projectId || !service.project) return Promise.resolve('')
+    const entry = { expires: Date.now() + 10 * 60_000, task: Promise.resolve('') }
+    entry.task = service.project(pack.projectId).then(project => project.projectType === this.kind ? project.description.slice(0, 2000) : '').catch(() => { entry.expires = Date.now() + 60_000; return '' })
+    this.descriptions.set(key, entry)
+    while (this.descriptions.size > 256) this.descriptions.delete(this.descriptions.keys().next().value!)
+    return entry.task
+  }
   private managed(path: string): ManagedPack[] {
     if (!existsSync(path)) return []
     try { const items = JSON.parse(readFileSync(path, 'utf8')); return Array.isArray(items) ? items.filter(item => validName(item?.filename) && ['modrinth', 'curseforge'].includes(item.provider) && typeof item.title === 'string') : [] } catch { return [] }
@@ -103,6 +115,7 @@ export class ResourcePacks {
       const index = current.findIndex(item => item.filename === record.filename)
       if (index < 0) current.push(record)
       else if (current[index].fileHash || !current[index].versionId || !current[index].projectId) current[index] = record
+      else if (!current[index].description && record.description) current[index] = { ...current[index], description: record.description }
     }
     mkdirSync(this.store.profilePath(profileId), { recursive: true })
     const temporary = `${manifest}.${randomUUID()}.tmp`
@@ -142,6 +155,15 @@ export class ResourcePacks {
       while (this.identified.size > 2000) this.identified.delete(this.identified.keys().next().value!)
     }
     if (this.paths(profileId).directory !== directory) throw new Error('Profil ayarları değişti. Tekrar dene.')
+    const missing = inspected.filter(item => item.record && !item.info.description && !item.record.description)
+    let detailCursor = 0
+    await Promise.all(Array.from({ length: Math.min(3, missing.length) }, async () => {
+      while (detailCursor < missing.length) {
+        const item = missing[detailCursor++], description = await this.description(item.record!)
+        if (description) item.record = { ...item.record!, description }
+      }
+    }))
+    if (this.paths(profileId).directory !== directory) throw new Error('Profil ayarları değişti. Tekrar dene.')
     const result: InstalledResourcePack[] = [], recovered: ManagedPack[] = []
     for (const item of inspected) {
       const path = join(directory, item.filename)
@@ -151,10 +173,11 @@ export class ResourcePacks {
       let record = item.record
       const match = item.hash ? this.identified.get(item.hash)?.match : undefined
       if ((!record?.versionId || !record.projectId) && match?.provider === 'modrinth') {
-        record = { filename: item.filename, title: match.title, provider: 'modrinth', projectId: match.projectId, versionId: match.versionId, versionNumber: match.versionNumber, sourceUrl: match.sourceUrl, icon: match.icon, fileHash: item.hash }
+        record = { filename: item.filename, title: match.title, provider: 'modrinth', projectId: match.projectId, versionId: match.versionId, versionNumber: match.versionNumber, sourceUrl: match.sourceUrl, icon: match.icon, description: match.description, fileHash: item.hash }
         recovered.push(record)
       }
-      result.push({ ...record, filename: item.filename, title: record?.title ?? item.filename.replace(/\.zip$/i, ''), ...item.info, icon: item.info.icon ?? record?.icon, modifiedAt: item.modifiedAt, enabled: packs.includes(`file/${item.filename}`) || packs.includes(`file:${item.filename}`) || packs.includes(item.filename) })
+      else if (record?.description && !known.get(item.filename)?.description) recovered.push(record)
+      result.push({ ...record, filename: item.filename, title: record?.title ?? item.filename.replace(/\.zip$/i, ''), ...item.info, description: item.info.description || record?.description || '', icon: item.info.icon ?? record?.icon, modifiedAt: item.modifiedAt, enabled: packs.includes(`file/${item.filename}`) || packs.includes(`file:${item.filename}`) || packs.includes(item.filename) })
     }
     if (recovered.length) this.remember(profileId, recovered)
     return result.sort((a, b) => a.title.localeCompare(b.title))
@@ -184,14 +207,14 @@ export class ResourcePacks {
     if (provider === 'modrinth') {
       const plan = await this.modrinth.resourcePack(versionId, gameVersion, this.kind)
       original = plan.file.filename
-      record = { filename: '', title: plan.project.title, provider, projectId: plan.project.id, versionId: plan.version.id, versionNumber: plan.version.versionNumber, sourceUrl: plan.project.sourceUrl ?? undefined }
+      record = { filename: '', title: plan.project.title, provider, projectId: plan.project.id, versionId: plan.version.id, versionNumber: plan.version.versionNumber, sourceUrl: plan.project.sourceUrl ?? undefined, description: plan.project.description }
       download = path => downloadVerified([plan.file.url], plan.file.hashes, path, join(this.store.dataPath, 'cache', 'modrinth-files'))
     } else {
       const file = await this.curseforge.file(versionId)
       if (await this.curseforge.destination(String(file.modId)) !== (this.kind === 'shader' ? 'shaderpacks' : 'resourcepacks') || !file.gameVersions.includes(gameVersion)) throw new Error('Kaynak paketi profilin Minecraft sürümüyle uyumlu değil.')
       const project = await this.curseforge.project(String(file.modId))
       original = file.fileName
-      record = { filename: '', title: project.title, provider, projectId: project.id, versionId, versionNumber: file.displayName, sourceUrl: project.sourceUrl ?? undefined }
+      record = { filename: '', title: project.title, provider, projectId: project.id, versionId, versionNumber: file.displayName, sourceUrl: project.sourceUrl ?? undefined, description: project.description }
       download = path => this.curseforge.download(file, path)
     }
     if (!validName(original) || !/\.zip$/i.test(original)) throw new Error('Kaynak paketi dosyası doğrulanamadı.')

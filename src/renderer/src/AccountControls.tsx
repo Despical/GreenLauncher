@@ -44,7 +44,7 @@ export function AccountAvatar({ account, className = '' }: { account?: GameAccou
   return <span className={`player-avatar ${className}`} aria-hidden="true">{head ? <img src={head} alt="" draggable={false} /> : <UserRound size={20} />}</span>
 }
 
-function MicrosoftMark({ size = 18 }: { size?: number }) {
+export function MicrosoftMark({ size = 18 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 18 18" aria-hidden="true"><path fill="#f25022" d="M0 0h8v8H0z" /><path fill="#7fba00" d="M10 0h8v8h-8z" /><path fill="#00a4ef" d="M0 10h8v8H0z" /><path fill="#ffb900" d="M10 10h8v8h-8z" /></svg>
 }
 

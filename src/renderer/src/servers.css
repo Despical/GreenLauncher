@@ -6,10 +6,10 @@
 .servers-page .modal-actions{justify-content:flex-end}
 .servers-page .modal-actions .modal-primary{flex:0 0 auto;width:auto;min-width:110px;padding:0 16px}
 .servers-page .page-heading{gap:20px}
-.servers-workspace{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:18px;align-items:start}
-.servers-list-panel,.server-details{background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:0}
-.servers-toolbar{display:flex;align-items:center;gap:16px;padding:20px;border-bottom:1px solid var(--border)}
-.servers-toolbar .search-box{flex:1;height:42px;background:#161b22;border-color:#30363d}
+.servers-workspace{display:grid;grid-template-columns:minmax(0,1fr) 270px;column-gap:20px;row-gap:16px;align-items:start}
+.servers-list-panel,.server-details{background:#161b22;border:1px solid #30363d;border-radius:8px;min-width:0}
+.servers-toolbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0;border:0}
+.servers-toolbar .search-box{flex:1;max-width:480px;height:42px;background:#0d1117;border-color:#30363d}
 .servers-toolbar .search-box input{font:400 13px 'Inter Variable',sans-serif}
 .servers-toolbar>span{white-space:nowrap;font-size:12px;color:var(--muted)}
 .servers-list-panel{--player-column-width:126px;--server-columns:minmax(160px,1fr) minmax(110px,1.35fr) var(--player-column-width) minmax(130px,.85fr)}
@@ -51,7 +51,7 @@
 .server-resource-select .dropdown-copy strong{font-size:14px;font-weight:500}
 .server-resource-menu .dropdown-options .dropdown-option-copy strong{font-size:14px;font-weight:500}
 .server-resource-menu .dropdown-options button{min-height:42px}
-.server-details{padding:22px}
+.server-details{padding:20px 20px 16px}
 .server-details-heading{padding-bottom:19px;border-bottom:1px solid var(--border);margin-bottom:20px}
 .server-details-heading h3{font-size:16px;line-height:1.4;margin:0 0 7px;font-weight:650}
 .server-details-heading p{font-size:13px;line-height:1.65;color:var(--muted);margin:0}
@@ -102,7 +102,7 @@
 .server-account-note svg{flex-shrink:0;margin-top:3px}
 .servers-page .modal-actions{margin-top:27px}
 .servers-profile-select .dropdown-trigger{min-height:65px}
-@media(max-width:1150px){.servers-workspace{grid-template-columns:minmax(0,1fr) 230px;gap:14px}.server-details{padding:18px}.servers-toolbar{gap:10px;padding:15px}.servers-list-profile-select{width:175px}.server-identity{gap:10px}}
+@media(max-width:1150px){.servers-workspace{grid-template-columns:minmax(0,1fr) 230px;gap:14px}.server-details{padding:18px}.servers-toolbar{gap:10px;padding:0}.servers-list-profile-select{width:175px}.server-identity{gap:10px}}
 @media(prefers-reduced-motion:reduce){.server-row{transition:none!important}}
 
 

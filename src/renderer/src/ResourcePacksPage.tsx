@@ -7,19 +7,22 @@ import { CurseForgeConnection } from './CurseForgeConnection'
 import curseforgeIcon from '../assets/curseforge.svg'
 import modrinthIcon from '../assets/modrinth-logo.svg'
 import './resource-packs.css'
+import { installedContentCache, installedContentScope, retainContentUpdates } from './installed-content-cache'
 
 export function ResourcePacksPage({ profile, language, isVisible, running, onNotice, kind = 'resourcepack' }: { kind?: ProfileContentKind; profile: LauncherProfile; language: Language; isVisible: boolean; running: boolean; onNotice: (text: string) => void }) {
   const t = (text: string, values?: Record<string, string | number>) => translate(language, text, values)
   const gameVersion = profile.versionId.split(/-OptiFine_/i)[0]
   const loader = profile.modLoader ?? 'fabric'
   const needsLoader = kind === 'mod' && (!profile.modLoader || !profile.modLoaderVersion)
+  const scope = installedContentScope(profile, kind), cached = installedContentCache.peek(scope)
   const copy = kind === 'mod' ? { title: 'Modlar', description: 'Bu profilin modlarını yönet ve uyumlu sürümleri keşfet.', search: 'Kurulu modlarda ara', item: 'Mod', format: 'Sürüm', empty: 'Henüz mod yok', discover: 'Modları keşfet', enable: '{name} modunu etkinleştir', details: 'Bilgilerini görmek için bir mod seç.', browse: 'Mod ara...', loading: 'Modlar yükleniyor...', noResults: 'Bu sürüme uygun mod bulunamadı.', installed: '{name} modu kuruldu.' } : kind === 'shader' ? { title: 'Shader paketleri', description: 'Bu profilin shader paketlerini yönet, yeni görünümleri keşfet.', search: 'Kurulu shader paketlerinde ara', item: 'Paket', format: 'Sürüm', empty: 'Henüz shader paketi yok', discover: 'Paketleri keşfet', enable: '{name} paketini etkinleştir', details: 'Bilgilerini görmek için bir shader paketi seç.', browse: 'Shader paketi ara...', loading: 'Shader paketleri yükleniyor...', noResults: 'Bu sürüme uygun shader paketi bulunamadı.', installed: '{name} shader paketi kuruldu.' } : { title: 'Kaynak paketleri', description: 'Bu profilin paketlerini yönet, yeni görünümleri keşfet.', search: 'Kurulu paketlerde ara', item: 'Paket', format: 'Sürüm', empty: 'Henüz kaynak paketi yok', discover: 'Paketleri keşfet', enable: '{name} paketini etkinleştir', details: 'Bilgilerini görmek için bir kaynak paketi seç.', browse: 'Kaynak paketi ara...', loading: 'Kaynak paketleri yükleniyor...', noResults: 'Bu sürüme uygun kaynak paketi bulunamadı.', installed: '{name} kaynak paketi kuruldu.' }
-  const [updates, setUpdates] = useState<ProfileContentUpdate[]>([]), [checking, setChecking] = useState(false)
+  const [updates, setUpdates] = useState<ProfileContentUpdate[]>(cached?.updates ?? []), [checking, setChecking] = useState(false)
+  const [installedLoading, setInstalledLoading] = useState(!cached), [toggling, setToggling] = useState(false)
   const checkBusy = useRef(false)
   const list = () => kind === 'resourcepack' ? window.launcher.getResourcePacks(profile.id) : window.launcher.getProfileContent(profile.id, kind)
   const [mode, setMode] = useState<'installed' | 'browse'>('installed')
   const [provider, setProvider] = useState<'modrinth' | 'curseforge'>('modrinth'), [connected, setConnected] = useState(false), [connection, setConnection] = useState(false)
-  const [packs, setPacks] = useState<InstalledResourcePack[]>([]), [selectedPack, setSelectedPack] = useState('')
+  const [packs, setPacks] = useState<InstalledResourcePack[]>(cached?.packs ?? []), [selectedPack, setSelectedPack] = useState(cached?.selected ?? '')
   const [query, setQuery] = useState(''), [search, setSearch] = useState(''), [sort, setSort] = useState<ModSort>('relevance')
   const [hits, setHits] = useState<ModSearchHit[]>([]), [total, setTotal] = useState(0), [selected, setSelected] = useState<ModSearchHit | null>(null)
   const [project, setProject] = useState<ModProject | null>(null), [versions, setVersions] = useState<ModVersion[]>([]), [versionId, setVersionId] = useState('')
@@ -29,17 +32,29 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const resultsRef = useRef<HTMLDivElement>(null), pageInFlight = useRef(false)
   const token = useRef(0), actionBusy = useRef(false), mounted = useRef(true)
   const contentRevision = useRef(0)
+  const acceptMutation = (next: InstalledResourcePack[], results: ProfileContentUpdate[], selected = selectedPack) => {
+    installedContentCache.remember(scope, { packs: next, updates: results, selected })
+    if (mounted.current) { setPacks(next); setUpdates(results); setSelectedPack(selected); setInstalledLoading(false) }
+  }
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+  useEffect(() => { if (!installedLoading && !error) installedContentCache.remember(scope, { packs, updates, selected: selectedPack }) }, [scope, packs, updates, selectedPack, installedLoading, error])
   useEffect(() => { window.launcher.getProviderStatus().then(status => { if (mounted.current) setConnected(status.curseforge) }).catch(() => {}) }, [])
   useEffect(() => { const timeout = window.setTimeout(() => setSearch(query.trim()), 300); return () => window.clearTimeout(timeout) }, [query])
   useEffect(() => {
     if (!isVisible) return
     let active = true
-    list().then(value => { if (active) { setPacks(value); setError('') } }).catch(error => { if (active) setError(String(error.message ?? error)) })
+    const sync = () => {
+      if (actionBusy.current) return
+      const revision = contentRevision.current
+      installedContentCache.load(scope, list).then(value => { if (active && value && revision === contentRevision.current) { setPacks(value.packs); setUpdates(value.updates); setInstalledLoading(false); setError('') } }).catch(error => { if (active) { setError(String(error.message ?? error)); setInstalledLoading(false) } })
+    }
+    sync()
+    const timer = window.setInterval(sync, 30_000)
+    window.addEventListener('focus', sync)
     window.launcher.getDownloads().then(value => { if (active) setDownloads(value) }).catch(() => {})
     const off = window.launcher.on('downloads', value => { if (active) setDownloads(value) })
-    return () => { active = false; off() }
-  }, [profile.id, isVisible, reload, running])
+    return () => { active = false; off(); window.clearInterval(timer); window.removeEventListener('focus', sync) }
+  }, [scope, isVisible, reload, running])
   useEffect(() => {
     const request = ++token.current
     setSelected(null); setHits([]); setTotal(0); setProject(null); setVersions([]); setVersionId(''); setMore(false)
@@ -76,25 +91,25 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   }
   const enable = async (pack: InstalledResourcePack) => {
     if (actionBusy.current) return
-    actionBusy.current = true; contentRevision.current++; setBusy(true)
-    try { const next = kind === 'resourcepack' ? await window.launcher.setResourcePackEnabled(profile.id, pack.filename, !pack.enabled) : await window.launcher.setProfileContentEnabled(profile.id, kind, pack.filename, !pack.enabled); if (mounted.current) { setPacks(next); setUpdates(current => current.flatMap(update => { const before = packs.find(item => item.filename === update.filename); const after = before && next.find(item => item.filename.replace(/\.disabled$/i, '') === before.filename.replace(/\.disabled$/i, '') && item.projectId === before.projectId && item.versionId === before.versionId && item.modifiedAt === before.modifiedAt); return after ? [{ ...update, filename: after.filename }] : [] })); setSelectedPack(next.find(item => item.filename.replace(/\.disabled$/i, '') === pack.filename.replace(/\.disabled$/i, ''))?.filename ?? pack.filename) } }
+    actionBusy.current = true; contentRevision.current++; installedContentCache.invalidate(scope); setToggling(true); setBusy(true)
+    try { const next = kind === 'resourcepack' ? await window.launcher.setResourcePackEnabled(profile.id, pack.filename, !pack.enabled) : await window.launcher.setProfileContentEnabled(profile.id, kind, pack.filename, !pack.enabled); const filename = kind === 'mod' ? pack.filename.replace(/\.disabled$/i, '') + (pack.enabled ? '.disabled' : '') : pack.filename; acceptMutation(next, retainContentUpdates(packs, next, updates), filename) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
-    finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
+    finally { actionBusy.current = false; if (mounted.current) { setBusy(false); setToggling(false) } }
   }
   const install = async () => {
     if (!project || !versionId || actionBusy.current) return
-    actionBusy.current = true; contentRevision.current++; setBusy(true)
-    try { const next = kind === 'resourcepack' ? await window.launcher.installResourcePack(profile.id, versionId, provider, { title: project.title, iconUrl: project.iconUrl }) : await window.launcher.installProfileContent(profile.id, kind, versionId, provider, { title: project.title, iconUrl: project.iconUrl }); if (mounted.current) { setPacks(next); setUpdates([]) }; onNotice(t(copy.installed, { name: project.title })) }
+    actionBusy.current = true; contentRevision.current++; installedContentCache.invalidate(scope); setBusy(true)
+    try { const next = kind === 'resourcepack' ? await window.launcher.installResourcePack(profile.id, versionId, provider, { title: project.title, iconUrl: project.iconUrl }) : await window.launcher.installProfileContent(profile.id, kind, versionId, provider, { title: project.title, iconUrl: project.iconUrl }); acceptMutation(next, []); onNotice(t(copy.installed, { name: project.title })) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
   }
   const checkUpdates = async (force = true) => {
     if (checkBusy.current || actionBusy.current) return
-    checkBusy.current = true; setChecking(true)
+    checkBusy.current = true; if (force) setChecking(true)
     const revision = contentRevision.current
     try { const result = await window.launcher.checkProfileContentUpdates(profile.id, kind, force); const next = await list(); if (mounted.current && revision === contentRevision.current) { setUpdates(result); setPacks(next) } }
     catch (error) { if (force) onNotice(t(String((error as Error).message ?? error))) }
-    finally { checkBusy.current = false; if (mounted.current) setChecking(false) }
+    finally { checkBusy.current = false; if (mounted.current && force) setChecking(false) }
   }
   useEffect(() => {
     if (!isVisible || mode !== 'installed' || !packs.length || busy || running) return
@@ -106,8 +121,8 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   }, [profile.id, kind, isVisible, mode, packs.length, busy, running])
   const update = async (pack: InstalledResourcePack) => {
     if (actionBusy.current) return
-    actionBusy.current = true; contentRevision.current++; setBusy(true)
-    try { const next = await window.launcher.updateProfileContent(profile.id, kind, pack.filename, { title: pack.title, iconUrl: pack.icon ?? null }); if (mounted.current) { setPacks(next); setUpdates(current => current.filter(item => item.filename !== pack.filename)); setSelectedPack(next.find(item => item.provider === pack.provider && item.projectId === pack.projectId)?.filename ?? '') }; onNotice(t('{name} güncellendi.', { name: pack.title })) }
+    actionBusy.current = true; contentRevision.current++; installedContentCache.invalidate(scope); setBusy(true)
+    try { const next = await window.launcher.updateProfileContent(profile.id, kind, pack.filename, { title: pack.title, iconUrl: pack.icon ?? null }); acceptMutation(next, updates.filter(item => item.filename !== pack.filename), next.find(item => item.provider === pack.provider && item.projectId === pack.projectId)?.filename ?? ''); onNotice(t('{name} güncellendi.', { name: pack.title })) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
   }
@@ -122,14 +137,14 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const num = (value: number) => new Intl.NumberFormat(language, { notation: 'compact' }).format(value)
   const packIcon = (pack?: InstalledResourcePack) => <InstalledContentIcon key={pack?.icon ?? ''} icon={pack?.icon} kind={kind} />
   return <div className="content-page resource-packs-page" data-content-kind={kind}>
-    <div className="page-heading"><div><h2>{t(copy.title)}</h2><p>{t(copy.description)}</p></div>{mode === 'installed' && <button className="heading-action resource-check-updates" disabled={busy || checking || !packs.length} onClick={() => void checkUpdates()}>{checking ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />}{t(checking ? 'Kontrol ediliyor...' : 'Güncellemeleri kontrol et')}</button>}</div>
+    <div className="page-heading"><div><h2>{t(copy.title)}</h2><p>{t(copy.description)}</p></div>{mode === 'installed' && <button className="heading-action resource-check-updates" data-toggling={toggling} disabled={busy || checking || !packs.length} onClick={() => void checkUpdates()}>{checking ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />}{t(checking ? 'Kontrol ediliyor...' : 'Güncellemeleri kontrol et')}</button>}</div>
     <div className="resource-mode-bar"><div className="mods-type-tabs" role="tablist" aria-label={t(copy.title)}><button role="tab" aria-selected={mode === 'installed'} className={mode === 'installed' ? 'active' : ''} onClick={() => { setMode('installed'); setQuery('') }}>{t('Kurulu')} <span>{packs.length}</span></button><button role="tab" aria-selected={mode === 'browse'} className={mode === 'browse' ? 'active' : ''} onClick={() => { setMode('browse'); setQuery('') }}>{t('Keşfet')}</button></div></div>
     {mode === 'installed' ? <>
       <div className="resource-installed-toolbar"><div className="mods-search resource-search"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} aria-label={t(copy.search)} placeholder={t(copy.search)} /></div></div>
       {error && <div className="mods-state error" role="alert">{t(error)}</div>}
       <div className="resource-installed-layout"><div className="resource-installed-list">
         <div className="resource-table-head"><span>{t('Etkin')}</span><span>{t(copy.item)}</span><span>{t(copy.format)}</span><span>{t('Sağlayıcı')}</span></div>
-        {!visiblePacks.length && <div className="resource-empty"><Image size={32} /><h3>{t(packs.length ? 'Sonuç bulunamadı.' : copy.empty)}</h3><p>{t('Modrinth veya CurseForge’dan bu profile bir paket indir.')}</p><button className="heading-action" onClick={() => { setMode('browse'); setQuery('') }}>{t(copy.discover)}</button></div>}
+        {installedLoading ? <div className="resource-empty" role="status"><LoaderCircle size={25} className="spin" />{t(copy.loading)}</div> : !visiblePacks.length && <div className="resource-empty"><Image size={32} /><h3>{t(packs.length ? 'Sonuç bulunamadı.' : copy.empty)}</h3><p>{t('Modrinth veya CurseForge’dan bu profile bir paket indir.')}</p><button className="heading-action" onClick={() => { setMode('browse'); setQuery('') }}>{t(copy.discover)}</button></div>}
         {visiblePacks.map(pack => <div key={pack.filename} data-enabled={pack.enabled} className={`resource-pack-row ${chosen?.filename === pack.filename ? 'selected' : ''}`}>
           <button className="resource-enable" role="checkbox" aria-checked={pack.enabled} aria-label={t(copy.enable, { name: pack.title })} disabled={busy || running} onClick={() => void enable(pack)}><span className="profile-checkbox">{pack.enabled && <Check size={13} strokeWidth={3} />}</span></button>
           <button className="resource-pack-select" onClick={() => setSelectedPack(pack.filename)} aria-pressed={chosen?.filename === pack.filename}><span className="resource-pack-icon">{packIcon(pack)}</span><span><strong>{pack.title}</strong><small>{pack.description || pack.filename}</small></span></button>
@@ -149,7 +164,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
           {chosenUpdate?.error && <p role="alert">{t(chosenUpdate.error)}</p>}
           {chosenUpdate?.compatible === false && chosenUpdate.status === 'update' && <p>{t('Kurulu sürüm bu profille uyumlu değil.')}</p>}
           {chosenUpdate?.status === 'unknown' && <p>{t('Yerel dosyalar için kaynak doğrulanmadan otomatik güncelleme yapılamaz.')}</p>}
-          {chosenUpdate?.latest && <><p>{chosen.versionNumber} → {chosenUpdate.latest.versionNumber}</p><small>{chosenUpdate.latest.filename}</small><button className="heading-action resource-update-button" disabled={busy || running || checking} onClick={() => void update(chosen)}>{busy ? <LoaderCircle className="spin" size={16} /> : <ArrowDownToLine size={16} />}{t('Güncelle')}</button></>}
+          {chosenUpdate?.latest && <><p>{chosen.versionNumber} → {chosenUpdate.latest.versionNumber}</p><small>{chosenUpdate.latest.filename}</small><button className="heading-action resource-update-button" data-toggling={toggling && !running && !checking} disabled={busy || running || checking} onClick={() => void update(chosen)}>{busy && !toggling ? <LoaderCircle className="spin" size={16} /> : <ArrowDownToLine size={16} />}{t('Güncelle')}</button></>}
         </div>
       </> : <p>{t(copy.details)}</p>}
       {kind === 'shader' && <p className="resource-running-note">{t('Shader paketlerini kullanmak için Iris, Oculus veya OptiFine gerekir.')} {t('Aynı anda yalnızca bir shader paketi etkin olabilir.')}</p>}

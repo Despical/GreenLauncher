@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Check, FolderOpen, Monitor, Settings2 } from 'lucide-react'
+import { Check, FolderOpen, Monitor, Settings2, WifiOff } from 'lucide-react'
+import { AccountAvatar, MicrosoftMark } from './AccountControls'
 import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, SavedWorld } from '../../shared/types'
 import { serverLaunchMode } from '../../shared/server-launch'
 import { diagnoseError } from '../../shared/errors'
@@ -13,7 +14,7 @@ const normalize = (profile: LauncherProfile): LauncherProfile => ({ ...profile, 
 export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccountId, language, isVisible, settings, accounts, choicePicker, onState, onNotice, onOpenGeneral, onBusyChange }: {
   profile: LauncherProfile; selectedProfileId: string | null; selectedAccountId: string | null; language: Language; isVisible: boolean
   settings: LauncherSettings; accounts: GameAccount[]
-  choicePicker: (value: string, options: Array<{ value: string; label: string; detail?: string }>, onChange: (value: string) => void, label: string, disabled?: boolean) => ReactNode
+  choicePicker: (value: string, options: Array<{ value: string; label: string; detail?: string; icon?: ReactNode; detailIcon?: ReactNode }>, onChange: (value: string) => void, label: string, disabled?: boolean) => ReactNode
   onState: (state: LauncherState) => void; onNotice: (message: string) => void
   onOpenGeneral: (tab: 'launcher' | 'java' | 'storage') => void; onBusyChange: (busy: boolean) => void
 }) {
@@ -89,7 +90,7 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
             <fieldset className="profile-settings-fields profile-settings-box profile-setting-options" data-enabled={draft.consoleEnabled === true} disabled={!draft.consoleEnabled}>{toggle('Oyun başlatıldığında konsol sayfasını göster', 'Bu profil başlatıldığında Minecraft günlüğüne geç.', draft.showConsoleOnLaunch !== false, () => update({ showConsoleOnLaunch: draft.showConsoleOnLaunch === false }))}{toggle('Oyun çöktüğünde konsol sayfasını göster', 'Oyun hata ile kapanırsa Minecraft günlüğünü aç.', draft.showConsoleOnCrash !== false, () => update({ showConsoleOnCrash: draft.showConsoleOnCrash === false }))}</fieldset>
           </section>
           <section className="full profile-settings-section profile-account-override">{sectionHeading('Varsayılan hesabı geçersiz kıl', draft.accountOverride === true, () => update({ accountOverride: !draft.accountOverride, launchAccountId: draft.launchAccountId ?? selectedAccountId ?? accounts[0]?.id }))}
-            <fieldset className="profile-settings-fields profile-settings-box" data-enabled={draft.accountOverride === true} disabled={!draft.accountOverride}><div className="profile-setting-field"><label>{t('Hesap')}</label>{choicePicker(effectiveAccountId, accounts.map(account => ({ value: account.id, label: account.name, detail: t(account.kind === 'offline' ? 'Çevrimdışı hesap' : 'Microsoft hesabı') })), launchAccountId => update({ launchAccountId }), t('Hesap seç'), !draft.accountOverride)}</div></fieldset>
+            <fieldset className="profile-settings-fields profile-settings-box" data-enabled={draft.accountOverride === true} disabled={!draft.accountOverride}><div className="profile-setting-field"><label>{t('Hesap')}</label>{choicePicker(effectiveAccountId, accounts.map(account => ({ value: account.id, label: account.name, detail: t(account.kind === 'offline' ? 'Çevrimdışı hesap' : 'Microsoft hesabı'), icon: <AccountAvatar account={account} />, detailIcon: account.kind === 'offline' ? <WifiOff size={14} /> : <MicrosoftMark size={14} /> })), launchAccountId => update({ launchAccountId }), t('Hesap seç'), !draft.accountOverride)}</div></fieldset>
           </section>
         </div>}
         {tab === 'java' && <div className="form-grid">

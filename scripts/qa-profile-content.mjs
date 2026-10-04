@@ -12,6 +12,8 @@ try {
   assert.equal(await evaluate(q('.page-heading .resource-check-updates')+'!==null'),true,'updates sit above the heading separator');
   assert.equal(await evaluate(q('.resource-mode-bar > span')+'===null'),true,'no redundant Minecraft/loader label');
   assert.equal(await evaluate('getComputedStyle('+q('.resource-table-head')+').fontSize'),'13px');
+  assert.equal(await evaluate('(()=>{const r='+q('.resource-pack-row')+',h='+q('.resource-table-head')+';return [r,h].every(e=>{const c=getComputedStyle(e).gridTemplateColumns.split(" ");return c[2]===c[3]})})()'),true,'version and provider tracks have equal widths')
+  assert.equal(await evaluate(q('.resource-installed-detail > p')+'?.textContent.length>0'),true,'installed description appears below its title')
   assert.equal(await evaluate('getComputedStyle('+q('.resource-installed-detail dt')+').fontSize'),'13px');
   assert.equal(await evaluate('getComputedStyle('+q('.resource-table-head > span:first-child')+').textAlign'),'center');
   assert.equal(await evaluate('getComputedStyle('+q('.resource-table-head > span:nth-child(3)')+').textAlign'),'center');
