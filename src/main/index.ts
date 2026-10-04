@@ -524,7 +524,14 @@ else {
       if (installingContent || downloads.pending) throw new Error('Başka bir kurulum devam ediyor.')
       return profileContent.enable(profileId, kind, filename, enabled === true)
     })
-    handle('launcher:check-profile-content-updates', (profileId: string, kind: ProfileContentKind, force = true) => profileContent.updates(profileId, kind, force !== false))
+    handle('launcher:check-profile-content-updates', async (profileId: string, kind: ProfileContentKind, force = true) => {
+      const result = await profileContent.updates(profileId, kind, force !== false)
+      if (force !== false) {
+        for (const error of new Set(result.filter(item => item.status === 'error').map(item => item.error ?? 'Güncelleme kontrolü tamamlanamadı.'))) logs.record('Paket güncellemeleri', error)
+        if (result.length && result.every(item => item.status === 'unknown')) logs.record('Paket güncellemeleri', 'Kaynak bilgisi bulunamadığı için güncellemeler kontrol edilemedi.')
+      }
+      return result
+    })
     handle('launcher:reveal-profile-content', (profileId: string, kind: ProfileContentKind, filename: string) => shell.showItemInFolder(profileContent.filePath(profileId, kind, filename)))
     handle('launcher:get-content-icon', (url: string) => typeof url === 'string' && url.length <= 4096 ? contentIcons.get(url) : undefined)
     handle('launcher:install-profile-content', (profileId: string, kind: ProfileContentKind, versionId: string, source: 'modrinth' | 'curseforge', content?: {title:string;iconUrl:string|null}) => queue(content?.title || 'Paket kurulumu', () => installContent(() => profileContent.install(profileId, kind, versionId, source)), profileId, false, content))

@@ -12,7 +12,7 @@
 .servers-toolbar .search-box{flex:1;max-width:480px;height:42px;background:#0d1117;border-color:#30363d}
 .servers-toolbar .search-box input{font:400 13px 'Inter Variable',sans-serif}
 .servers-toolbar>span{white-space:nowrap;font-size:12px;color:var(--muted)}
-.servers-list-panel{--player-column-width:126px;--server-columns:minmax(160px,1fr) minmax(110px,1.35fr) var(--player-column-width) minmax(130px,.85fr)}
+.servers-list-panel{--player-column-width:126px;--server-columns:minmax(180px,1fr) var(--player-column-width) clamp(190px,30%,280px)}
 .servers-table-head,.server-select{display:grid;grid-template-columns:var(--server-columns);column-gap:0;align-items:center}
 .servers-table-head{min-height:43px;margin:0 8px;padding:0;border-inline:1px solid transparent;border-bottom:1px solid var(--border);color:#a5adb8;font:600 13px/1.5 'Inter Variable',sans-serif}
 .servers-table-head>span{padding:12px 14px;position:relative;min-width:0}
@@ -22,18 +22,18 @@
 .server-row{position:relative;border:1px solid transparent;border-bottom-color:var(--border);border-radius:0;margin:0;padding-inline:8px;transition:background .15s,border-color .15s}
 .server-row:hover,.server-row.selected{background:#21262d;border-color:#414b55}
 .server-row:last-child{border-radius:0 0 9px 9px}
-.server-row.dragging{background:#292f37;border-color:#64717e;box-shadow:0 6px 20px #0005}
+.server-row.dragging{opacity:.25;background:#161b22;border-color:#30363d;box-shadow:none}
+.server-drag-preview{background:#21262d;border-color:#64717e;border-radius:8px;box-shadow:0 14px 36px #0008;pointer-events:none}
+.server-drag-preview .server-select{cursor:grabbing}
 .server-select{width:100%;min-height:66px;text-align:left;padding:0;align-items:stretch;background:none;border:0;color:var(--text);touch-action:none;cursor:pointer}
 .server-select:hover{background:none}
 .server-row.dragging .server-select{cursor:grabbing}
 .server-cell{position:relative;min-width:0;min-height:66px;padding:9px 14px;display:flex;align-items:center}
 .server-identity{display:flex;align-items:center;gap:10px;min-width:0}
-/* Keep the player/address tracks in place when merging the name and description. */
-.servers-table-head>span:first-child,.server-identity{grid-column:span 2}
-.servers-table-head>span:first-child{padding-left:0}
-.server-identity{padding:0 14px 0 0;gap:14px}
-.server-identity .server-icon{width:74px;height:66px;align-self:stretch}
-.server-identity .server-icon img{object-fit:cover;border-radius:0}
+.servers-table-head>span:first-child{padding-left:68px}
+.server-identity{padding:12px 14px;gap:12px}
+.server-identity .server-icon{width:42px;height:42px;border-radius:6px;background:#21262d}
+.server-identity .server-icon img{object-fit:contain;border-radius:6px}
 .servers-table-head>span:nth-child(2){text-align:center}
 .server-identity strong{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .server-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#9ba9b9}
@@ -42,7 +42,8 @@
 .server-connection.online{color:#84cfa0}
 .server-online small,.server-facts .server-player-count dd{font:500 13px/1.65 'Inter Variable',sans-serif;color:var(--text);font-variant-numeric:tabular-nums}
 .server-online small{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.server-address{display:block;align-content:center;text-align:left;font:500 13px 'Inter Variable',sans-serif;color:#b8c9dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.server-address{display:block;align-content:center;text-align:right;font:500 13px 'Inter Variable',sans-serif;color:#b8c9dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.servers-table-head>span:last-child{text-align:right}
 .servers-list-profile-select{flex:none;width:200px}
 .servers-list-profile-select .dropdown-trigger{height:42px;min-height:42px;background:#161b22;border-color:#30363d;font-size:13px}
 .servers-list-profile-select .dropdown-copy strong{font-size:13px}
@@ -102,7 +103,7 @@
 .server-account-note svg{flex-shrink:0;margin-top:3px}
 .servers-page .modal-actions{margin-top:27px}
 .servers-profile-select .dropdown-trigger{min-height:65px}
-@media(max-width:1150px){.servers-workspace{grid-template-columns:minmax(0,1fr) 230px;gap:14px}.server-details{padding:18px}.servers-toolbar{gap:10px;padding:0}.servers-list-profile-select{width:175px}.server-identity{gap:10px}}
+@media(max-width:1150px){.servers-workspace{grid-template-columns:minmax(0,1fr) 230px;gap:14px}.server-details{padding:18px}.servers-toolbar{gap:10px;padding:0}.servers-list-profile-select{width:175px}.servers-list-panel{--server-columns:minmax(130px,1fr) var(--player-column-width) 190px}}
 @media(prefers-reduced-motion:reduce){.server-row{transition:none!important}}
 
 

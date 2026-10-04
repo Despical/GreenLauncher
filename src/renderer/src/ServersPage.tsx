@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
-import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, DragOverlay, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { createPortal } from 'react-dom'
 import { SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Globe2, Info, LoaderCircle, Pencil, Play, Plus, RefreshCw, Search, Server, Signal, Trash2, UsersRound } from 'lucide-react'
@@ -36,6 +37,7 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
   const listScope = `${state.selectedAccountId ?? ''}:${listProfileId ?? ''}`
   const scope = useRef(listScope); scope.current = listScope
   const [dragOrder, setDragOrder] = useState<string[] | null>(null)
+  const [dragPreview, setDragPreview] = useState<{ id: string; width: number; columns: string } | null>(null)
   const [reordering, setReordering] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 7 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const [draft, setDraft] = useState<{ id?: string; name: string; address: string; resourcePacks?: ResourcePackPolicy } | null>(null)
@@ -68,10 +70,10 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
   }
   useEffect(() => {
     active.current = isVisible
-    if (!isVisible) return
+    if (!isVisible) { setDragPreview(null); setDragOrder(null); return }
     let cancelled = false, fetching = false, previous: SavedServer[] = [], lastError = ''
     setLoading(true); setServers([]); setStatuses({}); setRefreshing(new Set()); requests.current.clear()
-    setDraft(null); setDeleting(null); setJoining(null); setDragOrder(null)
+    setDraft(null); setDeleting(null); setJoining(null); setDragOrder(null); setDragPreview(null)
     if (!listProfileId) { setLoading(false); setSelected(null); return }
     const sync = async () => {
       if (fetching) return
@@ -105,7 +107,7 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
   const visible = dragOrder ? dragOrder.map(id => servers.find(server => server.id === id)!).filter(Boolean) : filtered
   const reorder = async ({ active: dragged, over }: DragEndEvent) => {
     const ids = dragOrder ?? visible.map(server => server.id)
-    setDragOrder(null)
+    setDragOrder(null); setDragPreview(null)
     if (!over || dragged.id === over.id || reordering) return
     const from = ids.indexOf(String(dragged.id)), to = ids.indexOf(String(over.id))
     if (from < 0 || to < 0) return
@@ -173,13 +175,19 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
     {!listProfileId ? <div className="servers-list-panel servers-empty" style={{minHeight:340}}><Server size={36} /><h3>{t('Önce bir profil oluştur')}</h3><p>{t('Sunucu ekleyebilmek için önce bir profil oluştur.')}</p><button className="secondary" onClick={onCreateProfile}><Plus size={16} />{t('Yeni profil')}</button></div> : <div className="servers-workspace">
       <div className="servers-toolbar"><div className="search-box"><Search size={17} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('Sunucu ara') + '...'} /></div>{scopedProfileId === undefined && listProfilePicker(listProfileId ?? '', setListProfile, loading || pending || reordering)}</div>
       <section className="servers-list-panel">
-        <div className="servers-table-head" role="row"><span>{t('Sunucu adı ve ikonu')}</span><span>{t('Oyuncular')}</span><span>{t('Sunucu adresi')}</span></div>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setDragOrder(visible.map(server => server.id))} onDragCancel={() => setDragOrder(null)} onDragEnd={event => void reorder(event)}>
+        <div className="servers-table-head" role="row"><span>{t('Sunucu adı')}</span><span>{t('Oyuncular')}</span><span>{t('Sunucu adresi')}</span></div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={({ active }) => {
+          setDragOrder(visible.map(server => server.id))
+          const row = document.querySelector<HTMLElement>(`[data-server-id="${globalThis.CSS.escape(String(active.id))}"]`), select = row?.querySelector('.server-select')
+          if (row && select) setDragPreview({ id: String(active.id), width: row.getBoundingClientRect().width, columns: getComputedStyle(select).gridTemplateColumns })
+        }} onDragCancel={() => { setDragOrder(null); setDragPreview(null) }} onDragEnd={event => void reorder(event)}>
         <SortableContext items={visible.map(server => server.id)} strategy={verticalListSortingStrategy}>
         <div className="servers-list">{loading ? <div className="servers-empty"><LoaderCircle className="spin" size={25} />{t('Sunucular yükleniyor...')}</div> : !servers.length ? <div className="servers-empty"><Server size={34} /><h3>{t('İlk sunucunu ekle')}</h3><p>{t('Bir isim ve sunucu adresiyle listeni oluşturmaya başla.')}</p><button className="secondary" onClick={() => { setError(''); setDraft({ name: '', address: '', resourcePacks: 'prompt' }) }}><Plus size={16} />{t('Sunucu ekle')}</button></div> : !visible.length ? <div className="servers-empty"><Search size={25} />{t('Bu aramada sunucu bulunamadı.')}</div> : visible.map(server => {
           const status = statusFor(server), scanning = refreshing.has(server.id)
           return <SortableServerRow key={server.id} server={server} status={status} selected={selected === server.id} disabled={reordering} onSelect={() => setSelected(server.id)} onJoin={() => startJoin(server)} connectionLabel={scanning ? t('Sunucu sorgulanıyor...') : t(status?.online ? 'Çevrimiçi' : 'Çevrimdışı')} />
-        })}</div></SortableContext></DndContext>
+        })}</div></SortableContext>
+        {createPortal(<DragOverlay dropAnimation={null} zIndex={35}>{dragPreview && servers.find(server => server.id === dragPreview.id) && <div aria-hidden="true" className="server-row server-drag-preview" style={{ width: dragPreview.width, '--server-columns': dragPreview.columns } as CSSProperties}><div className="server-select"><ServerRowCells server={servers.find(server => server.id === dragPreview.id)!} status={statusFor(servers.find(server => server.id === dragPreview.id)!)} connectionLabel="" /></div></div>}</DragOverlay>, document.body)}
+        </DndContext>
       </section>
       <aside className="server-details"><div className="server-details-heading"><h3>{t('Sunucu bilgileri')}</h3><p>{t('Bağlantı ve oyuncu bilgilerini buradan incele.')}</p></div>{selectedServer ? <>
         <div className="server-details-identity"><span className="server-icon"><img src={selectedServer.icon ?? defaultServerIcon} alt="" draggable={false} /></span><div><h3 title={selectedServer.name}>{selectedServer.name}</h3><span className={`server-connection ${refreshing.has(selectedServer.id) ? '' : selectedStatus?.online ? 'online' : 'offline'}`}>{refreshing.has(selectedServer.id) ? t('Sorgulanıyor') : t(selectedStatus?.online ? 'Çevrimiçi' : 'Çevrimdışı')}</span></div><button className="server-refresh server-details-refresh" disabled={refreshing.has(selectedServer.id) || reordering} title={t('Sunucuyu yenile')} aria-label={t('Sunucuyu yenile')} onClick={() => void refresh([selectedServer], 'server')}><RefreshCw size={17} className={refreshing.has(selectedServer.id) ? 'spin' : ''} /></button></div>
@@ -199,13 +207,18 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
 
 function SortableServerRow({ server, status, selected, disabled, onSelect, onJoin, connectionLabel }: { server: SavedServer; status?: ServerStatus; selected: boolean; disabled: boolean; onSelect: () => void; onJoin: () => void; connectionLabel: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: server.id, disabled })
-  return <div ref={setNodeRef} className={`server-row ${selected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 2 : undefined }}>
+  return <div ref={setNodeRef} data-server-id={server.id} className={`server-row ${selected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 2 : undefined }}>
     <button {...attributes} {...listeners} className="server-select" onClick={onSelect} onDoubleClick={onJoin} aria-pressed={selected} aria-label={server.name}>
+      <ServerRowCells server={server} status={status} connectionLabel={connectionLabel} />
+    </button>
+  </div>
+}
+function ServerRowCells({ server, status, connectionLabel }: { server: SavedServer; status?: ServerStatus; connectionLabel: string }) {
+  return <>
       <span className="server-cell server-identity"><span className="server-icon"><img src={server.icon ?? defaultServerIcon} alt="" draggable={false} /></span><strong title={server.name}>{server.name}</strong></span>
       <span className={`server-cell server-online ${status?.online ? 'online' : ''}`} title={status?.online ? `${connectionLabel} · ${serverPlayerCount(status)}` : connectionLabel}><small>{serverPlayerCount(status)}</small></span>
       <span className="server-cell server-address" title={server.address}>{server.address}</span>
-    </button>
-  </div>
+  </>
 }
 
 function validServerNumber(value: number | undefined): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 }

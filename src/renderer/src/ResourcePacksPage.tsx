@@ -19,6 +19,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const [updates, setUpdates] = useState<ProfileContentUpdate[]>(cached?.updates ?? []), [checking, setChecking] = useState(false)
   const [installedLoading, setInstalledLoading] = useState(!cached), [toggling, setToggling] = useState(false)
   const checkBusy = useRef(false)
+  const pendingManualCheck = useRef(false)
   const list = () => kind === 'resourcepack' ? window.launcher.getResourcePacks(profile.id) : window.launcher.getProfileContent(profile.id, kind)
   const [mode, setMode] = useState<'installed' | 'browse'>('installed')
   const [provider, setProvider] = useState<'modrinth' | 'curseforge'>('modrinth'), [connected, setConnected] = useState(false), [connection, setConnection] = useState(false)
@@ -32,6 +33,10 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
   const resultsRef = useRef<HTMLDivElement>(null), pageInFlight = useRef(false)
   const token = useRef(0), actionBusy = useRef(false), mounted = useRef(true)
   const contentRevision = useRef(0)
+  const finishAction = () => {
+    actionBusy.current = false
+    if (pendingManualCheck.current && !checkBusy.current) { pendingManualCheck.current = false; void checkUpdates(true) }
+  }
   const acceptMutation = (next: InstalledResourcePack[], results: ProfileContentUpdate[], selected = selectedPack) => {
     installedContentCache.remember(scope, { packs: next, updates: results, selected })
     if (mounted.current) { setPacks(next); setUpdates(results); setSelectedPack(selected); setInstalledLoading(false) }
@@ -94,22 +99,27 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
     actionBusy.current = true; contentRevision.current++; installedContentCache.invalidate(scope); setToggling(true); setBusy(true)
     try { const next = kind === 'resourcepack' ? await window.launcher.setResourcePackEnabled(profile.id, pack.filename, !pack.enabled) : await window.launcher.setProfileContentEnabled(profile.id, kind, pack.filename, !pack.enabled); const filename = kind === 'mod' ? pack.filename.replace(/\.disabled$/i, '') + (pack.enabled ? '.disabled' : '') : pack.filename; acceptMutation(next, retainContentUpdates(packs, next, updates), filename) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
-    finally { actionBusy.current = false; if (mounted.current) { setBusy(false); setToggling(false) } }
+    finally { finishAction(); if (mounted.current) { setBusy(false); setToggling(false) } }
   }
   const install = async () => {
     if (!project || !versionId || actionBusy.current) return
     actionBusy.current = true; contentRevision.current++; installedContentCache.invalidate(scope); setBusy(true)
     try { const next = kind === 'resourcepack' ? await window.launcher.installResourcePack(profile.id, versionId, provider, { title: project.title, iconUrl: project.iconUrl }) : await window.launcher.installProfileContent(profile.id, kind, versionId, provider, { title: project.title, iconUrl: project.iconUrl }); acceptMutation(next, []); onNotice(t(copy.installed, { name: project.title })) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
-    finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
+    finally { finishAction(); if (mounted.current) setBusy(false) }
   }
   const checkUpdates = async (force = true) => {
-    if (checkBusy.current || actionBusy.current) return
-    checkBusy.current = true; if (force) setChecking(true)
+    if (checkBusy.current || actionBusy.current) { if (force) { pendingManualCheck.current = true; if (mounted.current) setChecking(true) }; return }
+    checkBusy.current = true; if (force && mounted.current) setChecking(true)
     const revision = contentRevision.current
-    try { const result = await window.launcher.checkProfileContentUpdates(profile.id, kind, force); const next = await list(); if (mounted.current && revision === contentRevision.current) { setUpdates(result); setPacks(next) } }
-    catch (error) { if (force) onNotice(t(String((error as Error).message ?? error))) }
-    finally { checkBusy.current = false; if (mounted.current && force) setChecking(false) }
+    try {
+      const result = await window.launcher.checkProfileContentUpdates(profile.id, kind, force)
+      const next = await list()
+      if (mounted.current && revision === contentRevision.current) { setUpdates(result); setPacks(next) }
+      if (force) onNotice(t(result.some(item => item.status === 'error') ? 'Güncelleme kontrolü tamamlanamadı. Ayrıntılar hata günlüğüne kaydedildi.' : result.length && result.every(item => item.status === 'unknown') ? 'Kaynak bilgisi bulunamadığı için güncellemeler kontrol edilemedi.' : 'Güncelleme kontrolü tamamlandı. {count} güncelleme bulundu.', { count: result.filter(item => item.status === 'update').length }))
+    }
+    catch { if (force) onNotice(t('Güncelleme kontrolü tamamlanamadı. Ayrıntılar hata günlüğüne kaydedildi.')) }
+    finally { checkBusy.current = false; if (mounted.current && force) setChecking(false); if (pendingManualCheck.current && !actionBusy.current) { pendingManualCheck.current = false; void checkUpdates(true) } }
   }
   useEffect(() => {
     if (!isVisible || mode !== 'installed' || !packs.length || busy || running) return
@@ -124,7 +134,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
     actionBusy.current = true; contentRevision.current++; installedContentCache.invalidate(scope); setBusy(true)
     try { const next = await window.launcher.updateProfileContent(profile.id, kind, pack.filename, { title: pack.title, iconUrl: pack.icon ?? null }); acceptMutation(next, updates.filter(item => item.filename !== pack.filename), next.find(item => item.provider === pack.provider && item.projectId === pack.projectId)?.filename ?? ''); onNotice(t('{name} güncellendi.', { name: pack.title })) }
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
-    finally { actionBusy.current = false; if (mounted.current) setBusy(false) }
+    finally { finishAction(); if (mounted.current) setBusy(false) }
   }
   const updateText = (value?: ProfileContentUpdate) => t(!value ? 'Güncellemeler kontrol edilmedi.' : value.status === 'update' ? 'Uyumlu güncelleme var' : value.status === 'current' ? 'Güncel ve uyumlu' : value.status === 'incompatible' ? 'Profil sürümüyle uyumsuz' : value.status === 'unknown' ? 'Kaynak bilinmiyor' : 'Kontrol başarısız')
   const changeProvider = (next: 'modrinth' | 'curseforge') => { setProvider(next); setMode('browse'); setSelected(null); setQuery(''); setSearch('') }

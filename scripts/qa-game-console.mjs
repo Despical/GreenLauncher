@@ -76,7 +76,7 @@ try {
   await control({failRead:false});await click('.minecraft-log-error button');await until("!document.querySelector('.minecraft-log-error')&&document.querySelector('.minecraft-console').textContent.includes('Retry message')")
   await shot('qa-minecraft-log-console')
   for(const language of ['tr','en','de','fr','ru','pl']){
-    await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');await evaluate("document.querySelector('.profile-workspace-nav button:first-child').click()");await until("document.querySelector('.minecraft-log-page')")
+    await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');await evaluate("document.querySelector('.profile-workspace-nav [data-profile-page=minecraft-log]').click()");await until("document.querySelector('.minecraft-log-page')")
     await call('Emulation.setDeviceMetricsOverride',{width:1080,height:700,deviceScaleFactor:1,mobile:false})
     assert.equal(await evaluate("document.querySelector('.minecraft-log-page').scrollWidth<=document.querySelector('.minecraft-log-page').clientWidth"),true,language+' console page fits')
     assert.equal(await evaluate("[...document.querySelectorAll('.minecraft-log-actions button,.minecraft-log-upload-action,.minecraft-log-check,.minecraft-log-search button')].every(e=>e.scrollWidth<=e.clientWidth)"),true,language+' controls fit')

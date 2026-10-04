@@ -3,13 +3,13 @@
 .profile-workspace-back:hover { background: #21262d; color: #e6edf3; }
 .profile-workspace-back:focus-visible { outline: 1px solid #8397a7; outline-offset: -2px; }
 .profile-workspace-identity { flex: none; }
-.profile-workspace-icon { width: 49px; height: 49px; flex: none; display: flex; align-items: center; justify-content: center; }
-.profile-workspace-icon img { display: block; width: 44px; height: 44px; object-fit: contain; }
+.profile-workspace-icon { width: 32px; height: 32px; flex: none; display: flex; align-items: center; justify-content: center; }
+.workspace-profile-select .profile-workspace-icon img { display: block; width: 28px; height: 28px; object-fit: contain; filter: none; }
 .workspace-profile-select { flex: 1; min-width: 0; }
-.profile-workspace-label { min-height: 63px; }
+.workspace-profile-select .profile-workspace-label { min-height: 48px; gap: 10px; width: 100%; margin: 0; padding: 8px 10px; }
 .workspace-profile-select .dropdown-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; line-height: 1.05; }
 .workspace-profile-select .dropdown-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6edf3; }
-.workspace-profile-select .dropdown-copy strong { font: 700 21px 'Space Grotesk Variable', sans-serif; letter-spacing: -.8px; }
+.workspace-profile-select .dropdown-copy strong { font: 600 14px/1.4 'Inter Variable', sans-serif; letter-spacing: 0; }
 .workspace-profile-select .dropdown-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
 .profile-workspace-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #484f58 transparent; }
 .profile-workspace-nav > button { min-height: 44px; flex: none; }

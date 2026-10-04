@@ -20,7 +20,9 @@ try {
   await until("document.querySelector('.profile-sidebar')")
   assert.equal(await evaluate("document.querySelectorAll('.profile-information-dialog,.profile-workspace-footer,.sidebar .profile-play').length"),0)
   const identity = await evaluate("(()=>{const t=document.querySelector('.workspace-profile-select strong').getBoundingClientRect(),i=document.querySelector('.profile-workspace-icon img').getBoundingClientRect();return {textX:t.left,textY:t.top,iconX:i.left,iconY:i.top}})()")
-  assert.ok(Math.abs(identity.textX-brand.textX)<=1)
+  assert.ok(identity.textX>identity.iconX)
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-workspace-icon img')).width"),'28px')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.workspace-profile-select strong')).fontSize"),'14px')
   assert.equal(await evaluate("document.querySelector('.profile-sidebar').firstElementChild.className"),'profile-workspace-back')
   assert.equal(await evaluate("document.querySelector('.profile-workspace-label').contains(document.querySelector('.profile-workspace-icon'))"),true)
   await hover('.profile-workspace-icon img');assert.deepEqual(await evaluate("({background:getComputedStyle(document.querySelector('.profile-workspace-label')).backgroundColor,filter:getComputedStyle(document.querySelector('.profile-workspace-label')).filter})"),brandHover,'hover over the profile icon matches the launcher brand')
@@ -129,7 +131,7 @@ try {
   }
   for(const language of ['tr','en','de','fr','ru','pl']) {
     await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit')
-    await evaluate("document.querySelector('.profile-workspace-nav button:last-child').click()");await until("document.querySelector('.profile-settings-page')")
+    await evaluate("document.querySelector('.profile-workspace-nav [data-profile-page=profile-settings]').click()");await until("document.querySelector('.profile-settings-page')")
     for(const name of ['general','java','window']) {
       await tab(name);await call('Emulation.setDeviceMetricsOverride',{width:1080,height:700,deviceScaleFactor:1,mobile:false})
       assert.equal(await evaluate("document.querySelector('.profile-general-settings-link').scrollWidth<=document.querySelector('.profile-general-settings-link').clientWidth"),true)
@@ -142,14 +144,14 @@ try {
   assert.equal(await evaluate("document.querySelectorAll('.account-manager-dialog .account-dialog-symbol').length"),0)
   assert.equal(await evaluate("(()=>{const b=document.querySelectorAll('.account-provider-button');return getComputedStyle(b[0]).backgroundColor===getComputedStyle(b[1]).backgroundColor&&getComputedStyle(b[0]).borderColor===getComputedStyle(b[1]).borderColor})()"),true,'Microsoft card matches the offline card')
   await shot('qa-profile-account-manager');await click('.account-manager-dialog .modal-close')
-  await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');await evaluate("document.querySelector('.profile-workspace-nav button:last-child').click()");await until("document.querySelector('.profile-settings-page')")
+  await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');await evaluate("document.querySelector('.profile-workspace-nav [data-profile-page=profile-settings]').click()");await until("document.querySelector('.profile-settings-page')")
   await shot('qa-profile-settings-general');await tab('java');await shot('qa-profile-settings-java')
   await click('.profile-workspace-back');await until("document.querySelector('.page-profiles')")
   for(const p of await evaluate("window.launcher.getState().then(s=>s.profiles)"))await evaluate('window.launcher.deleteProfile('+JSON.stringify(p.id)+')')
   await nav('Modlar');await until("document.querySelector('.mods-source-nav')")
   assert.equal(await evaluate("!!document.querySelector('.profile-sidebar')"),false,'catalog remains accessible with no profiles')
   assert.equal(errors.length,0,JSON.stringify(errors))
-  console.log('PASS profile double-click, brand alignment, retained account switcher, global catalog with/without profiles, three settings tabs/general links, draft persistence, isolated profile save, home/global settings preservation, invalid memory, automatic world target, account/playtime/memory/window options, provider icon, modpack lock and six-language minimum layout')
+  console.log('PASS profile double-click, compact identity, retained account switcher, global catalog with/without profiles, three settings tabs/general links, draft persistence, isolated profile save, home/global settings preservation, invalid memory, automatic world target, account/playtime/memory/window options, provider icon, modpack lock and six-language minimum layout')
 }finally{socket.close()}
 `
 await new Function('assert','writeFileSync','return (async()=>{'+helpers+checks+'})()')(assert,writeFileSync)

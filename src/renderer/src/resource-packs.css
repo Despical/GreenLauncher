@@ -46,7 +46,7 @@
 .resource-pack-row[data-enabled=false] .resource-format > span,
 .resource-pack-row[data-enabled=false] .resource-provider > span { opacity: .55; }
 .resource-enable { display: grid; place-items: center; border: 0; background: transparent; padding: 8px; }
-.resource-enable:disabled { opacity: .5; cursor: default; }
+.resource-enable:disabled { opacity: 1; cursor: default; }
 .resource-enable[aria-checked=true] .profile-checkbox { background: #238636; border-color: #2ea043; }
 .resource-pack-select { display: flex; align-items: center; gap: 12px; min-width: 0; border: 0; padding: 0; text-align: left; background: transparent; color: #c9d1d9; }
 .resource-pack-select > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
