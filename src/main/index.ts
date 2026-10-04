@@ -35,6 +35,7 @@ import { CustomClients } from './custom-clients'
 import { ProfileServers } from './profile-servers'
 import { ResourcePacks } from './resource-packs'
 import { ProfileContent } from './profile-content'
+import { ContentIconCache } from './content-icon-cache'
 import { ProfileVersions } from './profile-versions'
 import type { ProfileContentKind, ProfileLoader } from '../shared/types'
 import { safePath } from './modpack'
@@ -220,7 +221,8 @@ else {
     const curseforge = new CurseForgeService(store)
     const resourcePacks = new ResourcePacks(store, modrinth, curseforge, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId))
     const shaderPacks = new ResourcePacks(store, modrinth, curseforge, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId), 'shader')
-    const profileContent = new ProfileContent(store, modrinth, curseforge, resourcePacks, shaderPacks, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId))
+    const contentIcons = new ContentIconCache(join(store.dataPath, 'cache', 'content-icons'))
+    const profileContent = new ProfileContent(store, modrinth, curseforge, resourcePacks, shaderPacks, profileId => game.getLaunchState().preparing || game.getRunningInstances().some(instance => instance.profileId === profileId), contentIcons)
     const technic = new TechnicService()
     const providerPacks = new ProviderPacks(store, game, curseforge, technic, activity => { downloads.activity(activity); send('launcher:activity', activity) })
     const profilePackages = new ProfilePackages(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })
@@ -522,7 +524,9 @@ else {
       if (installingContent || downloads.pending) throw new Error('Başka bir kurulum devam ediyor.')
       return profileContent.enable(profileId, kind, filename, enabled === true)
     })
-    handle('launcher:check-profile-content-updates', (profileId: string, kind: ProfileContentKind) => profileContent.updates(profileId, kind))
+    handle('launcher:check-profile-content-updates', (profileId: string, kind: ProfileContentKind, force = true) => profileContent.updates(profileId, kind, force !== false))
+    handle('launcher:reveal-profile-content', (profileId: string, kind: ProfileContentKind, filename: string) => shell.showItemInFolder(profileContent.filePath(profileId, kind, filename)))
+    handle('launcher:get-content-icon', (url: string) => typeof url === 'string' && url.length <= 4096 ? contentIcons.get(url) : undefined)
     handle('launcher:install-profile-content', (profileId: string, kind: ProfileContentKind, versionId: string, source: 'modrinth' | 'curseforge', content?: {title:string;iconUrl:string|null}) => queue(content?.title || 'Paket kurulumu', () => installContent(() => profileContent.install(profileId, kind, versionId, source)), profileId, false, content))
     handle('launcher:update-profile-content', (profileId: string, kind: ProfileContentKind, filename: string, content?: {title:string;iconUrl:string|null}) => queue(content?.title || 'Paket güncellemesi', () => installContent(() => profileContent.update(profileId, kind, filename)), profileId, false, content))
     handle('launcher:get-resource-packs', (profileId: string) => resourcePacks.list(profileId))

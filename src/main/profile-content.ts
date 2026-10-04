@@ -1,12 +1,14 @@
 import { existsSync, lstatSync, readdirSync, renameSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { InstalledMod, InstalledResourcePack, ProfileContentKind, ProfileContentUpdate, ModVersion } from '../shared/types'
 import type { LauncherStore } from './store'
 import type { ModrinthService } from './modrinth'
 import type { CurseForgeService } from './curseforge'
 import type { ResourcePacks } from './resource-packs'
 import { inspectMod, modFileHash, type ModMetadata } from './mod-metadata'
+import { ContentIconCache } from './content-icon-cache'
+import { ProfileUpdateCache } from './profile-update-cache'
 
 const noLink = (path: string) => { if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error('Paket yolu doğrulanamadı.') }
 const validName = (value: string) => typeof value === 'string' && !!value && basename(value) === value && !/[\\/:\x00-\x1f]/.test(value) && value !== '.' && value !== '..'
@@ -17,7 +19,14 @@ export class ProfileContent {
   private metadata = new Map<string, { signature: string; value: Promise<{ info: ModMetadata; hash?: string }> }>()
   private identified = new Map<string, { retryAt: number; mod?: Omit<InstalledMod, 'filename'> }>()
   private listing = new Map<string, Promise<InstalledResourcePack[]>>()
-  constructor(private store: LauncherStore, private modrinth: ModrinthService, private curseforge: CurseForgeService, private resources: ResourcePacks, private shaders: ResourcePacks, private busy: (profileId: string) => boolean = () => false) {}
+  private icons: ContentIconCache
+  private updateCache: ProfileUpdateCache
+  private projectIcons = new Map<string, string | undefined>()
+  private projectUrls = new Map<string, string | undefined>()
+  constructor(private store: LauncherStore, private modrinth: ModrinthService, private curseforge: CurseForgeService, private resources: ResourcePacks, private shaders: ResourcePacks, private busy: (profileId: string) => boolean = () => false, icons?: ContentIconCache) {
+    this.icons = icons ?? new ContentIconCache(join(store.dataPath, 'cache', 'content-icons'))
+    this.updateCache = new ProfileUpdateCache(join(store.dataPath, 'cache', 'content-updates'))
+  }
   private profile(profileId: string, kind: ProfileContentKind) {
     if (!['mod', 'resourcepack', 'shader'].includes(kind)) throw new Error('Geçersiz içerik türü.')
     const profile = this.store.get().profiles.find(item => item.id === profileId)
@@ -82,7 +91,7 @@ export class ProfileContent {
       }
     }
     const recovered: InstalledMod[] = []
-    const items = inspected.map(item => {
+    const items = await Promise.all(inspected.map(async item => {
       let mod = item.mod
       const match = item.hash && this.identified.get(item.hash)?.mod
       // Discard matches if the file changed while the provider lookup was running.
@@ -91,12 +100,30 @@ export class ProfileContent {
       noLink(path)
       const current = statSync(path)
       if (`${current.size}:${current.mtimeMs}:${current.ctimeMs}` !== item.signature) return undefined
-      if (!mod && match) { mod = { ...match, filename: canonical(item.filename) }; recovered.push(mod) }
+      if (!mod && match) mod = { ...match, filename: canonical(item.filename) }
       const provider = mod?.provider ?? (mod ? 'modrinth' : undefined)
-      return { ...mod, provider: provider === 'modrinth' || provider === 'curseforge' ? provider : undefined, filename: item.filename, title: mod?.title || item.info.title || canonical(item.filename).replace(/\.(jar|litemod)$/i, ''), versionNumber: item.info.versionNumber || mod?.versionNumber, description: item.info.description || mod?.description || '', icon: item.info.icon || mod?.icon, modifiedAt: item.modifiedAt, enabled: !/\.disabled$/i.test(item.filename) } satisfies InstalledResourcePack
-    }).filter((item): item is NonNullable<typeof item> => !!item)
+      const projectKey = `${provider}:${mod?.projectId}`, source = this.projectIcons.has(projectKey) ? this.projectIcons.get(projectKey) : mod?.icon
+      const icon = item.info.icon || await this.icons.peek(source)
+      // Lists render from local data; CDN requests run independently of listing.
+      if (!item.info.icon && source) void this.icons.get(source)
+      // Cache reads can outlive an external file replacement or removal.
+      if (!existsSync(path)) return undefined
+      noLink(path)
+      const after = statSync(path)
+      if (`${after.size}:${after.mtimeMs}:${after.ctimeMs}` !== item.signature) return undefined
+      if (!item.mod && match && mod) recovered.push(mod)
+      return { ...mod, provider: provider === 'modrinth' || provider === 'curseforge' ? provider : undefined, sourceUrl: this.projectUrls.get(projectKey) ?? mod?.sourceUrl ?? (provider === 'modrinth' ? `https://modrinth.com/mod/${encodeURIComponent(mod!.projectId)}` : undefined), filename: item.filename, title: mod?.title || item.info.title || canonical(item.filename).replace(/\.(jar|litemod)$/i, ''), versionNumber: item.info.versionNumber || mod?.versionNumber, description: item.info.description || mod?.description || '', icon: icon ?? source, modifiedAt: item.modifiedAt, enabled: !/\.disabled$/i.test(item.filename) } satisfies InstalledResourcePack
+    }))
     if (recovered.length && this.modrinth.remember) { this.directory(profileId); this.modrinth.remember(profileId, recovered) }
-    return items.sort((a, b) => a.title.localeCompare(b.title))
+    return items.filter((item): item is NonNullable<typeof item> => !!item).sort((a, b) => a.title.localeCompare(b.title))
+  }
+  filePath(profileId: string, kind: ProfileContentKind, filename: string): string {
+    const profile = this.profile(profileId, kind)
+    if (!validName(filename) || kind === 'mod' && !modFilename(filename)) throw new Error('Paket bulunamadı.')
+    const directory = kind === 'mod' ? this.directory(profileId) : join(this.store.gamePath(profile), kind === 'shader' ? 'shaderpacks' : 'resourcepacks'), path = join(directory, filename)
+    noLink(directory); noLink(path)
+    if (!existsSync(path) || kind === 'mod' && !statSync(path).isFile()) throw new Error('Paket bulunamadı.')
+    return path
   }
   async enable(profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean) {
     this.profile(profileId, kind); this.assertMutable(profileId)
@@ -142,6 +169,15 @@ export class ProfileContent {
       const service = item.provider === 'modrinth' ? this.modrinth : this.curseforge
       const [project, versions] = await Promise.all([service.project(item.projectId), service.versions(item.projectId, gameVersion, loader, false, kind)])
       if (project.id !== item.projectId || project.projectType !== kind) throw new Error('Paket dosyası doğrulanamadı.')
+      this.projectIcons.set(`${item.provider}:${item.projectId}`, project.iconUrl ?? undefined)
+      this.projectUrls.set(`${item.provider}:${item.projectId}`, project.sourceUrl ?? undefined)
+      if (kind === 'mod' && this.modrinth.remember) {
+        const known = this.modrinth.installed(profileId).find(mod => mod.filename === canonical(item.filename) && (mod.provider ?? 'modrinth') === item.provider && mod.projectId === item.projectId)
+        if (known && (known.icon !== (project.iconUrl ?? undefined) || known.sourceUrl !== (project.sourceUrl ?? undefined))) {
+          this.directory(profileId)
+          this.modrinth.remember(profileId, [{ ...known, icon: project.iconUrl ?? undefined, sourceUrl: project.sourceUrl ?? undefined }])
+        }
+      }
       let current: ModVersion
       if (item.provider === 'modrinth') {
         const info = await this.modrinth.version(item.versionId)
@@ -159,8 +195,13 @@ export class ProfileContent {
       return { ...result, compatible, status: latest ? 'update' : compatible ? 'current' : 'incompatible', latest }
     } catch (error) { return { ...result, status: 'error', error: String((error as Error).message ?? error) } }
   }
-  async updates(profileId: string, kind: ProfileContentKind): Promise<ProfileContentUpdate[]> {
-    const items = await this.list(profileId, kind), results: ProfileContentUpdate[] = []
+  async updates(profileId: string, kind: ProfileContentKind, force = true): Promise<ProfileContentUpdate[]> {
+    const items = await this.list(profileId, kind), profile = this.profile(profileId, kind)
+    const fingerprint = createHash('sha256').update(JSON.stringify([profile.versionId, profile.modLoader, profile.modLoaderVersion, this.curseforge.connected, items.map(item => [item.filename, item.provider, item.projectId, item.versionId, item.modifiedAt])])).digest('hex')
+    return this.updateCache.get(`${profileId}:${kind}`, fingerprint, force, () => this.checkItems(profileId, kind, items))
+  }
+  private async checkItems(profileId: string, kind: ProfileContentKind, items: InstalledResourcePack[]): Promise<ProfileContentUpdate[]> {
+    const results: ProfileContentUpdate[] = []
     // Three bounded workers keep large mod lists responsive without flooding providers.
     let cursor = 0
     await Promise.all(Array.from({ length: Math.min(3, items.length) }, async () => {

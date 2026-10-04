@@ -801,6 +801,7 @@ const dictionary: Record<string, [string, string, string, string, string]> = {
   'Standart sürüm': ['Standard version', 'Standardversion', 'Version standard', 'Обычная версия', 'Wersja standardowa'],
   'Oynarken otomatik kurulur': ['Installs automatically when played', 'Wird beim Spielen automatisch installiert', 'Installation automatique au lancement', 'Установится автоматически при запуске', 'Instaluje się automatycznie przy uruchomieniu'],
   'Klasörde aç': ['Open folder', 'Ordner öffnen', 'Ouvrir le dossier', 'Открыть папку', 'Otwórz folder'],
+  'Klasörde göster': ['Show in folder', 'Im Ordner anzeigen', 'Afficher dans le dossier', 'Показать в папке', 'Pokaż w folderze'],
   'Java kurulumunu kaldır': ['Remove Java installation', 'Java-Installation entfernen', 'Supprimer l’installation Java', 'Удалить установку Java', 'Usuń instalację Java'],
   'Java kurulumu kaldırıldı.': ['Java installation removed.', 'Java-Installation entfernt.', 'Installation Java supprimée.', 'Установка Java удалена.', 'Instalacja Java usunięta.'],
   'Java kurulumları aranıyor...': ['Searching for Java installations...', 'Java-Installationen werden gesucht...', 'Recherche des installations Java...', 'Поиск установок Java...', 'Wyszukiwanie instalacji Java...'],

@@ -247,6 +247,9 @@ function App() {
   const stateRef = useRef(state)
   stateRef.current = state
   const [managedProfileId, setManagedProfileId] = useState<string | null>(null)
+  const profileTabs = useRef<Record<string, Page>>(useMemo(() => {
+    try { return Object.fromEntries(Object.entries(JSON.parse(localStorage.getItem('green-launcher.profile-tabs') ?? '{}')).filter(([, page]) => profileWorkspacePages.includes(page as Page))) as Record<string, Page> } catch { return {} }
+  }, []))
   const [isGlobalMods, setIsGlobalMods] = useState(false)
   const globalModsRef = useRef(isGlobalMods)
   globalModsRef.current = isGlobalMods
@@ -268,18 +271,22 @@ function App() {
       const current = stateRef.current
       const id = current?.profiles.find(item => item.id === managedProfileRef.current)?.id ?? current?.selectedProfileId ?? current?.profiles[0]?.id
       if (!id) next = 'profiles'
-      else { managedProfileRef.current = id; setManagedProfileId(id) }
+      else {
+        managedProfileRef.current = id; setManagedProfileId(id)
+        profileTabs.current[id] = next
+        try { localStorage.setItem('green-launcher.profile-tabs', JSON.stringify(profileTabs.current)) } catch {}
+      }
     }
     if (main.current) scrollPositions.current[pageRef.current] = main.current.scrollTop
     pageRef.current = next
     setVisited(current => current.has(next) ? current : new Set([...current, next]))
     setPageState(next)
   }
-  const openProfileWorkspace = (id: string, next: Page = 'worlds') => {
+  const openProfileWorkspace = (id: string, next?: Page) => {
     managedProfileRef.current = id
     setManagedProfileId(id)
     setAccountSwitcherOpen(false)
-    setPage(next, false)
+    setPage(next ?? profileTabs.current[id] ?? 'worlds', false)
   }
   useEffect(() => {
     if (managedProfileId && state && !state.profiles.some(item => item.id === managedProfileId)) {

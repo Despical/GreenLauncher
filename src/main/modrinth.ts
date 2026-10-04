@@ -131,7 +131,12 @@ export class ModrinthService {
     // Re-read after network lookups so concurrent installs keep their new records.
     for (const mod of mods) {
       const same = current.findIndex(item => item.filename === mod.filename)
-      if (same >= 0) { if (current[same].fileHash && current[same].fileHash !== mod.fileHash) current[same] = mod; continue }
+      if (same >= 0) {
+        const old = current[same]
+        if (old.fileHash && old.fileHash !== mod.fileHash) current[same] = mod
+        else if (old.projectId === mod.projectId && old.versionId === mod.versionId && (old.provider ?? 'modrinth') === (mod.provider ?? 'modrinth')) current[same] = { ...old, icon: mod.icon, sourceUrl: mod.sourceUrl, description: old.description || mod.description }
+        continue
+      }
       if (!current.some(item => (item.provider ?? 'modrinth') === mod.provider && item.projectId === mod.projectId)) current.push(mod)
     }
     mkdirSync(this.store.profilePath(profileId), { recursive: true })

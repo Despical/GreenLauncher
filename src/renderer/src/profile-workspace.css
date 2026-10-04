@@ -64,6 +64,6 @@
 .profile-jvm-args textarea:focus { outline: none; border-color: #8397a7; }
 
 .profile-setting-options .setting-toggle + .setting-toggle { border-top: 0; }
-.profile-setting-options .setting-toggle { padding: 8px 0; }
+.profile-setting-options .setting-toggle { padding: 15px 13px; }
 .profile-setting-options .setting-toggle > span:first-child { min-width: 0; }
 .profile-window-divider { margin: 4px 0 0; }

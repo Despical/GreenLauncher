@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const helpers = readFileSync('scripts/qa-servers-custom.mjs', 'utf8').split('try {')[0].replace(/^import[^\n]*\n/gm, '')
 const checks = String.raw`
 try {
-  await call('Runtime.enable'); await call('Page.reload'); await until("document.querySelector('.launch-profile-edit')")
+  await call('Runtime.enable'); await evaluate("localStorage.removeItem('green-launcher.profile-tabs')"); await call('Page.reload'); await until("document.querySelector('.launch-profile-edit')")
   await evaluate("window.launcher.saveSettings({language:'tr'}).then(()=>window.launcher.selectProfile('qa-profile'))")
   await evaluate("window.launcher.getServers('qa-profile')")
   await call('Page.reload'); await until("document.querySelector('.launch-profile-edit')")
@@ -12,6 +12,14 @@ try {
   assert.equal(await evaluate("document.querySelectorAll('.sidebar').length"),1)
   assert.equal(await evaluate("document.querySelector('.workspace-profile-select .dropdown-copy strong').textContent"),'Test World')
   assert.equal(await evaluate("document.querySelectorAll('.worlds-page .servers-list-profile-select').length"),0)
+  await nav('Modlar');await until("document.querySelector('.profile-workspace-nav button.active')?.textContent==='Modlar'")
+  await click('.profile-workspace-back');await until("document.querySelector('.profile-card')");await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3').textContent==='Test World').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+  assert.equal(await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent"),'Modlar','returning restores last tab')
+  await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');assert.equal(await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent"),'Modlar','last tab survives renderer restart')
+  await click('.profile-workspace-back');await until("document.querySelector('.profile-card')");await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3').textContent==='Test World 2').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+  assert.equal(await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent"),'Dünyalar','new profile has its own default')
+  await nav('Sunucular');await click('.profile-workspace-back');await until("document.querySelector('.profile-card')");await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3').textContent==='Test World').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))")
+  assert.equal(await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent"),'Modlar','last tab is isolated per profile');await nav('Dünyalar')
   const choose = async name => {
     const activePage = await evaluate("document.querySelector('.profile-workspace-nav button.active')?.textContent.trim()")
     await click('.profile-workspace-back'); await until("document.querySelector('.page-profiles')")

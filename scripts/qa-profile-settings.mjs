@@ -39,6 +39,9 @@ try {
   assert.deepEqual(await evaluate(headingStyle),globalHeading,'profile heading uses the global settings font and spacing')
   const textarea = async value => {await evaluate("(()=>{const e=document.querySelector('.profile-jvm-args textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,"+JSON.stringify(value)+");e.dispatchEvent(new Event('input',{bubbles:true}))})()");await wait(100)}
   const tab = async name => {await evaluate("document.querySelector('.profile-settings-page #profile-settings-tab-"+name+"').click()");await wait(50)}
+  await tab('general');const generalPadding=await evaluate("(()=>{const style=getComputedStyle(document.querySelector('.profile-setting-options .setting-toggle'));return [style.paddingLeft,style.paddingRight]})()")
+  await tab('window');const windowPadding=await evaluate("(()=>{const style=getComputedStyle(document.querySelector('.profile-window-options .setting-toggle'));return [style.paddingLeft,style.paddingRight]})()")
+  assert.deepEqual(generalPadding,windowPadding,'general and window switch cards share horizontal insets');assert.deepEqual(generalPadding,['13px','13px'])
   for(const name of ['general','java','window']) {
     await tab(name)
     assert.equal(await evaluate("document.querySelector('.profile-settings-heading p').textContent"),'Buradaki ayarlar genel ayarları geçersiz kılar.')
@@ -110,13 +113,11 @@ try {
   await tab('general');await shot('qa-profile-options-general');await tab('java');await shot('qa-profile-options-java');await tab('window');await shot('qa-profile-options-window')
   await evaluate("window.launcher.getState().then(async s=>{const p=s.profiles.find(p=>p.id==='qa-profile-1');await window.launcher.saveProfile({...p,modpack:{title:'Locked pack',projectId:'qa-pack',versionId:'qa-version',fileCount:1}});await window.launcher.selectProfile('qa-profile')})")
   await choose('Second profile edited'); await tab('general')
-  assert.equal(await evaluate("!!document.querySelector('.profile-workspace-nav .profile-provider-icon')"),true)
+  assert.equal(await evaluate("!!document.querySelector('.profile-workspace-nav .profile-provider-icon')"),false)
   assert.equal(await evaluate("document.querySelector('.profile-settings-page .profile-version-select')===null"),true)
   for(const [provider,name] of [['modrinth','Modrinth'],['curseforge','CurseForge'],['technic','Technic']]) {
     await evaluate("window.launcher.getState().then(s=>{const p=s.profiles.find(p=>p.id==='qa-profile-1');return window.launcher.saveProfile({...p,modpack:{...p.modpack,provider:"+JSON.stringify(provider)+"}}).then(()=>window.launcher.selectProfile('qa-profile'))})")
-    await nav(name);await until("document.querySelector('.mods-source-nav button.active')?.textContent.trim()==="+JSON.stringify(name))
-    assert.equal(await evaluate("document.querySelector('.profile-provider-icon').src"),await evaluate("document.querySelector('.mods-source-nav button.active img').src"),'provider uses its existing official icon')
-    await nav('Ayarlar')
+    assert.equal(await evaluate("[...document.querySelectorAll('.profile-workspace-nav button')].some(b=>b.textContent.trim()==="+JSON.stringify(name)+")"),false,'modpacks keep one Mods entry')
   }
   for(const language of ['tr','en','de','fr','ru','pl']) {
     await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit')

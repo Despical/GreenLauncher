@@ -290,7 +290,9 @@ export interface LauncherApi {
   getProfileContent(profileId: string, kind: ProfileContentKind): Promise<InstalledResourcePack[]>
   setProfileContentEnabled(profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean): Promise<InstalledResourcePack[]>
   installProfileContent(profileId: string, kind: ProfileContentKind, versionId: string, provider: 'modrinth' | 'curseforge', content?: DownloadContent): Promise<InstalledResourcePack[]>
-  checkProfileContentUpdates(profileId: string, kind: ProfileContentKind): Promise<ProfileContentUpdate[]>
+  checkProfileContentUpdates(profileId: string, kind: ProfileContentKind, force?: boolean): Promise<ProfileContentUpdate[]>
+  revealProfileContent(profileId: string, kind: ProfileContentKind, filename: string): Promise<void>
+  getContentIcon(url: string): Promise<string | undefined>
   updateProfileContent(profileId: string, kind: ProfileContentKind, filename: string, content?: DownloadContent): Promise<InstalledResourcePack[]>
   getResourcePacks(profileId: string): Promise<InstalledResourcePack[]>
   setResourcePackEnabled(profileId: string, filename: string, enabled: boolean): Promise<InstalledResourcePack[]>

@@ -23,21 +23,44 @@ try {
   assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .resource-provider img')+').length'),0,'provider cells use text');
   if(kind==='mod' && await evaluate(q('.resource-pack-icon img')+'!==null')) {
    await until(q('.resource-pack-icon img')+'.complete');assert.equal(await evaluate(q('.resource-pack-icon img')+'.naturalWidth>0'),true,'installed icon decodes');
-   assert.equal(await evaluate(q('.resource-pack-icon img')+'.src==='+q('.resource-large-icon img')+'.src'),true,'detail and list use the same mod icon');
+   assert.equal(await evaluate(q('.resource-large-icon')+'===null'),true,'installed detail has no redundant large icon');
   }
   await click(base+' .resource-enable');await until(q('.resource-enable')+"?.getAttribute('aria-checked')==='false'")
+  assert.equal(await evaluate('getComputedStyle('+q('.resource-pack-select')+').opacity'),'0.55','disabled content is dimmed');
+  assert.equal(await evaluate('getComputedStyle('+q('.resource-provider')+',"::before").width'),'1px','provider divider');
+  assert.equal(await evaluate('getComputedStyle('+q('.resource-provider')+',"::before").top'),'-12px','divider fills row padding');
+  assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .resource-installed-detail dt svg')+').length'),4,'detail label icons');
+  assert.equal(await evaluate('[...document.querySelectorAll('+JSON.stringify(base+' .resource-installed-detail dt')+')].every(e=>e.textContent.endsWith(":"))'),true,'detail labels have colons');
+  assert.equal(await evaluate(q('.resource-detail-provider img')+'!==null'),true,'provider branding in details');
+  const link=await evaluate(q('.resource-title-link')+'!==null');if(link){await click(base+' .resource-title-link');assert.equal((await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='external-link').at(-1).url,kind==='resourcepack'?'https://modrinth.com/resourcepack/fresh-animations':'https://modrinth.com/mod/fixture')}
+  for(const selector of ['.resource-file-link',...(link?['.resource-title-link']:[])]){const rect=await evaluate(q(selector)+'.getBoundingClientRect().toJSON()');await call('Input.dispatchMouseEvent',{type:'mouseMoved',x:rect.x+rect.width/2,y:rect.y+rect.height/2});assert.equal(await evaluate('getComputedStyle('+q(selector)+').textDecorationLine'),'underline','detail links underline on hover')}
+  await click(base+' .resource-file-link');const reveal=(await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='reveal-content').at(-1);assert.equal(reveal.kind,kind);assert.equal(reveal.id,'qa-profile');assert.ok(reveal.filename.endsWith(kind==='mod'?'.jar.disabled':'.zip'));
   await click(base+' .resource-check-updates');await until(q('.resource-update-summary')+"?.getAttribute('data-update-status')==='update'")
   assert.equal(await evaluate(q('.resource-format')+"?.textContent.includes('1.0')"),kind==='resourcepack'?false:true,'installed version remains visible beside update indication');
   assert.equal(await evaluate(q('.resource-update-summary')+"?.textContent.includes('1.0 → 2.0')"),kind==='resourcepack'?false:true)
   await shot('qa-profile-content-'+kind+'-installed')
-  await click(base+' .resource-update-button');await until(q('.resource-installed-detail dd:nth-child(4)')+"?.textContent==='2.0'")
+  await until(q('.resource-update-button')+'?.disabled===false');await click(base+' .resource-update-button');await until(q('.resource-installed-detail dd:nth-child(4)')+"?.textContent==='2.0'")
   assert.equal(await evaluate(q('.resource-enable')+"?.getAttribute('aria-checked')"),'false','updates preserve disabled state')
   await click(base+' .resource-check-updates');await until(q('.resource-update-summary')+"?.getAttribute('data-update-status')==='current'")
   await input(base+' .resource-search input','Local');await until(q('.resource-update-summary')+"?.getAttribute('data-update-status')==='unknown'");assert.equal(await evaluate(q('.resource-update-button')+'===null'),true)
   await input(base+' .resource-search input','');await click(base+' .resource-mode-bar [role=tab]:last-child');await until(q('.resource-download-summary dd')+'?.textContent==='+JSON.stringify(filename))
   assert.equal(await evaluate('[...document.querySelectorAll('+JSON.stringify(base+' .mods-source-nav button')+')].map(b=>b?.textContent.trim()).join(",")'),'Modrinth,CurseForge')
-  assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .mods-source-nav button img')+').length'),0,'catalog source buttons use text');
+  assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .mods-source-nav button img')+').length'),2,'catalog source buttons use provider icons');
   assert.equal(await evaluate("document.querySelectorAll('.modal-backdrop').length"),0)
+  assert.equal(await evaluate(q('.mods-detail-meta')+'?.textContent.includes("CC-BY-NC")'),true,'license and update header');
+  assert.equal(await evaluate('getComputedStyle('+q('.mods-detail-meta')+').borderTopWidth'),'1px');
+  assert.equal(await evaluate('getComputedStyle('+q('.mods-detail-meta')+').borderBottomWidth'),'1px');
+  assert.equal(await evaluate('getComputedStyle('+q('.mods-hit-copy small')+').color'),'rgb(169, 186, 196)','shared description color');
+  assert.equal(await evaluate('getComputedStyle('+q('.mods-hit-copy em')+').color'),'rgb(136, 189, 160)','shared author and download color');
+  assert.equal(await evaluate(q('.mods-source-nav')+'.getBoundingClientRect().height<200'),true,'compact source card');
+  assert.equal(await evaluate('getComputedStyle('+q('.resource-install-button')+').backgroundColor'),'rgb(45, 121, 80)','shared green install action');
+  assert.equal(await evaluate(q('.resource-install-button')+'.getBoundingClientRect().width<'+q('.mods-detail')+'.getBoundingClientRect().width/2'),true,'compact install action');
+  assert.equal(await evaluate('(()=>{const a='+q('.resource-install-button')+'.getBoundingClientRect(),b='+q('.resource-download-summary')+'.getBoundingClientRect();return Math.abs(a.right-b.right)<2})()'),true,'install aligned right');
+  assert.equal(await evaluate(q('.mods-load-more')+'===null'),true,'no manual pagination');
+  assert.equal(await evaluate('(()=>{const a='+q('.resource-install-button')+'.getBoundingClientRect(),b='+q('.mods-detail')+'.getBoundingClientRect();return a.bottom<=b.bottom&&a.top>=b.top})()'),true,'install remains visible inside catalog detail');
+  await evaluate('(()=>{const list='+q('.mods-results')+';list.scrollTop=list.scrollHeight;for(let i=0;i<5;i++)list.dispatchEvent(new Event("scroll"))})()');await until('document.querySelectorAll('+JSON.stringify(base+' .mods-hit')+').length===18');
+  const pages=(await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='launcher:search-mods'&&r.args[6]===kind&&r.args[4]===9);assert.equal(pages.length,1,'scroll requests coalesce');
+  await shot('qa-profile-content-'+kind+'-browse');
   const last=(await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='launcher:search-mods').at(-1);assert.equal(last.args[6],kind);if(kind==='mod')assert.equal(last.args[2],'fabric')
   await until(q('.resource-install-button'));await click(base+' .resource-install-button');await until(q('.resource-install-button')+"?.textContent.includes('Kurulu')")
   await click(base+' .resource-mode-bar [role=tab]:first-child');await until(q('.resource-pack-row'))
@@ -54,6 +77,7 @@ try {
    assert.equal(await evaluate(q('.resource-check-updates')+'?.scrollWidth<='+q('.resource-check-updates')+'?.clientWidth'),true,language+' update button fits')
    await click(base+' .resource-mode-bar [role=tab]:last-child');await until(q('.resource-download-summary'))
    assert.equal(await evaluate('document.querySelector('+JSON.stringify(base)+')?.scrollWidth<=document.querySelector('+JSON.stringify(base)+')?.clientWidth'),true,language+' '+kind+' browse fits')
+   assert.equal(await evaluate('(()=>{const a='+q('.resource-install-button')+'.getBoundingClientRect(),b='+q('.mods-detail')+'.getBoundingClientRect();return a.bottom<=b.bottom&&a.top>=b.top})()'),true,language+' '+kind+' install visible')
   }
  }
  await evaluate("window.launcher.saveSettings({language:'tr'})");await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');await click('.profile-workspace-back');await until("document.querySelector('.profile-card')");await evaluate("[...document.querySelectorAll('.profile-card')].find(e=>e.querySelector('h3')?.textContent==='Test World 2').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))");await nav('Shader paketleri');await until(q('.resource-pack-row')+"?.textContent.includes('Other profile')");assert.equal(await evaluate('document.querySelectorAll('+JSON.stringify(base+' .resource-pack-row')+').length'),1);assert.equal(await evaluate('window.launcher.getState().then(s=>s.selectedProfileId)'),'qa-profile')
@@ -63,6 +87,7 @@ try {
  assert.equal(await evaluate('(()=>{const a='+q('.resource-installed-detail')+',b='+q('.resource-installed-list')+';return a.getBoundingClientRect().height < b.getBoundingClientRect().height/2})()'),true,'selected card stays content-sized beside a long mod list')
  await shot('qa-profile-mod-details-long-list')
  await evaluate("window.launcher.saveSettings({qaResource:{extraMods:0}})")
+ const updateChecks=(await evaluate('window.launcher.getState()')).qaResourceRequests.filter(r=>r.channel==='check-updates');assert.ok(updateChecks.some(r=>r.force===false),'automatic checks request cached results');assert.ok(updateChecks.some(r=>r.force===true),'manual checks request fresh results')
  assert.equal(errors.length,0,JSON.stringify(errors));console.log('PASS profile Mods/Resources/Shaders installed lists, disabled updates and unknown/error/current states, provider/version/file review, inline installs, single shader selection, six languages at 1080x700 and profile ownership; isolated in-memory catalogs')
 } finally {socket.close()}
 `
