@@ -172,7 +172,7 @@ export class ModpackService {
         copyFileSync(safePath(stage, relative), destination)
       }
       writeFileSync(join(profileRoot, 'green-launcher-pack.json'), JSON.stringify({ projectId: version.project_id, versionId, name: project.title, minecraft: gameVersion, loader, loaderVersion, files: [...paths], integrity: index.files.filter(file => !['unsupported', 'optional'].includes(file.env?.client ?? '')).map(file => ({ path: file.path, hashes: file.hashes, downloads: file.downloads })) }, null, 2), 'utf8')
-      this.store.setModpack(profileId, { projectId: version.project_id, versionId, title: project.title, fileCount: paths.size, provider: 'modrinth', sourceUrl: `https://modrinth.com/modpack/${encodeURIComponent(version.project_id)}` })
+      this.store.setModpack(profileId, { projectId: version.project_id, versionId, title: project.title, fileCount: paths.size, versionNumber: index.versionId, loader, provider: 'modrinth', sourceUrl: `https://modrinth.com/modpack/${encodeURIComponent(version.project_id)}` })
       this.onActivity?.({ kind: 'idle', label: 'Hazır' })
       return { state: this.store.get(), profileId }
       } catch (error) {

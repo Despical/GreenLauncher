@@ -13,8 +13,8 @@
 .profile-version-section-copy h3 svg { color: #8b949e; flex: none; }
 .profile-version-section-copy p { margin: 0; font-size: 13px; line-height: 1.6; color: #8b949e; }
 .profile-version-controls { display: grid; grid-template-columns: minmax(0,1fr) 184px; align-items: stretch; gap: 12px; }
-.profile-version-controls .heading-action { justify-content: center; margin: 0; width: 100%; max-width: 100%; min-height: 50px; padding-inline: 12px; line-height: 1.4; background: #2d7950; border-color: #448d65; color: #fff; }
-.profile-version-controls .heading-action:hover:enabled { background: #38895c; border-color: #68ad82; }
+.profile-version-controls .heading-action { justify-content: center; margin: 0; width: 100%; max-width: 100%; min-height: 50px; padding-inline: 12px; line-height: 1.4; background: var(--action-green); border-color: var(--action-green-border); color: #fff; }
+.profile-version-controls .heading-action:hover:enabled { background: var(--action-green-hover); border-color: var(--action-green-hover-border); }
 .profile-version-controls .heading-action:disabled { opacity: .48; }
 .profile-version-controls .heading-action > svg { flex: none; }
 .profile-version-controls .dropdown-trigger { height: 100%; min-height: 50px; }
@@ -24,3 +24,13 @@
 .profile-version-progress { display: flex; flex-direction: column; gap: 10px; color: #8b949e; font-size: 12px; margin-top: 20px; }
 .profile-version-progress progress { width: 100%; height: 5px; accent-color: #8b949e; }
 @media (max-width: 1100px) { .profile-version-section { gap: 20px; grid-template-columns: minmax(150px,.7fr) minmax(0,1.3fr); } .profile-version-controls { grid-template-columns: minmax(0,1fr) 162px; gap: 10px; } }
+
+.profile-pack-section { margin-top: 24px; padding: 24px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; }
+.profile-pack-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.profile-pack-heading h3 { display: flex; align-items: center; gap: 9px; font-size: 15px; margin: 0; }
+.profile-pack-section > p { font-size: 13px; line-height: 1.6; color: #8b949e; }
+.profile-pack-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 12px; }
+.profile-pack-controls .dropdown-trigger { height: 100%; min-height: 42px; }
+.profile-pack-section .heading-action { background: var(--action-green); border-color: var(--action-green-border); color: #fff; }
+.profile-pack-section .heading-action:hover:enabled { background: var(--action-green-hover); border-color: var(--action-green-hover-border); }
+@media (max-width: 1120px) { .profile-pack-heading { align-items: flex-start; flex-direction: column; } .profile-pack-controls { grid-template-columns: minmax(0, 1fr); } .profile-pack-controls > button { justify-content: center; } }

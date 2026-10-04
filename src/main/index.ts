@@ -246,7 +246,7 @@ else {
       tray.setContextMenu(Menu.buildFromTemplate([
         { label: translate(language, "Green Launcher'ı aç"), icon: nativeImage.createFromPath(persistentIcon()).resize({ width: 16, height: 16 }), click: showMainWindow },
         { type: 'separator' },
-        ...navigationItems.filter(item => item.page !== 'home').map(item => ({ label: translate(language, item.label), click: () => navigate(item.page) })),
+        ...navigationItems.map(item => ({ label: translate(language, item.label), click: () => navigate(item.page) })),
         { type: 'separator' },
         { label: translate(language, 'Çıkış'), click: () => app.quit() }
       ]))
@@ -352,7 +352,7 @@ else {
     })
     handle('launcher:get-downloads', () => downloads.snapshot())
     handle('launcher:set-presence-context', (context: import('../shared/types').LauncherPresenceContext) => {
-      if (!context || !['home', 'versions', 'profiles', 'servers', 'worlds', 'mods', 'gallery', 'downloads', 'storage', 'settings', 'account'].includes(context.page)) throw new Error('Geçersiz etkinlik sayfası.')
+      if (!context || !['home', 'versions', 'profiles', 'servers', 'worlds', 'mods', 'gallery', 'downloads', 'storage', 'settings', 'account', 'resource-packs', 'shader-packs'].includes(context.page)) throw new Error('Geçersiz etkinlik sayfası.')
       discord.setLauncherContext({ page: context.page, section: typeof context.section === 'string' ? context.section.slice(0, 40) : undefined, contentType: context.contentType === 'modpack' ? 'modpack' : 'mod', favorites: context.favorites === true })
     })
     handle('launcher:control-downloads', (action: string, id?: string, beforeId?: string) => { if (!['pause-all', 'resume-all', 'pause', 'resume', 'prioritize', 'reorder', 'clear'].includes(action)) throw new Error('Geçersiz indirme işlemi.'); const update = updater.get(); return downloads.control(action, action === 'clear' && update.downloadedAt && update.version ? `launcher-update-${update.version}` : id, beforeId) })
@@ -520,7 +520,7 @@ else {
       if (favorites.refresh(selected, [{ projectId: id, slug: details.slug, title: details.title, description: details.description, iconUrl: details.iconUrl, downloads: details.downloads }])) send('launcher:modFavorites', favorites.get())
       return details
     })
-    handle('launcher:get-mod-versions', (id: string, gameVersion: string, loader: ModLoader, source?:ModProvider, allGameVersions = false, contentType: ModContentType = 'mod') => metadata.get(JSON.stringify(['versions',provider(source),id,gameVersion,loader,allGameVersions === true,contentType]), () => source==='curseforge'?curseforge.versions(id,gameVersion,loader,allGameVersions === true,contentType):source==='technic'?technic.versions(id):modrinth.versions(id, gameVersion, loader,allGameVersions === true,contentType)))
+    handle('launcher:get-mod-versions', (id: string, gameVersion: string, loader: ModLoader, source?:ModProvider, allGameVersions = false, contentType: ModContentType = 'mod', refresh = false) => metadata.get(JSON.stringify(['versions',provider(source),id,gameVersion,loader,allGameVersions === true,contentType]), () => source==='curseforge'?curseforge.versions(id,gameVersion,loader,allGameVersions === true,contentType):source==='technic'?technic.versions(id):modrinth.versions(id, gameVersion, loader,allGameVersions === true,contentType), refresh === true))
     handle('launcher:get-profile-content', (profileId: string, kind: ProfileContentKind) => profileContent.list(profileId, kind))
     handle('launcher:set-profile-content-enabled', (profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean) => {
       if (installingContent || downloads.pending) throw new Error('Başka bir kurulum devam ediyor.')

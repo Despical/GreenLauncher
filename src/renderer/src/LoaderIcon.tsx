@@ -1,6 +1,6 @@
 import type { ProfileLoader } from '../../shared/types'
 import vanilla from '../assets/minecraft-release.png'
-import optifine from '../assets/optifine-mark.png'
+import optifine from '../assets/loaders/optifine.svg'
 import fabric from '../assets/loaders/fabric.png'
 import forge from '../assets/loaders/forge.svg'
 import neoforge from '../assets/loaders/neoforge.svg'

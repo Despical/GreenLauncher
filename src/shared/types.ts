@@ -43,7 +43,7 @@ export interface LauncherProfile {
   gameDirectory?: string
   modLoader?: ModLoader
   modLoaderVersion?: string
-  modpack?: { projectId: string; versionId: string; title: string; fileCount: number; provider?: ModProvider; sourceUrl?: string }
+  modpack?: { projectId: string; versionId: string; title: string; fileCount: number; provider?: ModProvider; sourceUrl?: string; versionNumber?: string; loader?: ModLoader }
   pinned?: boolean
   lastPlayed?: string
   cover?: ProfileCover
@@ -162,7 +162,7 @@ export type ModProvider = 'modrinth' | 'curseforge' | 'technic'
 export interface ProviderStatus { curseforge: boolean }
 export type ModContentType = 'mod' | 'modpack' | 'resourcepack' | 'shader'
 export type ProfileContentKind = 'mod' | 'resourcepack' | 'shader'
-export interface ProfileContentUpdate { filename: string; status: 'current' | 'update' | 'incompatible' | 'unknown' | 'error'; compatible?: boolean; latest?: ModVersion; error?: string }
+export interface ProfileContentUpdate { filename: string; status: 'current' | 'update' | 'incompatible' | 'unknown' | 'error'; compatible?: boolean; gameVersions?: string[]; latest?: ModVersion; error?: string }
 export type ModSort = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
 export interface ModSearchHit { projectId: string; slug: string; title: string; description: string; author: string; iconUrl: string | null; downloads: number; updated: string; categories: string[] }
 export interface ModFavorite extends ModSearchHit { provider: ModProvider; contentType: ModContentType; savedAt: string }
@@ -289,7 +289,7 @@ export interface LauncherApi {
   connectCurseForge(key: string): Promise<ProviderStatus>
   searchMods(query: string, gameVersion: string, loader: ModLoader, sort: ModSort, offset: number, category: string, contentType?: ModContentType, provider?: ModProvider): Promise<ModSearchResult>
   getModProject(id: string, provider?: ModProvider): Promise<ModProject>
-  getModVersions(id: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, allGameVersions?: boolean, contentType?: ModContentType): Promise<ModVersion[]>
+  getModVersions(id: string, gameVersion: string, loader: ModLoader, provider?: ModProvider, allGameVersions?: boolean, contentType?: ModContentType, refresh?: boolean): Promise<ModVersion[]>
   getProfileContent(profileId: string, kind: ProfileContentKind): Promise<InstalledResourcePack[]>
   setProfileContentEnabled(profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean): Promise<InstalledResourcePack[]>
   installProfileContent(profileId: string, kind: ProfileContentKind, versionId: string, provider: 'modrinth' | 'curseforge', content?: DownloadContent): Promise<InstalledResourcePack[]>

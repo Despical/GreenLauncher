@@ -4,8 +4,8 @@
 .curseforge-connect-actions { display:flex; justify-content:flex-end; gap:12px; }
 .curseforge-connect-actions button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 15px; border:1px solid #405463; border-radius:7px; color:#d7e4ec; background:#24323d; cursor:pointer; transition:background .15s,border-color .15s; }
 .curseforge-connect-actions button:hover { background:#304553; }
-.curseforge-connect-actions button.primary { background:#408750; border-color:#59a56a; color:white; }
-.curseforge-connect-actions button.primary:hover { background:#367443; }
+.curseforge-connect-actions button.primary { background:var(--action-green); border-color:var(--action-green-border); color:white; }
+.curseforge-connect-actions button.primary:hover { background:var(--action-green-hover); border-color:var(--action-green-hover-border); }
 .curseforge-connect-actions button:focus-visible { outline:2px solid #9fdab0; outline-offset:3px; }
 .curseforge-connect-actions button:disabled { opacity:.5; cursor:default; }
 .provider-connect-dialog .provider-connect-error { margin:0; }

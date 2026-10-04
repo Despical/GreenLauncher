@@ -11,10 +11,14 @@ const pages: Array<{ page: LauncherPage; label: string }> = [
   { page: 'servers', label: 'Sunucular' }, { page: 'worlds', label: 'Dünyalar' },
   { page: 'downloads', label: 'İndirmeler' }, { page: 'settings', label: 'Ayarlar' }
 ]
-export const navigationItems = pages
+export const navigationItems: Array<{ page: LauncherPage; label: string }> = [
+  { page: 'home', label: 'Ana Sayfa' }, { page: 'versions', label: 'Sürümler' },
+  { page: 'profiles', label: 'Profillerim' }, { page: 'mods', label: 'Modlar' },
+  { page: 'downloads', label: 'İndirmeler' }, { page: 'settings', label: 'Ayarlar' }
+]
 export function navigationArgument(args: string[]): LauncherPage | null {
   const value = args.find(arg => arg.startsWith('--open-page='))?.slice(12)
-  return pages.find(item => item.page === value)?.page ?? null
+  return [...pages, ...navigationItems].find(item => item.page === value)?.page ?? null
 }
 
 // Shell shortcuts and jump lists outlive portable extraction directories.

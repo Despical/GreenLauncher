@@ -1,27 +1,36 @@
 // Isolated renderer fixture; all version downloads and profile changes stay in memory.
 const { ipcMain, BrowserWindow } = require('electron')
 const register = ipcMain.handle.bind(ipcMain), requests = [], installed = new Set(['1.21.1', '1.21.1-fabric'])
-let stateHandler, fail = false, locked = false
+let stateHandler, fail = false, locked = false, noDates = false
+const addedProfiles = []
 const catalog = () => ['1.21.1', '1.20.4', '1.12.2', '24w02a'].map(id => ({ id, type: id.startsWith('24w') ? 'snapshot' : 'release', releaseTime: '2026-10-03', url: 'https://piston-meta.mojang.com/isolated-fixture', installed: installed.has(id), optifineAvailable: id !== '24w02a', optifineVersions: installed.has(`${id}-OptiFine_HD_U_TEST`) ? [{ id: `${id}-OptiFine_HD_U_TEST`, source: 'launcher' }] : [] })).concat([...installed].filter(id => /-fabric|-forge|-quilt|-neoforge|-liteloader/.test(id)).map(id => ({ id, installed: true, type: 'release', url: '', releaseTime: '2026-10-03', optifineVersions: [] })))
 ipcMain.handle = (channel, handler) => {
   if (channel === 'launcher:get-state') stateHandler = handler
   return register(channel, async (event, ...args) => {
     if (channel === 'launcher:get-versions') return catalog()
-    if (channel === 'launcher:get-state') return { ...await handler(event, ...args), qaVersionRequests: requests }
+    if (channel === 'launcher:get-mod-versions' && args[5] === 'modpack') return [{id:'qa',versionNumber:'1.0',name:'Pack 1.0',type:'release',published:noDates?'':'2026-09-01',gameVersions:['1.21.1'],loaders:['fabric']},{id:'qa-new',versionNumber:'2.0',name:'Pack 2.0',type:'release',published:noDates?'':'2026-10-01',gameVersions:['1.20.4'],loaders:['fabric']}]
+    if (channel === 'launcher:get-state') { const state = await handler(event, ...args); return { ...state, profiles: [...state.profiles, ...addedProfiles], qaVersionRequests: requests } }
     if (channel === 'launcher:save-settings' && args[0]?.qaVersion) {
-      const { qaVersion: control, ...settings } = args[0]; args[0] = settings; fail = control.fail ?? fail; locked = control.locked ?? locked
+      const { qaVersion: control, ...settings } = args[0]; args[0] = settings; fail = control.fail ?? fail; locked = control.locked ?? locked; noDates = control.noDates ?? noDates
+      if(control.navigate) for(const window of BrowserWindow.getAllWindows()) window.webContents.send('launcher:navigate',control.navigate)
       const state = await stateHandler(event), profile = state.profiles.find(p => p.id === 'qa-profile')
-      if (profile) profile.modpack = locked ? { projectId: 'qa', versionId: 'qa', title: 'Fixture pack', fileCount: 1 } : undefined
+      if (profile) profile.modpack = locked ? { projectId: 'qa', versionId: 'qa', title: 'Fixture pack', fileCount: 1, provider: 'modrinth', sourceUrl: 'https://modrinth.com/modpack/qa', loader: 'fabric' } : undefined
     }
     return handler(event, ...args)
   })
 }
 require('./qa-resource-packs-launch.cjs')
+register('launcher:install-modpack', async (event, ...args) => {
+  if(args[0]!=='qa-new') throw Error('Invalid fixture version')
+  const state=await stateHandler(event), original=state.profiles.find(p=>p.id==='qa-profile')
+  requests.push({kind:'pack-install',args})
+  addedProfiles.push({...structuredClone(original),id:'qa-updated-pack',name:'Fixture pack (2)',versionId:args[1],modpack:{...original.modpack,versionId:args[0]}})
+  return {state:{...state,profiles:[...state.profiles,...addedProfiles]},profileId:'qa-updated-pack'}
+})
 register('launcher:configure-profile-version', async (event, id, version, loader, acknowledged) => {
   const state = await stateHandler(event), profile = state.profiles.find(p => p.id === id)
   if (!profile) throw Error('Profil bulunamadı.')
   requests.push({ id, version, loader, acknowledged })
-  if (profile.modpack) throw Error('Bu mod paketinin sürümü ve yükleyicisi paket tarafından yönetilir.')
   const oldBase = profile.versionId.split(/-OptiFine_/i)[0], oldLoader = profile.modLoader ?? (profile.versionId.includes('-OptiFine_') ? 'optifine' : 'none')
   loader ??= version === oldBase ? oldLoader : 'none'
   if (!acknowledged && (version !== oldBase || loader !== oldLoader)) return { status: 'confirmation-required', activeMods: 1 }

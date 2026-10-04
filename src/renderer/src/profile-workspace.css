@@ -1,13 +1,13 @@
 .sidebar.profile-sidebar { min-height: 0; padding: 27px 14px 19px; }
-.profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin: 0 11px 12px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
+.profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin: 0 11px 12px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
 .profile-workspace-back:hover { background: #21262d; color: #e6edf3; }
 .profile-workspace-back:focus-visible { outline: 1px solid #8397a7; outline-offset: -2px; }
-.profile-workspace-identity { flex: none; margin: 0 11px; }
+.profile-workspace-identity { flex: none; margin: 0 11px 12px; }
 .profile-workspace-icon { width: 28px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center; }
 .profile-workspace-icon .profile-loader-icon { width: 28px; height: 28px; }
 .workspace-profile-select .profile-workspace-icon img { display: block; width: 28px; height: 28px; object-fit: contain; filter: none; }
 .workspace-profile-select { flex: 1; min-width: 0; }
-.profile-sidebar .workspace-profile-select .profile-workspace-label { min-height: 48px; gap: 10px; width: 100%; margin: 0; padding: 8px 0; }
+.profile-sidebar .workspace-profile-select .profile-workspace-label { min-height: 48px; gap: 10px; width: 100%; margin: 0; padding: 8px 10px; }
 .workspace-profile-select .dropdown-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; line-height: 1.05; }
 .workspace-profile-select .dropdown-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6edf3; }
 .workspace-profile-select .dropdown-copy strong { font: 600 14px/1.4 'Inter Variable', sans-serif; letter-spacing: 0; }
@@ -78,3 +78,7 @@
 .profile-setting-options .setting-toggle { padding: 15px 13px; border: 0; border-radius: 0; }
 .profile-setting-options .setting-toggle > span:first-child { min-width: 0; }
 .profile-window-divider { margin: 4px 0 0; }
+
+.profile-workspace-back > svg { transition: transform .18s ease; flex: none; }
+.profile-workspace-back:hover > svg, .profile-workspace-back:focus-visible > svg { transform: translateX(-3px); }
+@media (prefers-reduced-motion: reduce) { .profile-workspace-back > svg { transition: none; } }

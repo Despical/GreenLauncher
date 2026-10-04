@@ -9,7 +9,7 @@ try {
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.page-loading')).borderTopStyle"),'none','cold lazy page has no dashed placeholder')
  assert.equal(await evaluate("document.querySelector('.retained-page:not([hidden]) .library-empty')===null"),true,'empty content card is never used as the loading frame')
  await until(q('.world-select'))
- assert.deepEqual(await evaluate("[...document.querySelectorAll('.profile-workspace-nav>button')].map(b=>b.textContent.trim())"),['Dünyalar','Sunucular','Modlar','Kaynak paketleri','Shader paketleri','Ayarlar','Sürüm','Ekran görüntüleri','Minecraft günlüğü'])
+ assert.deepEqual(await evaluate("[...document.querySelectorAll('.profile-workspace-nav>button')].map(b=>b.textContent.trim())"),['Dünyalar','Sunucular','Modlar','Kaynak paketleri','Shader paketleri','Sürüm','Ayarlar','Ekran görüntüleri','Minecraft günlüğü'])
  assert.equal(await evaluate("document.querySelector('.workspace-profile-select small')===null"),true,'compact identity shows only profile name')
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.profile-workspace-icon img')).width"),'28px')
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.workspace-profile-select strong')).fontSize"),'14px')
@@ -54,7 +54,7 @@ try {
   await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit');await until(q('.profile-version-current'))
   for(const width of [1080,1440]){
    await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false})
-   assert.equal(await evaluate('[...document.querySelectorAll('+JSON.stringify(root+'.profile-version-controls')+')].every(e=>{const a=e.children[0].getBoundingClientRect(),b=e.children[1].getBoundingClientRect();return Math.abs(a.top-b.top)<1&&Math.abs(a.bottom-b.bottom)<1&&e.scrollWidth<=e.clientWidth&&getComputedStyle(e.children[1]).backgroundColor==="rgb(45, 121, 80)"})'),true,language+' version controls align and retain green at '+width)
+   assert.equal(await evaluate('[...document.querySelectorAll('+JSON.stringify(root+'.profile-version-controls')+')].every(e=>{const a=e.children[0].getBoundingClientRect(),b=e.children[1].getBoundingClientRect();return Math.abs(a.top-b.top)<1&&Math.abs(a.bottom-b.bottom)<1&&e.scrollWidth<=e.clientWidth&&getComputedStyle(e.children[1]).backgroundColor==="rgb(44, 109, 67)"})'),true,language+' version controls align and retain green at '+width)
   }
   if(language==='tr')await shot('qa-profile-version-aligned-actions')
  }

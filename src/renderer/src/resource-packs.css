@@ -17,8 +17,8 @@
 .resource-installed-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .resource-installed-toolbar .resource-search { flex: 1; margin: 0; }
 .resource-check-updates { margin-left: auto; flex: none; }
-.resource-packs-page .resource-check-updates, .resource-packs-page .resource-update-button { background: #2d7950; border-color: #448d65; color: #fff; }
-.resource-packs-page .resource-check-updates:hover:not(:disabled), .resource-packs-page .resource-update-button:hover:not(:disabled) { background: #38895c; border-color: #68ad82; }
+.resource-packs-page .resource-check-updates, .resource-packs-page .resource-update-button { background: var(--action-green); border-color: var(--action-green-border); color: #fff; }
+.resource-packs-page .resource-check-updates:hover:not(:disabled), .resource-packs-page .resource-update-button:hover:not(:disabled) { background: var(--action-green-hover); border-color: var(--action-green-hover-border); }
 .resource-packs-page .resource-check-updates:disabled, .resource-packs-page .resource-update-button:disabled { opacity: .48; }
 .resource-packs-page .resource-check-updates[data-toggling=true]:disabled, .resource-packs-page .resource-update-button[data-toggling=true]:disabled { opacity: 1; }
 .resource-update-summary { border-top: 1px solid #30363d; padding-top: 16px; margin: 18px 0 0; color: #8b949e; font-size: 12px; }
@@ -116,3 +116,6 @@
   .resource-packs-page .page-heading { flex-wrap: wrap; }
   .resource-packs-page .page-heading > div { flex: 1 1 220px; }
 }
+
+.resource-format .resource-incompatible-indicator { color: #f0887e; font-size: 12px; font-weight: 600; }
+.resource-supported-versions { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; }

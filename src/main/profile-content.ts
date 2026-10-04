@@ -164,7 +164,6 @@ export class ProfileContent {
     const result = { filename: item.filename }, profile = this.profile(profileId, kind)
     if (!item.provider || !item.projectId || !item.versionId) return { ...result, status: 'unknown' }
     const gameVersion = profile.versionId.split(/-OptiFine_/i)[0], loader = profile.modLoader ?? 'fabric'
-    if (kind === 'mod' && !profile.modLoader) return { ...result, status: 'incompatible', compatible: false }
     try {
       const service = item.provider === 'modrinth' ? this.modrinth : this.curseforge
       const [project, versions] = await Promise.all([service.project(item.projectId), service.versions(item.projectId, gameVersion, loader, false, kind)])
@@ -188,11 +187,11 @@ export class ProfileContent {
         if (String(file.modId) !== item.projectId) throw new Error('Paket dosyası doğrulanamadı.')
         current = { id: item.versionId, name: file.displayName, versionNumber: file.displayName, type: ({ 1: 'release', 2: 'beta', 3: 'alpha' } as Record<number, string>)[file.releaseType] ?? 'release', published: file.fileDate, downloads: file.downloadCount, gameVersions: file.gameVersions, loaders: [] }
       }
-      const compatible = current.gameVersions.includes(gameVersion) && (kind !== 'mod' || (item.provider === 'modrinth' ? current.loaders.includes(loader) : current.gameVersions.some(value => value.toLowerCase() === loader) || versions.some(version => version.id === current.id)))
+      const compatible = (kind !== 'mod' || !!profile.modLoader) && current.gameVersions.includes(gameVersion) && (kind !== 'mod' || (item.provider === 'modrinth' ? current.loaders.includes(loader) : current.gameVersions.some(value => value.toLowerCase() === loader) || versions.some(version => version.id === current.id)))
       // Provider IDs are opaque. Publication times prevent downgrade suggestions, including prereleases.
       if (!Number.isFinite(Date.parse(current.published))) throw new Error('Paket dosyası doğrulanamadı.')
-      const latest = versions.filter(version => version.id !== current.id && version.gameVersions.includes(gameVersion) && (kind !== 'mod' || version.loaders.includes(loader)) && (version.type === 'release' || current.type !== 'release' && version.type === current.type) && Date.parse(version.published) > Date.parse(current.published)).sort((a, b) => Date.parse(b.published) - Date.parse(a.published))[0]
-      return { ...result, compatible, status: latest ? 'update' : compatible ? 'current' : 'incompatible', latest }
+      const latest = (kind === 'mod' && !profile.modLoader ? [] : versions).filter(version => version.id !== current.id && version.gameVersions.includes(gameVersion) && (kind !== 'mod' || version.loaders.includes(loader)) && (version.type === 'release' || current.type !== 'release' && version.type === current.type) && Date.parse(version.published) > Date.parse(current.published)).sort((a, b) => Date.parse(b.published) - Date.parse(a.published))[0]
+      return { ...result, compatible, gameVersions: current.gameVersions.filter(value => /^(?:\d|[ab]\d)/i.test(value)), status: latest ? 'update' : compatible ? 'current' : 'incompatible', latest }
     } catch (error) { return { ...result, status: 'error', error: String((error as Error).message ?? error) } }
   }
   async updates(profileId: string, kind: ProfileContentKind, force = true): Promise<ProfileContentUpdate[]> {

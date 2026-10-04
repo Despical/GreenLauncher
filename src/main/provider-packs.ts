@@ -89,7 +89,7 @@ export class ProviderPacks {
       if(loader&&installedLoader)this.store.setModLoader(profileId,gameVersion,loader,installedLoader)
       const metadata={provider,projectId:`${provider}:${projectId}`,versionId,title,name:title,fileCount:paths.size,files:[...paths]}
       writeFileSync(join(directory,'green-launcher-pack.json'),JSON.stringify(metadata,null,2))
-      this.store.setModpack(profileId,{projectId:`${provider}:${projectId}`,versionId,title,fileCount:paths.size,provider,sourceUrl})
+      this.store.setModpack(profileId,{projectId:`${provider}:${projectId}`,versionId,title,fileCount:paths.size,provider,sourceUrl,loader})
       this.emit({kind:'idle',label:'Hazır'});return {state:this.store.get(),profileId}
     }catch(error){this.store.deleteProfile(profileId);if(state.selectedProfileId)this.store.selectProfile(state.selectedProfileId);throw error}
   }

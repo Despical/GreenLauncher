@@ -21,7 +21,6 @@ export class ProfileVersions {
     if (!/^[a-zA-Z0-9._-]{1,90}$/.test(minecraftVersion)) throw new Error('Geçersiz Minecraft sürümü.')
     if (requestedLoader !== undefined && !['none', 'optifine', 'fabric', 'forge', 'neoforge', 'quilt', 'liteloader'].includes(requestedLoader)) throw new Error('Geçersiz mod yükleyicisi.')
     const profile = structuredClone(this.profile(profileId))
-    if (profile.modpack) throw new Error('Bu mod paketinin sürümü ve yükleyicisi paket tarafından yönetilir.')
     const base = profile.versionId.split(/-OptiFine_/i)[0], currentLoader: ProfileLoader = profile.modLoader ?? (/-OptiFine_/i.test(profile.versionId) ? 'optifine' : 'none')
     const loader = requestedLoader ?? (minecraftVersion === base ? currentLoader : 'none')
     const versions = await this.game.versions()

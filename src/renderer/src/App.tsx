@@ -37,7 +37,7 @@ import customIcon from '../assets/cracked-stone-bricks.svg'
 import releaseIcon from '../assets/minecraft-release.png'
 import snapshotIcon from '../assets/minecraft-snapshot.png'
 import classicIcon from '../assets/minecraft-classic.png'
-import optifineIcon from '../assets/optifine-mark.png'
+import optifineIcon from '../assets/loaders/optifine.svg'
 import javaIcon from '../assets/java-original.svg'
 import overworldImage from '../assets/green-landscape.png'
 import netherImage from '../assets/nether-landscape.png'
@@ -402,7 +402,7 @@ function App() {
   const downloadReceived = useRef(false)
   useEffect(() => {
     window.launcher.getDownloads().then(value => { if (!downloadReceived.current) setDownloads(value) }).catch(() => {})
-    const unsub = [window.launcher.on('state', setState), window.launcher.on('instances', setInstances), window.launcher.on('consoleRequest', target => { if (!stateRef.current?.profiles.some(profile => profile.id === target.profileId)) return; setConsoleTarget(target); openProfileWorkspace(target.profileId, 'minecraft-log') }), window.launcher.on('navigate', setPage), window.launcher.on('launchRequest', setLaunchRequest), window.launcher.on('activity', setActivity), window.launcher.on('downloads', value => { downloadReceived.current = true; setDownloads(value) }), window.launcher.on('shortcutError', error => setToast(friendlyError(error))), window.launcher.on('notice', setToast), window.launcher.on('errorLog', setErrorLogs)]
+    const unsub = [window.launcher.on('state', setState), window.launcher.on('instances', setInstances), window.launcher.on('consoleRequest', target => { if (!stateRef.current?.profiles.some(profile => profile.id === target.profileId)) return; setConsoleTarget(target); openProfileWorkspace(target.profileId, 'minecraft-log') }), window.launcher.on('navigate', next => setPage(next, next === 'mods')), window.launcher.on('launchRequest', setLaunchRequest), window.launcher.on('activity', setActivity), window.launcher.on('downloads', value => { downloadReceived.current = true; setDownloads(value) }), window.launcher.on('shortcutError', error => setToast(friendlyError(error))), window.launcher.on('notice', setToast), window.launcher.on('errorLog', setErrorLogs)]
     window.launcher.getRunningInstances().then(setInstances).catch(() => {})
     window.launcher.getState().then(setState).catch(error => setToast(friendlyError(error)))
     let active = true
@@ -779,8 +779,8 @@ function App() {
           <button className={page === 'resource-packs' ? 'active' : ''} aria-current={page === 'resource-packs' ? 'page' : undefined} onClick={() => setPage('resource-packs')}><ImageIcon size={19} />{t('Kaynak paketleri')}</button>
           <button className={page === 'shader-packs' ? 'active' : ''} aria-current={page === 'shader-packs' ? 'page' : undefined} onClick={() => setPage('shader-packs')}><Sparkles size={19} />{t('Shader paketleri')}</button>
           <div className="nav-divider" />
-          <button data-profile-page="profile-settings" className={page === 'profile-settings' ? 'active' : ''} aria-current={page === 'profile-settings' ? 'page' : undefined} onClick={() => editProfile(managedProfile)}><Settings2 size={19} />{t('Ayarlar')}</button>
           <button data-profile-page="profile-version" className={page === 'profile-version' ? 'active' : ''} aria-current={page === 'profile-version' ? 'page' : undefined} onClick={() => setPage('profile-version')}><Layers3 size={19} />{t('Sürüm')}</button>
+          <button data-profile-page="profile-settings" className={page === 'profile-settings' ? 'active' : ''} aria-current={page === 'profile-settings' ? 'page' : undefined} onClick={() => editProfile(managedProfile)}><Settings2 size={19} />{t('Ayarlar')}</button>
           <div className="nav-divider" />
           <button className={page === 'gallery' ? 'active' : ''} aria-current={page === 'gallery' ? 'page' : undefined} onClick={() => setPage('gallery')}><ImageIcon size={19} />{t('Ekran görüntüleri')}</button>
           <button data-profile-page="minecraft-log" className={page === 'minecraft-log' ? 'active' : ''} aria-current={page === 'minecraft-log' ? 'page' : undefined} onClick={() => setPage('minecraft-log')}><FileText size={19} />{t('Minecraft günlüğü')}</button>

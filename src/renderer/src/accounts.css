@@ -111,8 +111,8 @@
 .account-dialog-footer button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0 16px; border-radius: 7px; font-size: 12px; font-weight: 600; transition: background .16s ease, border-color .16s ease; }
 .account-cancel-button { border: 1px solid #455461; background: #25323d; color: #c9d7df; }
 .account-cancel-button:hover { background: #334552; border-color: #647c8b; }
-.account-create-button { border: 1px solid #4c965d; background: #2d763e; color: #f4fff7; }
-.account-create-button:hover { background: #368e4b; border-color: #6cb97f; }
+.account-create-button { border: 1px solid var(--action-green-border); background: var(--action-green); color: #f4fff7; }
+.account-create-button:hover { background: var(--action-green-hover); border-color: var(--action-green-hover-border); }
 .account-dialog button:disabled, .account-switcher button:disabled { opacity: .5; cursor: default; }
 .account-dialog button:focus-visible, .sidebar-account button:focus-visible { outline: 2px solid #92caa2; outline-offset: 2px; }
 .sidebar-account .account-switcher-list button:focus-visible { outline-offset: -2px; }

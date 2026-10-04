@@ -74,7 +74,7 @@
 .settings-panel .java-default-memory { margin: 0; }
 .launcher-panel-icon { image-rendering: auto; }
 .launcher-tab-icon { width: 22px; height: 22px; object-fit: contain; image-rendering: auto; }
-.mods-detail-actions .primary:disabled, .mods-detail-actions .primary:disabled:hover { cursor: not-allowed; background: #2d7950; border-color: #448d65; color: #fff; }
+.mods-detail-actions .primary:disabled, .mods-detail-actions .primary:disabled:hover { cursor: not-allowed; background: var(--action-green); border-color: var(--action-green-border); color: #fff; }
 .download-job-icon, .download-history-icon { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
 .download-job-icon img { width: 40px; height: 40px; object-fit: contain; border-radius: 0; image-rendering: auto; }
 .download-history-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: none; }

@@ -85,6 +85,7 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
       <fieldset className="profile-settings-fields" disabled={saving || choosingIcon}>
         {tab === 'general' && <div className="form-grid">
           <label className="full">{t('Profil adı')}<input value={draft.name} maxLength={48} onChange={event => update({ name: event.target.value })} placeholder={t('Örn. Survival')} /></label>
+          <label className="full profile-game-directory">{t('Oyun klasörü')}<div className="input-with-button"><input value={draft.gameDirectory ?? ''} onChange={event => update({ gameDirectory: event.target.value })} placeholder={t('Profilin varsayılan klasörü')} /><button type="button" title={t('Klasör seç')} onClick={() => void browse('directory')}><FolderOpen size={17} /></button></div></label>
           <section className="full profile-settings-section profile-icon-settings">{sectionHeading('Profil ikonunu özelleştir', icon.enabled, () => update({ icon: { ...icon, enabled: !icon.enabled } }))}
             <fieldset className="profile-settings-fields profile-settings-box profile-icon-fields" data-enabled={icon.enabled} disabled={!icon.enabled}>
               <span className="profile-icon-preview" aria-hidden="true"><ProfileIcon profile={draft} /></span>
@@ -94,7 +95,6 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
               <small className="profile-setting-description">{t('Özelleştirme kapalıyken kurulu yükleyicinin ikonu kullanılır.')}</small>
             </fieldset>
           </section>
-          <label className="full profile-game-directory">{t('Oyun klasörü')}<div className="input-with-button"><input value={draft.gameDirectory ?? ''} onChange={event => update({ gameDirectory: event.target.value })} placeholder={t('Profilin varsayılan klasörü')} /><button type="button" title={t('Klasör seç')} onClick={() => void browse('directory')}><FolderOpen size={17} /></button></div></label>
           <section className="full profile-settings-section profile-auto-join">
             {sectionHeading('Otomatik katılım', autoJoin, () => update({ autoJoinEnabled: !autoJoin }))}
             <fieldset disabled={!autoJoin} data-enabled={autoJoin} className="profile-settings-fields profile-settings-box profile-auto-join-fields">

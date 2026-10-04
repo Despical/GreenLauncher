@@ -9,9 +9,9 @@ export class MetadataCache {
 
   clear(): void { this.generation++; this.values.clear(); this.pending.clear(); this.bytes = 0 }
 
-  async get<T>(key: string, fetchValue: () => Promise<T>): Promise<T> {
+  async get<T>(key: string, fetchValue: () => Promise<T>, force = false): Promise<T> {
     const cached = this.values.get(key)
-    if (cached && cached.expires > this.now()) {
+    if (!force && cached && cached.expires > this.now()) {
       this.values.delete(key); this.values.set(key, cached)
       return structuredClone(cached.value) as T
     }
