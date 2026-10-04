@@ -10,6 +10,7 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  'Dosya bu profilde kurulu, ancak Modrinth veya CurseForge kaynağı henüz doğrulanamadı.': ['The file is installed in this profile, but its Modrinth or CurseForge source has not been verified yet.', 'Die Datei ist in diesem Profil installiert, aber ihre Modrinth- oder CurseForge-Quelle wurde noch nicht bestätigt.', 'Le fichier est installé dans ce profil, mais sa source Modrinth ou CurseForge n’a pas encore été vérifiée.', 'Файл установлен в этом профиле, но его источник Modrinth или CurseForge ещё не подтверждён.', 'Plik jest zainstalowany w tym profilu, ale jego źródło w Modrinth lub CurseForge nie zostało jeszcze zweryfikowane.'],
   "Profil sürümü güncellendi.": ["Profile version updated.", "Profilversion aktualisiert.", "Version du profil mise à jour.", "Версия профиля обновлена.", "Zaktualizowano wersję profilu."],
   "Snapshot": ["Snapshot", "Snapshot", "Snapshot", "Снапшот", "Snapshot"],
   "Eski beta": ["Old beta", "Alte Beta", "Ancienne bêta", "Старая бета", "Stara beta"],

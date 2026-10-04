@@ -93,12 +93,12 @@ export class CurseForgeService {
     await visit(await this.file(versionId))
     const directory=join(this.store.gamePath(profile),'mods')
     // Stage every dependency before changing installed files.
-    const staged:Array<{file:CurseFile;path:string;filename:string;title:string;sourceUrl?:string}>=[]
+    const staged:Array<{file:CurseFile;path:string;filename:string;title:string;sourceUrl?:string;icon?:string;description?:string}>=[]
     for(const file of planned.values()){
       if(!/\.(jar|litemod)$/i.test(file.fileName))throw new Error('Seçilen dosya kurulabilir bir mod değil.')
       const filename=`cf-${file.modId}-${file.id}-${basename(file.fileName).replace(/[^a-zA-Z0-9._+()-]/g,'_').slice(0,100)}`
       const path=repairing?join(directory,filename):join(this.store.dataPath,'cache','curseforge',filename)
-      await this.download(file,path);const project=await this.project(String(file.modId));staged.push({file,path,filename,title:project.title,sourceUrl:project.sourceUrl??undefined})
+      await this.download(file,path);const project=await this.project(String(file.modId));staged.push({file,path,filename,title:project.title,sourceUrl:project.sourceUrl??undefined,icon:project.iconUrl??undefined,description:project.description})
     }
     mkdirSync(directory,{recursive:true})
     for(const item of staged){
@@ -106,7 +106,7 @@ export class CurseForgeService {
       const old=installed[previous]
       if(old&&old.filename!==item.filename&&basename(old.filename)===old.filename&&existsSync(join(directory,old.filename)))renameSync(join(directory,old.filename),join(directory,old.filename+`.${Date.now()}.disabled`))
       if(item.path!==join(directory,item.filename))copyFileSync(item.path,join(directory,item.filename))
-      const next:InstalledMod={provider:'curseforge',projectId:String(item.file.modId),title:item.title,versionId:`${item.file.modId}:${item.file.id}`,versionNumber:item.file.displayName,filename:item.filename,sourceUrl:item.sourceUrl}
+      const next:InstalledMod={provider:'curseforge',projectId:String(item.file.modId),title:item.title,versionId:`${item.file.modId}:${item.file.id}`,versionNumber:item.file.displayName,filename:item.filename,sourceUrl:item.sourceUrl,icon:item.icon,description:item.description}
       if(previous<0)installed.push(next);else installed[previous]=next
     }
     writeFileSync(manifest+'.tmp',JSON.stringify(installed,null,2));renameSync(manifest+'.tmp',manifest)

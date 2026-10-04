@@ -1,6 +1,6 @@
 .worlds-page .servers-list-panel{--world-columns:minmax(200px,1fr) var(--player-column-width) 150px 90px}
 .worlds-table-head,.world-select{display:grid;grid-template-columns:var(--world-columns);align-items:center}
-.worlds-table-head{align-items:stretch;border-inline:1px solid transparent;min-height:43px;margin:0 8px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600}
+.worlds-table-head{align-items:stretch;border-inline:1px solid transparent;min-height:43px;margin:0 8px;border-bottom:1px solid var(--border);color:#a5adb8;font:600 13px/1.5 'Inter Variable',sans-serif}
 .worlds-table-head>span{padding:12px 14px;align-content:center}
 .world-select{min-height:66px;width:100%;padding:0;background:transparent;border:0;text-align:left;color:var(--text);font:500 13px/1.65 'Inter Variable',sans-serif;cursor:pointer;align-items:stretch}
 .world-select:hover{background:transparent}

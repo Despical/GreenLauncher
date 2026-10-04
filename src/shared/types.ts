@@ -178,7 +178,7 @@ export interface ModSearchResult { hits: ModSearchHit[]; total: number }
 export interface ModProject { id: string; slug: string; title: string; description: string; body: string; iconUrl: string | null; downloads: number; license: string; sourceUrl: string | null; projectType: ModContentType }
 export interface ModVersion { id: string; name: string; versionNumber: string; type: string; published: string; downloads: number; gameVersions: string[]; loaders: string[]; filename?: string }
 export interface InstalledResourcePack { filename: string; title: string; description: string; format?: string; modifiedAt: string; enabled: boolean; icon?: string; provider?: 'modrinth' | 'curseforge'; projectId?: string; versionId?: string; versionNumber?: string; sourceUrl?: string }
-export interface InstalledMod { provider?: ModProvider; projectId: string; title: string; versionId: string; versionNumber: string; filename: string; sourceUrl?: string }
+export interface InstalledMod { provider?: ModProvider; projectId: string; title: string; versionId: string; versionNumber: string; filename: string; sourceUrl?: string; icon?: string; description?: string; fileHash?: string }
 export interface LauncherErrorEntry {
   count?: number; firstAt?: string; lastAt?: string; level?: 'error' | 'info'; id: string; at: string; source: string; message: string; code: string }
 

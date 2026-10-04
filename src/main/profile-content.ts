@@ -1,11 +1,12 @@
 import { existsSync, lstatSync, readdirSync, renameSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { InstalledResourcePack, ProfileContentKind, ProfileContentUpdate, ModVersion } from '../shared/types'
+import type { InstalledMod, InstalledResourcePack, ProfileContentKind, ProfileContentUpdate, ModVersion } from '../shared/types'
 import type { LauncherStore } from './store'
 import type { ModrinthService } from './modrinth'
 import type { CurseForgeService } from './curseforge'
 import type { ResourcePacks } from './resource-packs'
+import { inspectMod, modFileHash, type ModMetadata } from './mod-metadata'
 
 const noLink = (path: string) => { if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error('Paket yolu doğrulanamadı.') }
 const validName = (value: string) => typeof value === 'string' && !!value && basename(value) === value && !/[\\/:\x00-\x1f]/.test(value) && value !== '.' && value !== '..'
@@ -13,6 +14,9 @@ const modFilename = (value: string) => validName(value) && /\.(jar|litemod)(\.di
 const canonical = (name: string) => name.replace(/\.disabled$/i, '')
 
 export class ProfileContent {
+  private metadata = new Map<string, { signature: string; value: Promise<{ info: ModMetadata; hash?: string }> }>()
+  private identified = new Map<string, { retryAt: number; mod?: Omit<InstalledMod, 'filename'> }>()
+  private listing = new Map<string, Promise<InstalledResourcePack[]>>()
   constructor(private store: LauncherStore, private modrinth: ModrinthService, private curseforge: CurseForgeService, private resources: ResourcePacks, private shaders: ResourcePacks, private busy: (profileId: string) => boolean = () => false) {}
   private profile(profileId: string, kind: ProfileContentKind) {
     if (!['mod', 'resourcepack', 'shader'].includes(kind)) throw new Error('Geçersiz içerik türü.')
@@ -32,17 +36,73 @@ export class ProfileContent {
   async list(profileId: string, kind: ProfileContentKind): Promise<InstalledResourcePack[]> {
     this.profile(profileId, kind)
     if (kind !== 'mod') return (kind === 'shader' ? this.shaders : this.resources).list(profileId)
+    const pending = this.listing.get(profileId)
+    if (pending) return pending
+    const task = this.listMods(profileId).finally(() => this.listing.delete(profileId))
+    this.listing.set(profileId, task)
+    return task
+  }
+  private async listMods(profileId: string): Promise<InstalledResourcePack[]> {
     const directory = this.directory(profileId)
     if (!existsSync(directory)) return []
     const known = new Map(this.modrinth.installed(profileId).map(mod => [mod.filename, mod]))
-    return readdirSync(directory, { withFileTypes: true }).filter(file => file.isFile() && modFilename(file.name)).map(file => {
-      const mod = known.get(canonical(file.name)), provider = mod?.provider ?? (mod ? 'modrinth' : undefined)
-      return { ...mod, provider: provider === 'modrinth' || provider === 'curseforge' ? provider : undefined, filename: file.name, title: mod?.title ?? canonical(file.name).replace(/\.(jar|litemod)$/i, ''), description: '', modifiedAt: statSync(join(directory, file.name)).mtime.toISOString(), enabled: !/\.disabled$/i.test(file.name) }
-    }).sort((a, b) => a.title.localeCompare(b.title))
+    const files = readdirSync(directory, { withFileTypes: true }).filter(file => file.isFile() && modFilename(file.name))
+    const inspected: Array<{ filename: string; signature: string; info: ModMetadata; hash?: string; mod?: InstalledMod; modifiedAt: string }> = []
+    let cursor = 0
+    await Promise.all(Array.from({ length: Math.min(3, files.length) }, async () => {
+      while (cursor < files.length) {
+        const index = cursor++, file = files[index], path = join(directory, file.name), stats = statSync(path), signature = `${stats.size}:${stats.mtimeMs}:${stats.ctimeMs}`
+        let mod = known.get(canonical(file.name))
+        let cached = this.metadata.get(path)
+        if (!cached || cached.signature !== signature) {
+          cached = { signature, value: Promise.all([inspectMod(path), (!mod || mod.fileHash) && stats.size <= 256 * 1024 * 1024 ? modFileHash(path).catch(() => undefined) : Promise.resolve(undefined)]).then(([info, hash]) => ({ info, hash })) }
+          this.metadata.set(path, cached)
+          if (this.metadata.size > 512) this.metadata.delete(this.metadata.keys().next().value!)
+        }
+        const { info, hash } = await cached.value
+        if (mod?.fileHash && mod.fileHash !== hash) mod = undefined
+        inspected[index] = { filename: file.name, signature, info, hash, mod, modifiedAt: stats.mtime.toISOString() }
+      }
+    }))
+    const unknown = inspected.filter(item => !item.mod && item.hash)
+    const hashes = unknown.map(item => item.hash!).filter(hash => (this.identified.get(hash)?.retryAt ?? 0) <= Date.now())
+    if (hashes.length && this.modrinth.identify) {
+      try {
+        const matches = await this.modrinth.identify(hashes)
+        for (const hash of hashes) this.identified.set(hash, { retryAt: Date.now() + 10 * 60 * 1000, mod: matches.get(hash) })
+      } catch { for (const hash of hashes) this.identified.set(hash, { retryAt: Date.now() + 60 * 1000 }) }
+      if (this.identified.size > 2000) this.identified.clear()
+    }
+    const withoutIcons = inspected.filter(item => item.mod && !item.info.icon && !item.mod.icon && (item.mod.provider ?? 'modrinth') === 'modrinth')
+    if (withoutIcons.length && this.modrinth.hydrate) {
+      const summaries = await this.modrinth.hydrate(withoutIcons.map(item => ({ projectId: item.mod!.projectId, slug: '', title: item.mod!.title, description: item.mod!.description ?? '', author: '', iconUrl: null, downloads: 0, updated: '', categories: [] })))
+      for (const item of withoutIcons) {
+        const summary = summaries.find(summary => summary.projectId === item.mod!.projectId)
+        if (summary) item.mod = { ...item.mod!, icon: summary.iconUrl ?? undefined, description: item.mod!.description || summary.description }
+      }
+    }
+    const recovered: InstalledMod[] = []
+    const items = inspected.map(item => {
+      let mod = item.mod
+      const match = item.hash && this.identified.get(item.hash)?.mod
+      // Discard matches if the file changed while the provider lookup was running.
+      const path = join(directory, item.filename)
+      if (!existsSync(path)) return undefined
+      noLink(path)
+      const current = statSync(path)
+      if (`${current.size}:${current.mtimeMs}:${current.ctimeMs}` !== item.signature) return undefined
+      if (!mod && match) { mod = { ...match, filename: canonical(item.filename) }; recovered.push(mod) }
+      const provider = mod?.provider ?? (mod ? 'modrinth' : undefined)
+      return { ...mod, provider: provider === 'modrinth' || provider === 'curseforge' ? provider : undefined, filename: item.filename, title: mod?.title || item.info.title || canonical(item.filename).replace(/\.(jar|litemod)$/i, ''), versionNumber: item.info.versionNumber || mod?.versionNumber, description: item.info.description || mod?.description || '', icon: item.info.icon || mod?.icon, modifiedAt: item.modifiedAt, enabled: !/\.disabled$/i.test(item.filename) } satisfies InstalledResourcePack
+    }).filter((item): item is NonNullable<typeof item> => !!item)
+    if (recovered.length && this.modrinth.remember) { this.directory(profileId); this.modrinth.remember(profileId, recovered) }
+    return items.sort((a, b) => a.title.localeCompare(b.title))
   }
   async enable(profileId: string, kind: ProfileContentKind, filename: string, enabled: boolean) {
     this.profile(profileId, kind); this.assertMutable(profileId)
     if (kind !== 'mod') return (kind === 'shader' ? this.shaders : this.resources).enable(profileId, filename, enabled)
+    await this.listing.get(profileId)
+    this.assertMutable(profileId)
     const directory = this.directory(profileId)
     if (!modFilename(filename) || !existsSync(join(directory, filename)) || !statSync(join(directory, filename)).isFile()) throw new Error('Paket bulunamadı.')
     if (enabled !== !/\.disabled$/i.test(filename)) {

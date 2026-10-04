@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join, basename, extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { InstalledMod, ModContentType, ModLoader, ModProject, ModSearchHit, ModSearchResult, ModSort, ModVersion } from '../shared/types'
@@ -97,6 +97,48 @@ export class ModrinthService {
     return join(this.store.profilePath(profileId), 'green-launcher-mods.json')
   }
 
+  async identify(hashes: string[]): Promise<Map<string, Omit<InstalledMod, 'filename'>>> {
+    const matches = new Map<string, Omit<InstalledMod, 'filename'>>()
+    const unique = [...new Set(hashes)]
+    if (unique.some(hash => !/^[a-f0-9]{40}$/.test(hash))) throw new Error('Geçersiz dosya özeti.')
+    for (let offset = 0; offset < unique.length; offset += 100) {
+      const response = await fetch(`${api}/version_files`, { method: 'POST', headers: { 'User-Agent': 'Despical/GreenLauncher', 'Content-Type': 'application/json' }, body: JSON.stringify({ hashes: unique.slice(offset, offset + 100), algorithm: 'sha1' }), signal: AbortSignal.timeout(5000) })
+      if (!response.ok) throw new Error(`Modrinth isteği başarısız (${response.status}).`)
+      const versions = await response.json() as Record<string, ApiVersion>
+      const valid = Object.entries(versions).filter(([hash, version]) => unique.includes(hash) && idPattern.test(version.id) && idPattern.test(version.project_id) && version.files?.some(file => file.hashes?.sha1 === hash && /\.(jar|litemod)$/i.test(file.filename)))
+      const ids = [...new Set(valid.map(([, version]) => version.project_id))]
+      if (!ids.length) continue
+      const projects = await request<Array<{ id: string; slug: string; title: string; description: string; icon_url: string | null; project_type: string }>>('/projects', new URLSearchParams({ ids: JSON.stringify(ids) }))
+      for (const [hash, version] of valid) {
+        const project = projects.find(project => project.id === version.project_id && project.project_type === 'mod')
+        if (project) matches.set(hash, { provider: 'modrinth', projectId: project.id, versionId: version.id, versionNumber: version.version_number, title: project.title, description: project.description, icon: project.icon_url ?? undefined, sourceUrl: `https://modrinth.com/mod/${encodeURIComponent(project.slug)}`, fileHash: hash })
+      }
+    }
+    return matches
+  }
+
+  remember(profileId: string, mods: InstalledMod[]): void {
+    const path = this.manifestPath(profileId)
+    if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error('Paket yolu doğrulanamadı.')
+    // Automatic discovery must not replace malformed or partially readable user metadata.
+    if (existsSync(path)) {
+      try {
+        const saved = JSON.parse(readFileSync(path, 'utf8'))
+        if (!Array.isArray(saved) || saved.some(item => !item || typeof item.projectId !== 'string' || typeof item.versionId !== 'string' || typeof item.filename !== 'string') || this.installed(profileId).length !== saved.length) return
+      } catch { return }
+    }
+    const current = this.installed(profileId)
+    // Re-read after network lookups so concurrent installs keep their new records.
+    for (const mod of mods) {
+      const same = current.findIndex(item => item.filename === mod.filename)
+      if (same >= 0) { if (current[same].fileHash && current[same].fileHash !== mod.fileHash) current[same] = mod; continue }
+      if (!current.some(item => (item.provider ?? 'modrinth') === mod.provider && item.projectId === mod.projectId)) current.push(mod)
+    }
+    mkdirSync(this.store.profilePath(profileId), { recursive: true })
+    const temporary = `${path}.${randomUUID()}.tmp`
+    writeFileSync(temporary, JSON.stringify(current, null, 2), 'utf8'); renameSync(temporary, path)
+  }
+
   installed(profileId: string): InstalledMod[] {
     const profile = this.store.get().profiles.find(item => item.id === profileId)
     if (!profile) throw new Error('Profil bulunamadı.')
@@ -152,7 +194,7 @@ export class ModrinthService {
       const filename = `${version.project_id}-${version.id}-${cleanName}`
       const path = join(modsDir, filename)
       await downloadVerified([file.url], file.hashes, path, join(this.store.dataPath, 'cache', 'modrinth-files'))
-      const next: InstalledMod = { provider: 'modrinth', projectId: version.project_id, title: project.title, versionId: version.id, versionNumber: version.version_number, filename, sourceUrl: project.sourceUrl ?? undefined }
+      const next: InstalledMod = { provider: 'modrinth', projectId: version.project_id, title: project.title, versionId: version.id, versionNumber: version.version_number, filename, sourceUrl: project.sourceUrl ?? undefined, icon: project.iconUrl ?? undefined, description: project.description }
       const previous = installed.find(item => item.projectId === version.project_id && (item.provider ?? 'modrinth') === 'modrinth')
       if (previous?.filename !== filename && previous && existsSync(join(modsDir, previous.filename))) {
         // Keep an older version as a disabled backup instead of deleting a user's file.

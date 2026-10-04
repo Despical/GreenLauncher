@@ -346,7 +346,7 @@ button:focus-visible, input:focus-visible, .version-row:focus-visible { outline:
 .search-box input { font-size: 13px; }
 .version-list { background: #161b22; border-color: #30363d; }
 .list-head, .version-row { grid-template-columns: minmax(180px,1.35fr) minmax(145px,.9fr) minmax(120px,.7fr) 70px; }
-.list-head { height: 45px; background: #21262d; border-bottom-color: #30363d; color: #c9d1d9; font-size: 12px; }
+.list-head { height: 45px; gap: 8px; background: #21262d; border-bottom-color: #30363d; color: #c9d1d9; font-size: 13px; font-weight: 600; }
 .version-row { min-height: 75px; border-bottom-color: #30363d; cursor: pointer; transition: background-color .16s ease, box-shadow .16s ease; }
 .version-row:hover { background: #21262d; }
 .version-row.selected { background: #1b2730; box-shadow: inset 3px 0 0 #58a6ff; }

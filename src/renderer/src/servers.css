@@ -14,7 +14,7 @@
 .servers-toolbar>span{white-space:nowrap;font-size:12px;color:var(--muted)}
 .servers-list-panel{--player-column-width:126px;--server-columns:minmax(160px,1fr) minmax(110px,1.35fr) var(--player-column-width) minmax(130px,.85fr)}
 .servers-table-head,.server-select{display:grid;grid-template-columns:var(--server-columns);column-gap:0;align-items:center}
-.servers-table-head{min-height:43px;margin:0 8px;padding:0;border-inline:1px solid transparent;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600}
+.servers-table-head{min-height:43px;margin:0 8px;padding:0;border-inline:1px solid transparent;border-bottom:1px solid var(--border);color:#a5adb8;font:600 13px/1.5 'Inter Variable',sans-serif}
 .servers-table-head>span{padding:12px 14px;position:relative;min-width:0}
 .server-cell+.server-cell::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:1px;background:var(--border);pointer-events:none}
 .servers-list{padding:0;overflow:hidden}
