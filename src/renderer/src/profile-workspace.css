@@ -1,12 +1,13 @@
 .sidebar.profile-sidebar { min-height: 0; padding: 27px 14px 19px; }
-.profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin-bottom: 12px; padding: 0 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
+.profile-workspace-back { display: flex; flex: none; align-items: center; gap: 10px; min-height: 42px; margin: 0 11px 12px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 600; text-align: left; }
 .profile-workspace-back:hover { background: #21262d; color: #e6edf3; }
 .profile-workspace-back:focus-visible { outline: 1px solid #8397a7; outline-offset: -2px; }
-.profile-workspace-identity { flex: none; }
-.profile-workspace-icon { width: 32px; height: 32px; flex: none; display: flex; align-items: center; justify-content: center; }
+.profile-workspace-identity { flex: none; margin: 0 11px; }
+.profile-workspace-icon { width: 28px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center; }
+.profile-workspace-icon .profile-loader-icon { width: 28px; height: 28px; }
 .workspace-profile-select .profile-workspace-icon img { display: block; width: 28px; height: 28px; object-fit: contain; filter: none; }
 .workspace-profile-select { flex: 1; min-width: 0; }
-.workspace-profile-select .profile-workspace-label { min-height: 48px; gap: 10px; width: 100%; margin: 0; padding: 8px 10px; }
+.profile-sidebar .workspace-profile-select .profile-workspace-label { min-height: 48px; gap: 10px; width: 100%; margin: 0; padding: 8px 0; }
 .workspace-profile-select .dropdown-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; line-height: 1.05; }
 .workspace-profile-select .dropdown-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6edf3; }
 .workspace-profile-select .dropdown-copy strong { font: 600 14px/1.4 'Inter Variable', sans-serif; letter-spacing: 0; }
@@ -41,6 +42,16 @@
 .profile-settings-panel input:disabled, .profile-settings-panel textarea:disabled, .profile-settings-panel .dropdown-trigger:disabled { background: #161b22; border-color: #252c34; color: #6e7681; cursor: not-allowed; opacity: 1; }
 .profile-settings-panel input:disabled::placeholder, .profile-settings-panel textarea:disabled::placeholder { color: #6e7681; }
 .profile-settings-panel .dropdown-trigger:disabled .dropdown-copy strong { color: #6e7681; }
+.profile-settings-panel .dropdown-trigger:disabled .dropdown-copy small { color: #6e7681; }
+.profile-settings-panel .dropdown-trigger:disabled .dropdown-copy small svg { opacity: .45; filter: grayscale(1); }
+.profile-settings-panel .dropdown-trigger:disabled > .profile-loader-icon, .profile-settings-panel .dropdown-trigger:disabled > .profile-icon-option { opacity: .45; }
+.profile-icon-fields { display: grid; grid-template-columns: 52px minmax(0,1fr); gap: 14px; align-items: center; }
+.profile-icon-preview { width: 52px; height: 52px; display: grid; place-items: center; }
+.profile-icon-preview > img, .profile-icon-preview .profile-loader-icon { width: 44px; height: 44px; object-fit: contain; }
+.profile-icon-option { display: grid; place-items: center; width: 24px; height: 24px; flex: none; }
+.profile-icon-option > img { width: 24px; height: 24px; object-fit: contain; }
+.profile-icon-fields > .profile-setting-description { grid-column: 1 / -1; margin: 0; }
+.profile-icon-upload { align-self: flex-start; min-height: 36px; font-size: 13px; }
 .profile-setting-check, .profile-setting-radio { display: flex; align-items: center; gap: 10px; border: 0; padding: 4px 0; background: transparent; color: #c9d1d9; font-size: 13px; font-weight: 500; text-align: left; }
 .profile-setting-check:focus-visible, .profile-setting-radio:focus-visible { outline: 1px solid #8397a7; outline-offset: 4px; border-radius: 3px; }
 .profile-settings-fields.profile-setting-options { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; }

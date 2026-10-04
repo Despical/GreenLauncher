@@ -6,12 +6,13 @@ import { pipeline } from 'node:stream/promises'
 import { ZipFile } from 'yazl'
 import type { LauncherActivity, LauncherProfile, LauncherState, ModLoader } from '../shared/types'
 import { LauncherStore, normalizeProfileCover } from './store'
+import { normalizeProfileIcon } from '../shared/profile-icons'
 import { GameService } from './game'
 import { safePath, streamEntry, walkArchive } from './modpack'
 
 interface PackageManifest {
   format: 'green-launcher-profile'; formatVersion: 1
-  profile: Pick<LauncherProfile, 'name' | 'versionId' | 'memoryMb' | 'minMemoryMb' | 'width' | 'height' | 'fullscreen' | 'serverAddress' | 'cover'>
+  profile: Pick<LauncherProfile, 'name' | 'versionId' | 'memoryMb' | 'minMemoryMb' | 'width' | 'height' | 'fullscreen' | 'serverAddress' | 'cover' | 'icon'>
   loader?: { type: ModLoader; version: string }
   modpack?: LauncherProfile['modpack']
   files: Array<{ path: string; bytes: number; sha256: string }>
@@ -135,7 +136,7 @@ export class ProfilePackages {
 
   async export(id: string, destination: string): Promise<string> {
     const profile = this.profile(id), files = await this.files(profile), loader = this.loader(profile)
-    const manifest: PackageManifest = { format: 'green-launcher-profile', formatVersion: 1, profile: { name: profile.name, versionId: profile.versionId, memoryMb: profile.memoryMb, minMemoryMb: profile.minMemoryMb, width: profile.width, height: profile.height, fullscreen: profile.fullscreen, serverAddress: profile.serverAddress, cover: profile.cover }, loader, modpack: profile.modpack, files: [] }
+    const manifest: PackageManifest = { format: 'green-launcher-profile', formatVersion: 1, profile: { name: profile.name, versionId: profile.versionId, memoryMb: profile.memoryMb, minMemoryMb: profile.minMemoryMb, width: profile.width, height: profile.height, fullscreen: profile.fullscreen, serverAddress: profile.serverAddress, cover: profile.cover, icon: profile.icon }, loader, modpack: profile.modpack, files: [] }
     const archive = new ZipFile(), temporary = `${destination}.green-part`
     archive.on('error', error => archive.outputStream.emit('error', error))
     try {
@@ -197,7 +198,8 @@ export class ProfilePackages {
       })
       if (wanted.size) throw new Error('Profil paketinde eksik dosyalar var.')
       if (metadata.profile.cover) metadata.profile.cover = normalizeProfileCover(metadata.profile.cover)
-      const input: Omit<LauncherProfile, 'id' | 'createdAt'> = { name: this.name(metadata.profile.name), versionId: metadata.profile.versionId, javaPath: '', gameDirectory: '', memoryMb: metadata.profile.memoryMb, minMemoryMb: metadata.profile.minMemoryMb, width: metadata.profile.width, height: metadata.profile.height, fullscreen: metadata.profile.fullscreen, serverAddress: metadata.profile.serverAddress, cover: metadata.profile.cover }
+      if (metadata.profile.icon) metadata.profile.icon = normalizeProfileIcon(metadata.profile.icon)
+      const input: Omit<LauncherProfile, 'id' | 'createdAt'> = { name: this.name(metadata.profile.name), versionId: metadata.profile.versionId, javaPath: '', gameDirectory: '', memoryMb: metadata.profile.memoryMb, minMemoryMb: metadata.profile.minMemoryMb, width: metadata.profile.width, height: metadata.profile.height, fullscreen: metadata.profile.fullscreen, serverAddress: metadata.profile.serverAddress, cover: metadata.profile.cover, icon: metadata.profile.icon }
       if (metadata.loader && (!['fabric', 'quilt', 'forge', 'neoforge', 'liteloader'].includes(metadata.loader.type) || !/^[a-zA-Z0-9._-]{1,90}$/.test(metadata.loader.version))) throw new Error('Paketin yükleyici bilgisi geçersiz.')
       let installedLoader: string | undefined
       if (metadata.loader) { input.modLoader = metadata.loader.type; installedLoader = await this.game.installModLoader(input.versionId, metadata.loader.type, { ...input, id: '', createdAt: new Date().toISOString() }, metadata.loader.version) }

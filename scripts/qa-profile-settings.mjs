@@ -76,7 +76,7 @@ try {
   assert.equal(await evaluate("document.querySelector('.profile-settings-page .profile-version-field')===null"),true)
   assert.equal(await evaluate("[...document.querySelectorAll('.profile-settings-section')].every(s=>!s.querySelector('.profile-settings-box').contains(s.querySelector('.profile-section-enable'))&&s.firstElementChild.getAttribute('role')==='separator')"),true,'headings remain outside boxes with separators above')
   assert.equal(await evaluate("document.querySelectorAll('.profile-section-description').length"),0)
-  assert.equal(await evaluate("document.querySelector('.profile-game-directory').previousElementSibling.textContent.includes('Profil adı')"),true)
+  assert.equal(await evaluate("document.querySelector('.profile-game-directory').previousElementSibling.classList.contains('profile-icon-settings')"),true,'profile icon follows the name before the game directory')
   const disabledColor=await evaluate("getComputedStyle(document.querySelector('.profile-auto-join .profile-settings-box')).backgroundColor")
   await click('.profile-auto-join .profile-section-enable')
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.profile-auto-join .profile-settings-box')).backgroundColor"),disabledColor)

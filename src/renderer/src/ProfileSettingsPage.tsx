@@ -6,6 +6,9 @@ import { serverLaunchMode } from '../../shared/server-launch'
 import { diagnoseError } from '../../shared/errors'
 import { translate, type Language } from './i18n'
 import { profilePlaytime } from '../../shared/profile-settings'
+import { profileIconLoaders } from '../../shared/profile-icons'
+import { ProfileIcon } from './ProfileIcon'
+import { LoaderIcon } from './LoaderIcon'
 import javaIcon from '../assets/java-original.svg'
 
 type Tab = 'general' | 'java' | 'window'
@@ -22,6 +25,7 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
   const [tab, setTab] = useState<Tab>('general')
   const [drafts, setDrafts] = useState<Record<string, LauncherProfile>>({})
   const [saving, setSaving] = useState(false)
+  const [choosingIcon, setChoosingIcon] = useState(false)
   const [worlds, setWorlds] = useState<SavedWorld[]>([])
   const [worldLoading, setWorldLoading] = useState(false)
   const [worldError, setWorldError] = useState('')
@@ -34,9 +38,16 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
   }, [profile.id, profile.gameDirectory, isVisible, language])
   const draft = { ...(drafts[profile.id] ?? normalize(profile)), versionId: profile.versionId, modLoader: profile.modLoader, modLoaderVersion: profile.modLoaderVersion }
   const dirty = JSON.stringify(draft) !== JSON.stringify(normalize(profile))
-  useEffect(() => { onBusyChange(saving); return () => onBusyChange(false) }, [saving, onBusyChange])
+  useEffect(() => { onBusyChange(saving || choosingIcon); return () => onBusyChange(false) }, [saving, choosingIcon, onBusyChange])
   const update = (changes: Partial<LauncherProfile>) => setDrafts(current => ({ ...current, [profile.id]: { ...draft, ...changes } }))
   const reset = () => setDrafts(current => { const next = { ...current }; delete next[profile.id]; return next })
+  const icon = draft.icon ?? { enabled: false, type: 'auto' as const }
+  const chooseIcon = async () => {
+    setChoosingIcon(true)
+    try { const image = await window.launcher.chooseProfileIcon(); if (image) update({ icon: { enabled: true, type: 'custom', image } }) }
+    catch (error) { onNotice(t(String((error as Error).message ?? error))) }
+    finally { setChoosingIcon(false) }
+  }
   const browse = async (kind: 'java' | 'directory') => {
     try {
       const path = await (kind === 'java' ? window.launcher.chooseJava() : window.launcher.chooseGameDirectory())
@@ -44,7 +55,8 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
     } catch (error) { onNotice(t(diagnoseError(error).message)) }
   }
   const save = async () => {
-    if (saving) return
+    if (saving || choosingIcon) return
+    if (icon.enabled && icon.type === 'custom' && !icon.image) { onNotice(t('Önce bir ikon görseli seçin.')); return }
     if (draft.memoryOverride !== false && (draft.minMemoryMb ?? 1024) > draft.memoryMb) { onNotice(t('Minimum bellek maksimum bellekten büyük olamaz.')); return }
     if (draft.accountOverride && !accounts.some(account => account.id === draft.launchAccountId)) { onNotice(t('Seçilen hesap bulunamadı.')); return }
     if (draft.autoJoinEnabled && draft.autoJoinMode === 'world' && !draft.worldId) { onNotice(t('Önce bir dünya seçin.')); return }
@@ -70,9 +82,18 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
     <div className="page-heading profile-settings-heading"><div><h2>{t('Ayarlar')}</h2><p>{t('Buradaki ayarlar genel ayarları geçersiz kılar.')}</p></div><button type="button" className="heading-action profile-general-settings-link" onClick={() => onOpenGeneral(tab === 'java' ? 'java' : 'launcher')}><Settings2 size={17} />{t('Genel ayarları aç')}</button></div>
     <div className="settings-tabs" role="tablist" aria-label={t('Profil ayarları')}>{tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" id={`profile-settings-tab-${id}`} role="tab" aria-controls={`profile-settings-panel-${id}`} aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{Icon ? <Icon size={19} /> : <img className="java-icon" src={javaIcon} alt="" />}{label === 'Java' ? label : t(label)}</button>)}</div>
     <div className="settings-panel settings-tab-panel profile-settings-panel" role="tabpanel" id={`profile-settings-panel-${tab}`} aria-labelledby={`profile-settings-tab-${tab}`}>
-      <fieldset className="profile-settings-fields" disabled={saving}>
+      <fieldset className="profile-settings-fields" disabled={saving || choosingIcon}>
         {tab === 'general' && <div className="form-grid">
           <label className="full">{t('Profil adı')}<input value={draft.name} maxLength={48} onChange={event => update({ name: event.target.value })} placeholder={t('Örn. Survival')} /></label>
+          <section className="full profile-settings-section profile-icon-settings">{sectionHeading('Profil ikonunu özelleştir', icon.enabled, () => update({ icon: { ...icon, enabled: !icon.enabled } }))}
+            <fieldset className="profile-settings-fields profile-settings-box profile-icon-fields" data-enabled={icon.enabled} disabled={!icon.enabled}>
+              <span className="profile-icon-preview" aria-hidden="true"><ProfileIcon profile={draft} /></span>
+              <div className="profile-setting-field"><label>{t('Profil ikonu')}</label>{choicePicker(icon.type, [{ value: 'auto', label: t('Otomatik (kurulu yükleyici)'), icon: <span className="profile-icon-option"><ProfileIcon profile={{ ...draft, icon: undefined }} /></span> }, ...profileIconLoaders.map(loader => ({ value: loader, label: { none: 'Minecraft', fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge', quilt: 'Quilt', liteloader: 'LiteLoader', optifine: 'OptiFine' }[loader], icon: <LoaderIcon loader={loader} /> })), { value: 'custom', label: t('Özel görsel') }], type => update({ icon: { ...icon, type: type as typeof icon.type } }), t('Profil ikonu'), !icon.enabled)}
+                {icon.type === 'custom' && <button type="button" className="profile-icon-upload heading-action" disabled={!icon.enabled || choosingIcon} onClick={() => void chooseIcon()}><FolderOpen size={16} />{t('Görsel seç')}</button>}
+              </div>
+              <small className="profile-setting-description">{t('Özelleştirme kapalıyken kurulu yükleyicinin ikonu kullanılır.')}</small>
+            </fieldset>
+          </section>
           <label className="full profile-game-directory">{t('Oyun klasörü')}<div className="input-with-button"><input value={draft.gameDirectory ?? ''} onChange={event => update({ gameDirectory: event.target.value })} placeholder={t('Profilin varsayılan klasörü')} /><button type="button" title={t('Klasör seç')} onClick={() => void browse('directory')}><FolderOpen size={17} /></button></div></label>
           <section className="full profile-settings-section profile-auto-join">
             {sectionHeading('Otomatik katılım', autoJoin, () => update({ autoJoinEnabled: !autoJoin }))}
@@ -112,6 +133,6 @@ export function ProfileSettingsPage({ profile, selectedProfileId, selectedAccoun
         </div>}
       </fieldset>
     </div>
-    {isVisible && dirty && <div className="save-bar profile-settings-save-bar"><span>{t('Kaydedilmemiş değişikliklerin var.')}</span><button type="button" disabled={saving} onClick={reset}>{t('Sıfırla')}</button><button type="button" className="save-confirm" disabled={saving || !draft.name.trim()} onClick={() => void save()}>{saving ? t('Kaydediliyor...') : t('Değişiklikleri kaydet')}</button></div>}
+    {isVisible && dirty && <div className="save-bar profile-settings-save-bar"><span>{t('Kaydedilmemiş değişikliklerin var.')}</span><button type="button" disabled={saving || choosingIcon} onClick={reset}>{t('Sıfırla')}</button><button type="button" className="save-confirm" disabled={saving || choosingIcon || !draft.name.trim()} onClick={() => void save()}>{saving ? t('Kaydediliyor...') : t('Değişiklikleri kaydet')}</button></div>}
   </div>
 }

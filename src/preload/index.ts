@@ -23,6 +23,7 @@ const api: LauncherApi = {
   importProfile: path => invoke('import-profile', path),
   repairProfile: id => invoke('repair-profile', id),
   chooseProfileCover: () => invoke('choose-profile-cover'),
+  chooseProfileIcon: () => invoke('choose-profile-icon'),
   saveProfileCover: (id, cover) => invoke('save-profile-cover', id, cover),
   getDroppedFilePath: file => webUtils.getPathForFile(file),
   deleteProfile: id => invoke('delete-profile', id),

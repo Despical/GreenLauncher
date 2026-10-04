@@ -33,7 +33,7 @@ try {
  await nav('Sunucular');await until(q('.server-select'))
  assert.equal(await evaluate(q('.servers-table-head>span')+'.textContent'),'Sunucu adı')
  assert.equal(await evaluate('(()=>{const a='+q('.servers-table-head>span')+',b='+q('.server-identity strong')+',r=document.createRange();r.selectNodeContents(a);return Math.abs(r.getBoundingClientRect().left-b.getBoundingClientRect().left)<1})()'),true,'name heading lines up with row name')
- assert.equal(await evaluate('getComputedStyle('+q('.server-address')+').textAlign'),'right')
+ assert.equal(await evaluate('getComputedStyle('+q('.server-address')+').textAlign'),'center')
  assert.equal(await evaluate(q('.server-identity .server-icon')+'.getBoundingClientRect().width'),42)
  const before=(await evaluate('window.launcher.getServers("qa-profile")')).map(s=>s.id)
  const row=await evaluate(q('.server-select')+'.getBoundingClientRect().toJSON()'), panel=await evaluate(q('.servers-list-panel')+'.getBoundingClientRect().toJSON()'), second=await evaluate(q('.server-row:nth-child(2) .server-select')+'.getBoundingClientRect().toJSON()')

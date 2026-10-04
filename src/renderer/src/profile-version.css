@@ -4,8 +4,6 @@
 .profile-version-current strong { color: #e6edf3; font-size: 17px; font-weight: 600; }
 .profile-version-current span:not(.profile-version-current-icon) { color: #8b949e; font-size: 12px; overflow-wrap: anywhere; }
 .profile-version-current small { margin-left: auto; color: #b1bac4; font-size: 14px; font-weight: 500; flex: none; }
-.profile-loader-icon { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; }
-.profile-loader-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .profile-version-current-icon .profile-loader-icon { width: 30px; height: 30px; }
 .profile-version-section-copy h3 .profile-loader-icon { width: 20px; height: 20px; }
 .profile-version-sections { border: 1px solid #30363d; border-radius: 8px; padding: 0 24px; background: #161b22; }

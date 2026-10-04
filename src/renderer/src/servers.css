@@ -12,7 +12,7 @@
 .servers-toolbar .search-box{flex:1;max-width:480px;height:42px;background:#0d1117;border-color:#30363d}
 .servers-toolbar .search-box input{font:400 13px 'Inter Variable',sans-serif}
 .servers-toolbar>span{white-space:nowrap;font-size:12px;color:var(--muted)}
-.servers-list-panel{--player-column-width:126px;--server-columns:minmax(180px,1fr) var(--player-column-width) clamp(190px,30%,280px)}
+.servers-list-panel{--player-column-width:126px;--server-columns:minmax(180px,1fr) var(--player-column-width) 190px}
 .servers-table-head,.server-select{display:grid;grid-template-columns:var(--server-columns);column-gap:0;align-items:center}
 .servers-table-head{min-height:43px;margin:0 8px;padding:0;border-inline:1px solid transparent;border-bottom:1px solid var(--border);color:#a5adb8;font:600 13px/1.5 'Inter Variable',sans-serif}
 .servers-table-head>span{padding:12px 14px;position:relative;min-width:0}
@@ -42,8 +42,8 @@
 .server-connection.online{color:#84cfa0}
 .server-online small,.server-facts .server-player-count dd{font:500 13px/1.65 'Inter Variable',sans-serif;color:var(--text);font-variant-numeric:tabular-nums}
 .server-online small{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.server-address{display:block;align-content:center;text-align:right;font:500 13px 'Inter Variable',sans-serif;color:#b8c9dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.servers-table-head>span:last-child{text-align:right}
+.server-address{display:block;align-content:center;text-align:center;font:500 13px 'Inter Variable',sans-serif;color:#b8c9dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.servers-table-head>span:last-child{text-align:center}
 .servers-list-profile-select{flex:none;width:200px}
 .servers-list-profile-select .dropdown-trigger{height:42px;min-height:42px;background:#161b22;border-color:#30363d;font-size:13px}
 .servers-list-profile-select .dropdown-copy strong{font-size:13px}

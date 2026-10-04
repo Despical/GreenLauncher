@@ -1,4 +1,5 @@
 import { profileJoinTarget } from '../shared/profile-settings'
+import { chooseProfileIcon } from './profile-icons'
 import { WorldService } from './worlds'
 import { NsisUpdater } from 'electron-updater'
 import { LauncherUpdater } from './updater'
@@ -447,6 +448,7 @@ else {
       }
       return changed(store.get())
     }), id))
+    handle('launcher:choose-profile-icon', () => chooseProfileIcon(mainWindow!, translate(store.get().settings.language, 'Profil ikonu seç'), translate(store.get().settings.language, 'Görseller')))
     handle('launcher:choose-profile-cover', async () => {
       const selection = await dialog.showOpenDialog(mainWindow!, { title: 'Profil kapağı seç', properties: ['openFile'], filters: [{ name: 'Görseller', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
       if (selection.canceled) return null

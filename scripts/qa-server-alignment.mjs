@@ -20,8 +20,9 @@ try {
     const playerStyle=await evaluate("(()=>{const a=getComputedStyle(document.querySelector('.server-online small')),b=getComputedStyle(document.querySelector('.server-player-count dd')),r=document.querySelector('.server-player-count dd').getBoundingClientRect(),l=document.querySelector('.server-player-count dt').getBoundingClientRect();return {table:[a.fontFamily,a.fontSize,a.fontWeight,a.color],sidebar:[b.fontFamily,b.fontSize,b.fontWeight,b.color],alignment:b.textAlign,left:r.left-l.left}})()")
     assert.deepEqual(playerStyle.table,playerStyle.sidebar);assert.equal(playerStyle.alignment,'left');assert.equal(playerStyle.left,0)
     assert.ok(Math.abs(g.headName.x-g.name.x)<1)
-    assert.ok(Math.abs(g.headAddress.right-g.address.right)<1,JSON.stringify(g))
-    assert.ok(Math.abs(g.address.right-(g.cells[2].right-14))<1)
+    assert.ok(Math.abs((g.headAddress.x+g.headAddress.right)/2-(g.address.x+g.address.right)/2)<1,JSON.stringify(g))
+    assert.ok(Math.abs((g.address.x+g.address.right)/2-(g.cells[2].x+g.cells[2].right)/2)<1)
+    assert.ok((g.headAddress.x+g.headAddress.right)/2-(g.players.x+g.players.right)/2<=160,JSON.stringify(g))
     for(let i=0;i<3;i++){assert.ok(Math.abs(g.head[i].x-g.cells[i].x)<1);assert.ok(Math.abs(g.head[i].width-g.cells[i].width)<1)}
     assert.ok(g.players.right<g.cells[2].x-6,JSON.stringify(g))
     assert.ok(Math.abs((g.players.x+g.players.right)/2-(g.cells[1].x+g.cells[1].right)/2)<1,JSON.stringify(g))

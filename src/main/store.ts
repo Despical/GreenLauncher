@@ -6,6 +6,7 @@ import { isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
 import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, ProfileCover, PlaySession } from '../shared/types'
 import { normalizeServerAddress } from '../shared/server-launch'
 import { profilePlaytime } from '../shared/profile-settings'
+import { normalizeProfileIcon } from '../shared/profile-icons'
 
 function defaultSettings(): LauncherSettings {
   const display = screen.getPrimaryDisplay().bounds
@@ -81,6 +82,7 @@ export class LauncherStore {
     for (const profile of this.state.profiles) if (profile.accountId === undefined) profile.accountId = this.state.selectedAccountId
     if (this.state.profiles.length === 1 && this.state.profiles[0].name === 'En son sürüm') this.state.profiles[0].name = 'Varsayılan profil'
     for (const profile of this.state.profiles) {
+      if (profile.icon) { try { profile.icon = normalizeProfileIcon(profile.icon) } catch { delete profile.icon } }
       if (profile.gameDirectory && this.isStandardMinecraftPath(profile.gameDirectory)) profile.gameDirectory = ''
       if (profile.javaPath && this.isStandardMinecraftPath(profile.javaPath)) profile.javaPath = ''
       profile.minMemoryMb = bounded(profile.minMemoryMb, Math.min(1024, profile.memoryMb), 512, profile.memoryMb)
@@ -213,6 +215,7 @@ export class LauncherStore {
       savePlaytime: typeof input.savePlaytime === 'boolean' ? input.savePlaytime : current?.savePlaytime,
       accountOverride: typeof input.accountOverride === 'boolean' ? input.accountOverride : current?.accountOverride,
       launchAccountId: typeof input.launchAccountId === 'string' ? input.launchAccountId : current?.launchAccountId,
+      icon: input.icon !== undefined ? normalizeProfileIcon(input.icon) : current?.icon,
       gameDirectory,
       modLoader: current?.modpack ? current.modLoader : input.modLoader,
       modLoaderVersion: current?.modpack ? current.modLoaderVersion : input.modLoaderVersion,

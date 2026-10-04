@@ -6,6 +6,7 @@ import forge from '../assets/loaders/forge.svg'
 import neoforge from '../assets/loaders/neoforge.svg'
 import quilt from '../assets/loaders/quilt.svg'
 import liteloader from '../assets/loaders/liteloader.svg'
+import './loader-icon.css'
 
 const icons = { none: vanilla, optifine, fabric, forge, neoforge, quilt, liteloader }
 export function LoaderIcon({ loader }: { loader: ProfileLoader }) {

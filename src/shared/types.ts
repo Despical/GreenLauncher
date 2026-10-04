@@ -47,10 +47,12 @@ export interface LauncherProfile {
   pinned?: boolean
   lastPlayed?: string
   cover?: ProfileCover
+  icon?: ProfileIconConfig
   createdAt: string
 }
 
 export interface ProfileCover { color: string; description: string; image?: string }
+export interface ProfileIconConfig { enabled: boolean; type: 'auto' | ProfileLoader | 'custom'; image?: string }
 
 export interface PlayHistoryEntry { id: string; profileId: string; profileName: string; versionId: string; at: string }
 export interface PlaySession { id: string; profileId: string; profileName: string; versionId: string; startedAt: string; endedAt: string; durationMs: number }
@@ -219,6 +221,7 @@ export interface LauncherApi {
   importProfile(path?: string): Promise<{ state: LauncherState; profileId: string } | null>
   repairProfile(id: string): Promise<LauncherState>
   chooseProfileCover(): Promise<string | null>
+  chooseProfileIcon(): Promise<string | null>
   saveProfileCover(id: string, cover: ProfileCover): Promise<LauncherState>
   getDroppedFilePath(file: File): string
   deleteProfile(id: string): Promise<LauncherState>

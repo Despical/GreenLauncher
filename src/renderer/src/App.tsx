@@ -19,6 +19,7 @@ import { memoryGb } from '../../shared/memory'
 import { serverLaunchMode } from '../../shared/server-launch'
 import { JavaSettings } from './JavaSettings'
 import { LauncherMenu } from './LauncherMenu'
+import { ProfileIcon } from './ProfileIcon'
 import { diagnoseError } from '../../shared/errors'
 import { languages, translate, type Language } from './i18n'
 import { SkinPreview } from './SkinPreview'
@@ -767,7 +768,7 @@ function App() {
       <aside className={`sidebar ${inProfileWorkspace ? 'profile-sidebar' : ''}`}>{inProfileWorkspace && managedProfile ? <>
         <button type="button" className="profile-workspace-back" onClick={() => setPage('profiles')}><ArrowLeft size={18} />{t('Profillerim’e dön')}</button>
         <div className="profile-workspace-identity">
-          <div className="workspace-profile-select"><LauncherMenu language={language} version={packageJson.version} onAbout={() => { setSettingsTab('about'); setPage('settings') }} onOpen={url => run(() => window.launcher.openExternal(url))} identity={{ name: managedProfile.name, icon: <span className="profile-workspace-icon"><VersionGlyph custom={managedProfile.versionId.startsWith('custom:')} /></span> }} /></div>
+          <div className="workspace-profile-select"><LauncherMenu language={language} version={packageJson.version} onAbout={() => { setSettingsTab('about'); setPage('settings') }} onOpen={url => run(() => window.launcher.openExternal(url))} identity={{ name: managedProfile.name, icon: <span className="profile-workspace-icon"><ProfileIcon profile={managedProfile} /></span> }} /></div>
         </div>
         <div className="brand-separator" />
         <nav className="side-nav profile-workspace-nav" aria-label={t('Profil yönetimi')}>
