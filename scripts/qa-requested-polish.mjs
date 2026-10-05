@@ -30,7 +30,8 @@ try {
   const collapsed=await evaluate(q('.supported-versions')+'.getBoundingClientRect().height');assert.ok(collapsed<46)
   await click(root+'.supported-versions-toggle');assert.equal(await evaluate(q('.supported-versions-toggle')+'.getAttribute("aria-expanded")'),'true');assert.ok(await evaluate(q('.supported-versions')+'.getBoundingClientRect().height')>collapsed)
   await click(root+'.supported-versions-toggle')
-  await click(root+'.resource-pack-row:nth-child(3) .resource-format');await until(q('.resource-update-summary')+'.textContent.includes("Kurulu sürüm")');assert.equal(await evaluate(q('.resource-incompatible-note')+'===null'),true)
+  await click(root+'.resource-pack-row:nth-child(3) .resource-format');await until(q('.resource-update-summary')+'.textContent.includes("Kurulu sürüm bu profille uyumlu olmayabilir.")');assert.equal(await evaluate(q('.resource-incompatible-note')+'===null'),true)
+  assert.equal(await evaluate('getComputedStyle('+q('.resource-update-summary > strong')+').color'),'rgb(240, 136, 126)')
   assert.equal(await evaluate(q('.resource-pack-row:nth-child(3)')+'.classList.contains("selected")'),true)
   await click(root+'.resource-pack-row:nth-child(2) .resource-provider');assert.equal(await evaluate(q('.resource-pack-row:nth-child(2)')+'.classList.contains("selected")'),true)
   await shot('qa-requested-'+name.replaceAll(' ','-'))
@@ -39,8 +40,8 @@ try {
   await evaluate('window.launcher.saveSettings({language:'+JSON.stringify(language)+'})');await call('Emulation.setDeviceMetricsOverride',{width:1080,height:700,deviceScaleFactor:1,mobile:false});await wait(150)
   for(const page of ['servers','worlds']){
    await evaluate('document.querySelector('+JSON.stringify(page==='servers'?'.profile-workspace-nav button:nth-child(2)':'.profile-workspace-nav button:nth-child(1)')+').click()');await until(q('.server-row'))
-   const alignment=await evaluate('(()=>{const h='+q('.table-identity-heading')+',r='+q(':is(.server-identity,.world-identity)')+';return {head:h.lastElementChild.getBoundingClientRect().left,name:r.querySelector("strong").getBoundingClientRect().left,image:h.firstElementChild.getBoundingClientRect().left,icon:r.querySelector(".server-icon").getBoundingClientRect().left}})()')
-   assert.ok(Math.abs(alignment.head-alignment.name)<1,language+' '+page+' name aligns');assert.ok(Math.abs(alignment.image-alignment.icon)<1,language+' '+page+' image aligns')
+   const alignment=await evaluate('(()=>{const h='+q('.table-identity-heading')+',r='+q(':is(.server-identity,.world-identity)')+';return {head:h.lastElementChild.getBoundingClientRect().left,name:r.querySelector("strong").getBoundingClientRect().left,image:h.firstElementChild.getBoundingClientRect().left,icon:r.querySelector(".server-icon").getBoundingClientRect().left,gap:getComputedStyle(r).gap,headingGap:getComputedStyle(h).gap}})()')
+   assert.equal(alignment.gap,'16px');assert.equal(alignment.headingGap,'16px');assert.ok(Math.abs(alignment.head-alignment.name)<1,language+' '+page+' name aligns');assert.ok(Math.abs(alignment.image-alignment.icon)<1,language+' '+page+' image aligns')
    assert.equal(await evaluate(q('.servers-workspace')+'.scrollWidth<='+q('.servers-workspace')+'.clientWidth'),true)
   }
  }

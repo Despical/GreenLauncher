@@ -31,7 +31,7 @@
 .server-cell{position:relative;min-width:0;min-height:66px;padding:9px 14px;display:flex;align-items:center}
 .server-identity{display:flex;align-items:center;gap:10px;min-width:0}
 .servers-table-head>span:first-child{padding-left:68px}
-.server-identity{padding:12px 14px;gap:12px}
+.server-identity{padding:12px 14px;gap:16px}
 .server-identity .server-icon{width:42px;height:42px;border-radius:6px;background:#21262d}
 .server-identity .server-icon img{object-fit:contain;border-radius:6px}
 .servers-table-head>span:nth-child(2){text-align:center}
@@ -111,5 +111,5 @@
 
 .server-join-summary .server-icon{width:42px;height:42px}
 
-.servers-table-head > .table-identity-heading:first-child, .worlds-table-head > .table-identity-heading:first-child { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.servers-table-head > .table-identity-heading:first-child, .worlds-table-head > .table-identity-heading:first-child { display: flex; align-items: center; gap: 16px; padding: 12px 14px; }
 .table-identity-heading > span:first-child { flex: none; width: 42px; text-align: center; }

@@ -137,7 +137,7 @@ export function ResourcePacksPage({ profile, language, isVisible, running, onNot
     catch (error) { onNotice(t(String((error as Error).message ?? error))) }
     finally { finishAction(); if (mounted.current) setBusy(false) }
   }
-  const updateText = (value?: ProfileContentUpdate) => t(!value ? 'Güncellemeler kontrol edilmedi.' : value.status === 'update' ? 'Uyumlu güncelleme var' : value.status === 'current' ? 'Güncel ve uyumlu' : value.status === 'incompatible' ? 'Kurulu sürüm' : value.status === 'unknown' ? 'Kaynak bilinmiyor' : 'Kontrol başarısız')
+  const updateText = (value?: ProfileContentUpdate) => t(!value ? 'Güncellemeler kontrol edilmedi.' : value.status === 'update' ? 'Uyumlu güncelleme var' : value.status === 'current' ? 'Güncel ve uyumlu' : value.status === 'incompatible' ? 'Kurulu sürüm bu profille uyumlu olmayabilir.' : value.status === 'unknown' ? 'Kaynak bilinmiyor' : 'Kontrol başarısız')
   const changeProvider = (next: 'modrinth' | 'curseforge') => { setProvider(next); setMode('browse'); setSelected(null); setQuery(''); setSearch('') }
   const visiblePacks = packs.filter(pack => `${pack.title} ${pack.filename} ${pack.description}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   const chosen = visiblePacks.find(pack => pack.filename === selectedPack) ?? visiblePacks[0]

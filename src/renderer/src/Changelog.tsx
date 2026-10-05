@@ -79,6 +79,15 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.18.0', date: '2026-10-05', title: 'Profilinde daha fazla kontrol', intro: 'Profil çalışma alanı, canlı günlükler ve daha düzenli içerik yönetimi.', changes: [
+    'Profil çalışma alanında Minecraft sürümü, mod yükleyicisi, başlatma ayarları ve profil simgesi yönetilebilir.',
+    'Modlar, kaynak paketleri ve shader paketleri profil içinde yönetilir; kartın tamamına tıklayarak ayrıntıları seçebilirsin.',
+    'Canlı Minecraft günlüğü ile arşiv kayıtlarında arama, kopyalama ve yükleme eklendi; kayıt yenilemesi tamamlanınca bildirim gösterilir.',
+    'Boş günlük konsolunun rengi ve düğme durumları düzeltildi; kopyalama sırasında imleç artık bloke işareti göstermez.',
+    'Sunucu ve dünya resimleriyle adları arasındaki boşluk artırıldı; başlıklar hizalandı ve paket uyumluluk uyarısı kırmızı gösterilir.',
+    'Uzun Minecraft sürüm listeleri metnin yanındaki üç noktadan açılır; profil menüsündeki sayfalar yeniden sıralandı.',
+    'Oyunun kaydettiği tam ekran ayarı, profilin başlangıç tercihine göre uygulanır; diğer oyun ayarları korunur.'
+  ] },
   { version: '0.17.7', date: '2026-10-03', title: 'Daha küçük güncellemeler, güncel katalog', intro: 'Değişen parçaları indiren güncellemeler, otomatik dosya temizliği ve indirme öncesi disk kontrolü.', changes: v0177Changes, sections: [
     { title: 'Yeni özellikler', changes: v0177Changes.slice(0, 3) },
     { title: 'Düzeltmeler', changes: v0177Changes.slice(3) }

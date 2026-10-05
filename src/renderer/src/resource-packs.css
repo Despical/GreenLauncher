@@ -27,7 +27,7 @@
 .resource-update-summary p { margin: 10px 0; font-size: 12px; }
 .resource-update-summary small { display: block; overflow-wrap: anywhere; }
 .resource-update-summary[data-update-status=update] > strong, .resource-update-indicator { color: #d2b36f; }
-.resource-update-summary[data-update-status=error] > strong { color: #f0887e; }
+.resource-update-summary[data-update-status=incompatible] > strong, .resource-update-summary[data-update-status=error] > strong { color: #f0887e; }
 .resource-update-button { width: 100%; justify-content: center; margin-top: 14px; display: flex; }
 .resource-installed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 20px; align-items: start; }
 .resource-installed-list, .resource-installed-detail { border: 1px solid #30363d; border-radius: 8px; background: #161b22; min-width: 0; }
