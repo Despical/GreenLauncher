@@ -4,7 +4,7 @@
 - Keep Turkish UI copy consistent and add the matching English, German, French, Russian and Polish translations in `src/renderer/src/i18n.ts`.
 - Protect account credentials, launcher runtime data, profiles, worlds and server lists. Use isolated fixtures for testing; never publish runtime files or generated QA output.
 - Verify relevant behavior before publishing. Run `pnpm run build` and `node scripts/check-i18n.mjs`; use the focused service and renderer checks for changes to launch, accounts, servers or worlds.
-- Build a requested portable executable with `pnpm dist:portable` and verify the package with `node scripts/qa-accounts-package.cjs`.
+- After each verified launcher change, build the updated portable executable with `pnpm dist:portable` and verify the package with `node scripts/qa-accounts-package.cjs`, unless the user explicitly asks to skip executable generation. Include the current executable path in the handoff.
 
 ## Commit and publication workflow
 
