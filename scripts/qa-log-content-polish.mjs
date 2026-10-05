@@ -8,11 +8,10 @@ try {
  await call('Runtime.enable');await evaluate("window.launcher.saveSettings({language:'tr',qaResource:{manyVersions:true}}).then(()=>window.launcher.selectProfile('qa-profile'))");await call('Page.reload');await until("document.querySelector('.launch-profile-edit')");await click('.launch-profile-edit')
  for(const name of ['Modlar','Kaynak paketleri','Shader paketleri']){
   await nav(name);await until(q('.supported-versions-toggle'));assert.equal(await evaluate(q('.supported-versions-toggle')+'.getAttribute("aria-expanded")'),'false')
-  assert.equal(await evaluate(q('.supported-versions-text')+'.scrollHeight>'+q('.supported-versions-text')+'.clientHeight'),true)
-  await click(root+'.supported-versions-toggle');assert.equal(await evaluate(q('.supported-versions-toggle')+'.getAttribute("aria-expanded")'),'true');assert.equal(await evaluate(q('.supported-versions-text')+'.scrollHeight<='+q('.supported-versions-text')+'.clientHeight+1'),true)
-  await click(root+'.supported-versions-toggle');await click(root+'.resource-pack-row:nth-child(3) .resource-pack-select');await until(q('.resource-incompatible-note'))
-  assert.equal(await evaluate(q('.resource-incompatible-note')+'.parentElement.lastElementChild==='+q('.resource-incompatible-note')),true,'warning last in '+name)
-  assert.equal(await evaluate('getComputedStyle('+q('.resource-incompatible-note')+').color'),'rgb(240, 136, 126)');assert.equal(await evaluate('getComputedStyle('+q('.resource-incompatible-note')+').borderTopWidth'),'1px')
+  assert.ok(await evaluate(q('.supported-versions')+'.getBoundingClientRect().height')<46)
+  await click(root+'.supported-versions-toggle');assert.equal(await evaluate(q('.supported-versions-toggle')+'.getAttribute("aria-expanded")'),'true');assert.ok(await evaluate(q('.supported-versions')+'.getBoundingClientRect().height')>46)
+  await click(root+'.supported-versions-toggle');await click(root+'.resource-pack-row:nth-child(3) .resource-pack-select');assert.equal(await evaluate(q('.resource-incompatible-note')+'===null'),true)
+  assert.equal(await evaluate(q('.resource-installed-detail')+'.textContent.includes("Profil sürümüyle uyumlu olmayabilir")'),false)
  }
  await nav('Sürüm');await evaluate("window.launcher.saveSettings({qaVersion:{locked:true}})");await until(q('.profile-pack-controls'));await click(root+'.profile-pack-controls .dropdown-trigger');await until("document.querySelector('[role=option]')")
  assert.equal(await evaluate("document.querySelector('[role=option] small')===null"),true);assert.ok(await evaluate("document.querySelector('[role=option]').textContent.includes(' · ')"));await evaluate("document.querySelector('[role=option]').click()")
@@ -30,7 +29,7 @@ try {
  }
  await evaluate("window.launcher.saveSettings({language:'tr',qaVersion:{navigate:'mods'}})");await until("document.querySelector('.mods-welcome')")
  assert.equal(await evaluate("document.querySelector('.mods-source-foot')===null"),true);assert.ok(await evaluate("document.querySelector('.mods-source-nav').getBoundingClientRect().height")<300);assert.equal(await evaluate("getComputedStyle(document.querySelector('.mods-welcome')).backgroundColor"),'rgb(22, 27, 34)')
- assert.equal(errors.length,0,JSON.stringify(errors));console.log('PASS compact provider menu, two-line expandable supported versions in all content tables, bottom separated red warnings, single-line pack options, aligned archived/live log controls, compact iconless dialogs and scrollable delete list, shared empty-card surface, six-language minimum size')
+ assert.equal(errors.length,0,JSON.stringify(errors));console.log('PASS compact provider menu, two-line expandable supported versions in all content tables, concise installed-version status, single-line pack options, aligned archived/live log controls, compact iconless dialogs and scrollable delete list, shared empty-card surface, six-language minimum size')
 } finally {socket.close()}
 `
 await new Function('assert', 'writeFileSync', 'return (async()=>{' + helpers + checks + '})()')(assert, writeFileSync)

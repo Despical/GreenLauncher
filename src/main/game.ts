@@ -9,6 +9,7 @@ import { LibraryInfo, MinecraftFolder, Version, launch, type ResolvedVersion } f
 import { normalizeServerAddress, serverLaunchMode, serverLaunchOptions } from '../shared/server-launch'
 import { customRuntime, customJavaVersion, customResolvedVersion } from './custom-runtime'
 import { saveMinecraftServerPreference } from './server-preference'
+import { saveMinecraftWindowPreference } from './game-window'
 import { offlineAccount } from './offline-account'
 import type { ServerJoinPreference } from '../shared/types'
 import {
@@ -627,6 +628,11 @@ export class GameService {
       this.status({ kind: 'launching', label: 'Oyun başlatılıyor', detail: `${profile.name} · ${versionId}`, profileId: profile.id, progress: 95 })
       const gamePath = profileId === null ? join(this.store.dataPath, 'standalone', versionId) : this.store.gamePath(profile)
       mkdirSync(gamePath, { recursive: true })
+      const sharedGameRunning = [...this.sessions.values()].some(session => {
+        const activeProfile = this.store.allProfiles().find(item => item.id === session.profileId)
+        return (activeProfile ? this.store.gamePath(activeProfile) : join(this.store.dataPath, 'standalone', session.versionId)) === gamePath
+      })
+      if (!sharedGameRunning) saveMinecraftWindowPreference(gamePath, profile.fullscreen === true)
       if (serverAddress && serverPreference) saveMinecraftServerPreference(gamePath, serverAddress, serverPreference)
       let gpu: string[] = []
       try {

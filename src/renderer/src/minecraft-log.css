@@ -48,3 +48,6 @@
 
 .minecraft-console.colored .level-launcher .minecraft-line-text { color: #de8be7; }
 .minecraft-log-confirm .account-dialog-symbol { background: #21262d; border-color: #30363d; color: #8b949e; }
+
+.minecraft-console.empty { background: #161b22; }
+.minecraft-log-copy[data-pending=true]:disabled { cursor: pointer; }

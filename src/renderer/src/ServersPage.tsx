@@ -175,7 +175,7 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
     {!listProfileId ? <div className="servers-list-panel servers-empty" style={{minHeight:340}}><Server size={36} /><h3>{t('Önce bir profil oluştur')}</h3><p>{t('Sunucu ekleyebilmek için önce bir profil oluştur.')}</p><button className="secondary" onClick={onCreateProfile}><Plus size={16} />{t('Yeni profil')}</button></div> : <div className="servers-workspace">
       <div className="servers-toolbar"><div className="search-box"><Search size={17} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('Sunucu ara') + '...'} /></div>{scopedProfileId === undefined && listProfilePicker(listProfileId ?? '', setListProfile, loading || pending || reordering)}</div>
       <section className="servers-list-panel">
-        <div className="servers-table-head" role="row"><span>{t('Sunucu adı')}</span><span>{t('Oyuncular')}</span><span>{t('Sunucu adresi')}</span></div>
+        <div className="servers-table-head" role="row"><span className="table-identity-heading"><span>{t('Resim')}</span><span>{t('Sunucu adı')}</span></span><span>{t('Oyuncular')}</span><span>{t('Sunucu adresi')}</span></div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={({ active }) => {
           setDragOrder(visible.map(server => server.id))
           const row = document.querySelector<HTMLElement>(`[data-server-id="${globalThis.CSS.escape(String(active.id))}"]`), select = row?.querySelector('.server-select')

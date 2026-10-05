@@ -83,12 +83,17 @@ game.findJava=async()=>process.execPath
 const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
 ;(async()=>{
  try {
+  const windowOptions = path.join(store.gamePath(store.get().profiles.find(p=>p.id===a)), 'options.txt')
+  fs.writeFileSync(windowOptions, 'fullscreen:true\ngamma:0.5\n')
   assert.equal((await game.play(a)).status,'started')
+  check('windowed profile resets remembered fullscreen before spawn and preserves other options',()=>{assert.equal(fs.readFileSync(windowOptions,'utf8'),'fullscreen:false\ngamma:0.5\n');assert.equal(options.at(-1).resolution.fullscreen,false)})
   check('actual child PID recorded',()=>{assert.equal(game.getRunningInstances()[0].pid,children[0].pid);assert.equal(game.getRunningInstances()[0].accountId,first);assert.equal(game.getLaunchState().preparing,false)})
   check('launch header records the actual username and UUID in pink diagnostic lines',()=>{const lines=game.console.snapshot(a).lines;assert.ok(lines.some(line=>line.level==='launcher'&&line.text==='Kullanıcı adı: PlayerOne'));assert.ok(lines.some(line=>line.level==='launcher'&&line.text===`UUID: ${first}`))})
   const confirmation=await game.play(a)
   check('second launch requires confirmation and spawns nothing',()=>{assert.equal(confirmation.status,'confirmation-required');assert.equal(confirmation.instances.length,1);assert.equal(children.length,1)})
+  fs.writeFileSync(windowOptions, 'fullscreen:true\ngamma:0.75\n')
   assert.equal((await game.play(a,undefined,true)).status,'started')
+  check('another instance never rewrites options used by a running game',()=>assert.equal(fs.readFileSync(windowOptions,'utf8'),'fullscreen:true\ngamma:0.75\n'))
   check('confirmed second launch tracks two distinct processes',()=>{assert.equal(game.getRunningInstances().length,2);assert.notEqual(children[0].pid,children[1].pid)})
   await stop(children[0])
   check('exiting one child preserves other active session',()=>{assert.equal(game.getRunningInstances().length,1);assert.equal(game.getRunningInstances()[0].pid,children[1].pid)})

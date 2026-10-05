@@ -110,3 +110,6 @@
 .servers-page .modal-primary:disabled,.servers-page .modal-primary:disabled:hover{background:#2c6d43;border-color:#398352;opacity:.45;cursor:not-allowed}
 
 .server-join-summary .server-icon{width:42px;height:42px}
+
+.servers-table-head > .table-identity-heading:first-child, .worlds-table-head > .table-identity-heading:first-child { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.table-identity-heading > span:first-child { flex: none; width: 42px; text-align: center; }

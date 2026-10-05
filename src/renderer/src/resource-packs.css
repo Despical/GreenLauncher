@@ -27,7 +27,7 @@
 .resource-update-summary p { margin: 10px 0; font-size: 12px; }
 .resource-update-summary small { display: block; overflow-wrap: anywhere; }
 .resource-update-summary[data-update-status=update] > strong, .resource-update-indicator { color: #d2b36f; }
-.resource-update-summary[data-update-status=incompatible] > strong, .resource-update-summary[data-update-status=error] > strong { color: #f0887e; }
+.resource-update-summary[data-update-status=error] > strong { color: #f0887e; }
 .resource-update-button { width: 100%; justify-content: center; margin-top: 14px; display: flex; }
 .resource-installed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 20px; align-items: start; }
 .resource-installed-list, .resource-installed-detail { border: 1px solid #30363d; border-radius: 8px; background: #161b22; min-width: 0; }
@@ -36,7 +36,7 @@
 .resource-table-head { color: #a5adb8; font: 600 13px/1.5 'Inter Variable', 'Segoe UI', sans-serif; border-bottom: 1px solid #30363d; }
 .resource-table-head > span:first-child, .resource-table-head > span:nth-child(n+3) { text-align: center; }
 .resource-table-head > span:nth-child(2) { padding-left: 50px; }
-.resource-pack-row { border-bottom: 1px solid #21262d; min-height: 76px; }
+.resource-pack-row { cursor: pointer; border-bottom: 1px solid #21262d; min-height: 76px; }
 .resource-pack-row:last-child { border-bottom: 0; border-radius: 0 0 7px 7px; }
 .resource-pack-row.selected { background: #21262d; }
 .resource-pack-row[data-enabled=false] { background: #13171d; }
@@ -120,9 +120,8 @@
 .resource-format .resource-incompatible-indicator { color: #f0887e; font-size: 12px; font-weight: 600; }
 .resource-supported-versions { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; }
 .supported-versions { position: relative; display: block; }
-.supported-versions-text { display: block; max-height: 3.2em; overflow: hidden; padding-right: 25px; }
-.supported-versions.expanded .supported-versions-text { max-height: none; padding-right: 0; }
-.supported-versions-toggle { position: absolute; bottom: 0; right: 0; padding: 0 3px; border: 0; background: #161b22; color: #79c0ff; font: inherit; cursor: pointer; }
+.supported-versions-text { display: inline; }
+.supported-versions-measure { position: absolute; inset: 0 0 auto; visibility: hidden; pointer-events: none; }
+.supported-versions-toggle { display: inline; padding: 0; border: 0; background: transparent; color: #79c0ff; font: inherit; cursor: pointer; }
 .supported-versions-toggle:hover { text-decoration: underline; }
-.supported-versions.expanded .supported-versions-toggle { position: static; margin-top: 6px; padding: 0; }
-.resource-installed-detail .resource-incompatible-note { border-top: 1px solid #30363d; margin: 14px 0 0; padding-top: 14px; color: #f0887e; font-size: 13px; line-height: 1.6; }
+.supported-versions.expanded .supported-versions-toggle { display: block; margin-top: 6px; }
