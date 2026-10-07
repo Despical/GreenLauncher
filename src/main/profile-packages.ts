@@ -156,7 +156,10 @@ export class ProfilePackages {
         renameSync(temporary, destination)
       } finally { await rm(stage, { recursive: true, force: true }) }
       return destination
-    } finally { await rm(temporary, { force: true }) }
+    } finally {
+      try { await rm(temporary, { force: true }) }
+      finally { this.emit({ kind: 'idle', label: 'Hazır' }) }
+    }
   }
 
   async import(archive: string): Promise<{ state: LauncherState; profileId: string }> {

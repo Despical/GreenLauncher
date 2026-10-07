@@ -23,7 +23,8 @@ const { ModpackService, walkArchive, streamEntry } = load('src/main/modpack.ts')
 const store = new LauncherStore(), calls = []
 let running = []
 const game = { hasModLoaderInstallation: async () => true, getRunningInstances: () => running, install: async id => calls.push(['vanilla', id]), installModLoader: async (id, loader, _profile, release) => { calls.push(['loader', id, loader, release]); return `${id}-${loader}${release}` } }
-const service = new ProfilePackages(store, game, () => {})
+const activities = []
+const service = new ProfilePackages(store, game, activity => activities.push(activity))
 const write = (root, file, content) => { const target = path.join(root, file); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, content) }
 async function readPackage(file) {
   const entries = new Map()
@@ -59,6 +60,8 @@ async function main() {
   results.push('Cloning preserves settings, loader, covers and worlds in an independent owned directory')
   const archive = path.join(root, 'friend.glprofile')
   await service.export(source.id, archive)
+  assert.ok(activities.some(activity => activity.label === 'Profil dışa aktarılıyor'))
+  assert.equal(activities.at(-1).kind, 'idle')
   const entries = await readPackage(archive), manifest = JSON.parse(entries.get('green-profile.json').toString())
   assert.equal(manifest.profile.serverAddress, source.serverAddress); assert.equal(manifest.format, 'green-launcher-profile')
   assert.equal(manifest.profile.icon.type, 'custom'); assert.equal(manifest.profile.icon.image, iconImage)
@@ -66,6 +69,10 @@ async function main() {
   for (const excluded of ['files/logs/latest.log', 'files/launcher_accounts.json', 'files/cache/unused.bin', 'files/saves/Adventure/session.lock']) assert.ok(!entries.has(excluded), excluded)
   assert.equal(manifest.files.length, 3)
   results.push('Portable exports have checksummed files and exclude account identifiers, locks, logs and caches')
+  await assert.rejects(service.export(source.id, path.join(root, 'missing-directory', 'failed.glprofile')))
+  assert.equal(activities.at(-1).kind, 'idle')
+  assert.ok(!fs.existsSync(path.join(root, 'missing-directory', 'failed.glprofile.green-part')))
+  results.push('Successful and failed exports both clear the activity status after cleanup')
   store.createOfflineAccount('FriendQA')
   const imported = await service.import(archive), importedProfile = imported.state.profiles[0]
   assert.equal(importedProfile.accountId, store.get().selectedAccountId); assert.notEqual(importedProfile.accountId, source.accountId)

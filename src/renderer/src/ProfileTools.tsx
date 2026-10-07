@@ -78,4 +78,4 @@ export function ProfileCoverEditor({ profile, language, onClose, onSaved, onNoti
   </AccountDialog>
 }
 
-export function ProfileDropHint({ language }: { language: Language }) { return createPortal(<div className="profile-drop-hint"><ArrowDownToLine size={34} /><strong>{translate(language, 'Profil paketini buraya bırak')}</strong><span>Green Launcher · .glprofile / Modrinth · .mrpack</span></div>, document.body) }
+export function ProfileDropHint({ language }: { language: Language }) { return createPortal(<div className="profile-drop-hint"><ArrowDownToLine size={34} /><strong>{translate(language, 'Profil paketini buraya bırak')}</strong><span>Green Launcher .glprofile / Modrinth .mrpack</span></div>, document.body) }
