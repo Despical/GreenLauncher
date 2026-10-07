@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import type { HeroSlide } from './hero-slides'
 
-function Panorama({ image, span }: { image: string; span?: number }) {
+function Panorama({ image, verticalSpan = 180, initialYaw = 0, matchSeam = false }: { image: string; verticalSpan?: number; initialYaw?: number; matchSeam?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [ready, setReady] = useState(false)
   useEffect(() => {
     const surface = canvas.current!
     const gl = surface.getContext('webgl', { alpha: false, antialias: false, depth: false, powerPreference: 'low-power' })
     if (!gl) return
-    let frame = 0, loaded = false, disposed = false, visible = !document.hidden, last = 0, yaw = 0, elapsed = 0, travel = 0
+    let frame = 0, loaded = false, disposed = false, visible = !document.hidden, last = 0, yaw = initialYaw
     const shaders: WebGLShader[] = []
-    const horizontalSpan = span ? span * Math.PI / 180 : 0
+    const verticalRadians = verticalSpan * Math.PI / 180
     const program = gl.createProgram()!, buffer = gl.createBuffer()!, texture = gl.createTexture()!
     const cleanup = () => {
       disposed = true; cancelAnimationFrame(frame)
@@ -24,15 +24,17 @@ function Panorama({ image, span }: { image: string; span?: number }) {
     }
     try {
       shader(gl.VERTEX_SHADER, 'attribute vec2 position; varying vec2 uv; void main(){uv=position;gl_Position=vec4(position,0.0,1.0);}')
-      // One continuous vista avoids joins between unrelated cube faces.
+      // Both cylindrical built-ins and equirectangular custom images cover a full horizontal turn.
       const precision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)?.precision ? 'highp' : 'mediump'
-      shader(gl.FRAGMENT_SHADER, `precision ${precision} float; varying vec2 uv; uniform sampler2D panorama; uniform float aspect; uniform float lens; uniform float yaw;
-        void main(){vec3 ray=normalize(vec3(uv.x*aspect*lens,uv.y*lens,1.0));float c=cos(yaw),s=sin(yaw);
+      shader(gl.FRAGMENT_SHADER, `precision ${precision} float; varying vec2 uv; uniform sampler2D panorama; uniform float aspect; uniform float yaw;
+        void main(){vec3 ray=normalize(vec3(uv.x*aspect*0.55,uv.y*0.55,1.0));float c=cos(yaw),s=sin(yaw);
         ray=vec3(c*ray.x+s*ray.z,ray.y,-s*ray.x+c*ray.z);
-        ${horizontalSpan ? `vec2 sphere=vec2(0.5+atan(ray.x,ray.z)/${horizontalSpan.toFixed(8)},0.5-atan(ray.y,length(ray.xz))/1.22173048);
-          gl_FragColor=texture2D(panorama,sphere);`
-          : `vec2 sphere=vec2(fract(0.5+atan(ray.x,ray.z)/6.2831853),0.5-asin(clamp(ray.y,-1.0,1.0))/3.14159265);
-          gl_FragColor=texture2D(panorama,sphere);`}}`)
+        vec2 sphere=vec2(fract(0.5+atan(ray.x,ray.z)/6.2831853),0.5-asin(clamp(ray.y,-1.0,1.0))/${verticalRadians.toFixed(8)});
+        vec4 color=texture2D(panorama,sphere);
+        ${matchSeam ? `// Equalize the wrap boundary colors without blurring or mixing entire views.
+          vec3 edgeDelta=texture2D(panorama,vec2(1.0,sphere.y)).rgb-texture2D(panorama,vec2(0.0,sphere.y)).rgb;
+          color.rgb+=edgeDelta*0.5*(1.0-smoothstep(0.0,0.025,sphere.x)-smoothstep(0.975,1.0,sphere.x));` : ''}
+        gl_FragColor=vec4(clamp(color.rgb,0.0,1.0),1.0);}`)
       gl.linkProgram(program)
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error('Panorama program')
       gl.useProgram(program); gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
@@ -44,13 +46,12 @@ function Panorama({ image, span }: { image: string; span?: number }) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
       gl.uniform1i(gl.getUniformLocation(program, 'panorama'), 0)
     } catch { cleanup(); return }
-    const aspect = gl.getUniformLocation(program, 'aspect'), lens = gl.getUniformLocation(program, 'lens'), rotation = gl.getUniformLocation(program, 'yaw')
+    const aspect = gl.getUniformLocation(program, 'aspect'), rotation = gl.getUniformLocation(program, 'yaw')
     const draw = (now: number) => {
       if (disposed || !visible || !loaded) return
       if (!last || now - last >= 1000 / 30) {
-        if (last) elapsed += Math.min(now - last, 100)
-        // Start left, easing back before the edge. Custom 360 images keep rotating.
-        yaw = horizontalSpan ? -travel * Math.sin(elapsed * 0.00013) : -(elapsed * 0.000055) % (Math.PI * 2)
+        // Always turn left; periodic sampling makes 360 -> 0 the same direction without a reversal.
+        if (last) yaw = (yaw - Math.min(now - last, 100) * 0.000055) % (Math.PI * 2)
         last = now
         gl.uniform1f(rotation, yaw); gl.drawArrays(gl.TRIANGLES, 0, 6)
       }
@@ -61,16 +62,15 @@ function Panorama({ image, span }: { image: string; span?: number }) {
       const ratio = Math.min(window.devicePixelRatio || 1, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) / Math.max(1, bounds.width, bounds.height))
       surface.width = Math.max(1, Math.round(bounds.width * ratio)); surface.height = Math.max(1, Math.round(bounds.height * ratio))
       const screenAspect = surface.width / surface.height
-      const scale = horizontalSpan ? Math.min(0.55, Math.tan(horizontalSpan / 2 - 0.035) / screenAspect) : 0.55
-      gl.viewport(0, 0, surface.width, surface.height); gl.uniform1f(aspect, screenAspect); gl.uniform1f(lens, scale)
-      travel = Math.max(0, Math.min(0.4, horizontalSpan / 2 - Math.atan(screenAspect * scale) - 0.035))
+      gl.viewport(0, 0, surface.width, surface.height); gl.uniform1f(aspect, screenAspect)
     }
     const source = new Image()
     source.onload = () => {
       if (disposed) return
       if (source.width > gl.getParameter(gl.MAX_TEXTURE_SIZE) || source.height > gl.getParameter(gl.MAX_TEXTURE_SIZE)) return
       gl.bindTexture(gl.TEXTURE_2D, texture); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, source)
-      loaded = true; resize(); setReady(true); frame = requestAnimationFrame(draw)
+      loaded = true; resize(); gl.uniform1f(rotation, yaw); gl.drawArrays(gl.TRIANGLES, 0, 6)
+      setReady(true); frame = requestAnimationFrame(draw)
     }
     source.src = image
     const observer = new ResizeObserver(resize); observer.observe(surface)
@@ -79,7 +79,7 @@ function Panorama({ image, span }: { image: string; span?: number }) {
     const lost = (event: Event) => { event.preventDefault(); loaded = false; disposed = true; cancelAnimationFrame(frame); setReady(false) }
     document.addEventListener('visibilitychange', visibility); surface.addEventListener('webglcontextlost', lost)
     return () => { source.onload = null; observer.disconnect(); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', visibility); surface.removeEventListener('webglcontextlost', lost); cleanup() }
-  }, [image, span])
+  }, [image, verticalSpan, initialYaw, matchSeam])
   return <canvas ref={canvas} className={`hero-panorama ${ready ? 'ready' : ''}`} aria-hidden="true" />
 }
 
@@ -101,6 +101,6 @@ export function HeroBackground({ slide, motion, active }: { slide: HeroSlide; mo
   const animate = motion && !reducedMotion && active
   const panorama = slide.custom ? slide.panorama && image : slide.panoramaImage
   return <div className={`hero-image ${active ? 'active' : ''} ${animate && !panorama ? 'hero-image-moving' : ''}`} data-background-id={slide.id} style={{ backgroundImage: image ? `url("${image}")` : undefined }}>
-    {animate && panorama && <Panorama key={slide.id} image={panorama} span={slide.panoramaSpan} />}
+    {animate && panorama && <Panorama key={slide.id} image={panorama} verticalSpan={slide.panoramaVerticalSpan} initialYaw={slide.panoramaYaw} matchSeam={!slide.custom} />}
   </div>
 }
