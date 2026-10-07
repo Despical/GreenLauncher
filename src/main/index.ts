@@ -1,5 +1,7 @@
 import { profileJoinTarget } from '../shared/profile-settings'
 import { chooseProfileIcon } from './profile-icons'
+import { HeroBackgrounds } from './hero-backgrounds'
+import { maxHeroBackgrounds } from '../shared/hero-backgrounds'
 import { WorldService } from './worlds'
 import { NsisUpdater } from 'electron-updater'
 import { LauncherUpdater } from './updater'
@@ -412,8 +414,20 @@ else {
       }
       return versions
     })
-    handle('launcher:save-settings', (settings: Partial<LauncherSettings>) => {
+    const heroBackgrounds = new HeroBackgrounds(store.dataPath)
+    handle('launcher:choose-hero-backgrounds', async (limit: number) => {
+      const remaining = Number.isInteger(limit) ? Math.max(0, Math.min(maxHeroBackgrounds, limit)) : 0
+      if (!remaining) return []
+      const selection = await dialog.showOpenDialog(mainWindow!, { title: translate(store.get().settings.language, 'Arka plan görselleri seç'), properties: ['openFile', 'multiSelections'], filters: [{ name: translate(store.get().settings.language, 'Görseller'), extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
+      if (selection.canceled) return []
+      if (selection.filePaths.length > remaining) throw new Error(translate(store.get().settings.language, 'En fazla {count} özel arka plan ekleyebilirsin.', { count: maxHeroBackgrounds }))
+      return heroBackgrounds.add(selection.filePaths)
+    })
+    handle('launcher:read-hero-background', (id: string, thumbnail?: boolean) => heroBackgrounds.read(id, thumbnail === true))
+    handle('launcher:save-settings', async (settings: Partial<LauncherSettings>) => {
+      const previous = store.get().settings.heroBackgrounds ?? []
       const updated = changed(store.updateSettings(settings))
+      await Promise.all(previous.filter(item => !updated.settings.heroBackgrounds?.some(current => current.id === item.id)).map(item => heroBackgrounds.remove(item.id)))
       downloads.configure(updated.settings)
       discord.setEnabled(updated.settings.discordPresence)
       minimizeToTray = updated.settings.minimizeToTray

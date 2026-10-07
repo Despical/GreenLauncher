@@ -38,9 +38,9 @@ import snapshotIcon from '../assets/minecraft-snapshot.png'
 import classicIcon from '../assets/minecraft-classic.png'
 import optifineIcon from '../assets/optifine-mark.png'
 import javaIcon from '../assets/java-original.svg'
-import overworldImage from '../assets/green-landscape.png'
-import netherImage from '../assets/nether-landscape.png'
-import endImage from '../assets/end-landscape.png'
+import { enabledHeroSlides } from './hero-slides'
+import { HeroBackground } from './HeroBackground'
+import { HeroSettings } from './HeroSettings'
 import packageJson from '../../../package.json'
 import './profile-workspace.css'
 import { ProfileSettingsPage } from './ProfileSettingsPage'
@@ -75,12 +75,6 @@ const relativeDate = (value: string, language: Language) => {
 const releaseNotesUrl = (version: GameVersion) => version.type === 'release'
   ? `https://www.minecraft.net/en-us/article/minecraft-java-edition-${version.id.replaceAll('.', '-')}`
   : 'https://www.minecraft.net/en-us/articles'
-const heroSlides = [
-  { label: '01 / THE OVERWORLD', short: 'Overworld', image: overworldImage, titleA: 'Yeni bir dünya', titleB: 'seni bekliyor.', description: 'Macerana kaldığın yerden devam et. Profilini seç ve oynamaya başla.' },
-  { label: '02 / THE NETHER', short: 'Nether', image: netherImage, titleA: 'Ateşin ötesine', titleB: 'yolculuk et.', description: 'Bilinmeyene açılan kapı burada. Hazırsan macerana devam et.' },
-  { label: '03 / THE END', short: 'End', image: endImage, titleA: 'Sonun ötesinde', titleB: 'yeni bir başlangıç.', description: 'Her keşif başka bir hikâye. Kendi yolunu seç ve dünyana dön.' }
-]
-
 function VersionGlyph({ type = 'release', custom = false }: { type?: VersionType; custom?: boolean }) {
   return <img src={custom ? customIcon : type === 'release' ? releaseIcon : type === 'snapshot' ? snapshotIcon : classicIcon} alt="" draggable={false} />
 }
@@ -366,7 +360,9 @@ function App() {
   const [deletingJavaPath, setDeletingJavaPath] = useState<string | null>(null)
   const [pendingJavaDelete, setPendingJavaDelete] = useState<JavaRuntimeInfo | null>(null)
   const [errorLogs, setErrorLogs] = useState<LauncherErrorEntry[]>([])
-  const [heroIndex, setHeroIndex] = useState(0)
+  const [heroId, setHeroId] = useState('overworld')
+  const heroSlides = useMemo(() => enabledHeroSlides(state?.settings ?? {}), [state?.settings.heroBackgrounds, state?.settings.disabledHeroBackgrounds])
+  const heroIndex = Math.max(0, heroSlides.findIndex(slide => slide.id === heroId))
   const [heroMenuOpen, setHeroMenuOpen] = useState(false)
   const [pendingVersionDelete, setPendingVersionDelete] = useState<string | null>(null)
   const [versionContextMenu, setVersionContextMenu] = useState<{ id: string; installed: boolean; x: number; y: number } | null>(null)
@@ -815,11 +811,11 @@ function App() {
           {account ? <SkinPreview key={account.id} account={account} t={t} onNotify={notifyCape} active={page === 'account'} onViewChange={setAccountView} /> : <div className="account-page-empty"><div className="account-page-empty-icon"><UserRound size={34} /></div><h3>{t('Hesap ekle')}</h3><p>{t('Microsoft hesabını bağla veya bir çevrimdışı oyuncu adı seç.')}</p><button className="modal-primary" onClick={() => setAccountOpen(true)}><UsersRound size={18} /> {t('Hesapları yönet')}</button><button className="account-page-offline-add" onClick={() => { setOfflineCreateOpen(true) }}><WifiOff size={17} /> {t('Çevrimdışı hesap ekle')}</button></div>}
         </div></div>}
         {page === 'home' && <><div className="home-hero">
-          {heroSlides.map((slide, index) => <div key={slide.label} className={`hero-image ${index === heroIndex ? 'active' : ''}`} style={{ backgroundImage: `url("${slide.image}")` }} />)}
+          {heroSlides.map((slide, index) => <HeroBackground key={slide.id} slide={slide} active={index === heroIndex} motion={state.settings.heroPanorama !== false} />)}
           <div className="hero-shade" />
           <div className="hero-content"><h1>{t(heroSlides[heroIndex].titleA)}<br /><em>{t(heroSlides[heroIndex].titleB)}</em></h1><p>{t(heroSlides[heroIndex].description)}</p><div className="hero-actions"><RunningPlayButton instances={instances} disabled={!profile || launchBusy} preparing={launchBusy} onPlay={() => profile && playProfile(profile.id)} t={t} /><button className="ghost-button" onClick={() => setPage('versions')}>{t('Sürümlere göz at')} <ChevronRight size={17} /></button></div></div>
-          <div className={`hero-switcher ${heroMenuOpen ? 'open' : ''}`} onMouseEnter={() => setHeroMenuOpen(true)} onMouseLeave={() => setHeroMenuOpen(false)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setHeroMenuOpen(false) }}><button className="hero-current" aria-expanded={heroMenuOpen} aria-haspopup="menu" onClick={() => setHeroMenuOpen(open => !open)}><span>{heroSlides[heroIndex].label}</span><ChevronUp size={14} /></button><div className="hero-switch-menu">{heroSlides.map((slide, index) => <button key={slide.label} className={index === heroIndex ? 'active' : ''} onClick={() => { setHeroIndex(index); setHeroMenuOpen(false) }}><span>{String(index + 1).padStart(2, '0')}</span>{slide.short}</button>)}<div className="hero-menu-divider" /><button className="hero-motion-toggle" onClick={toggleHeroAnimation}>{state.settings.animateHero ? <Pause size={14} /> : <Play size={14} />} {state.settings.animateHero ? t('Geçişleri durdur') : t('Geçişleri başlat')}</button></div></div>
-          {state.settings.animateHero && <div className="hero-progress" key={heroIndex}><div className="hero-progress-fill" onAnimationEnd={() => setHeroIndex(current => (current + 1) % heroSlides.length)} /></div>}
+          <div className={`hero-switcher ${heroMenuOpen ? 'open' : ''}`} onMouseEnter={() => setHeroMenuOpen(true)} onMouseLeave={() => setHeroMenuOpen(false)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setHeroMenuOpen(false) }}><button className="hero-current" aria-expanded={heroMenuOpen} aria-haspopup="menu" onClick={() => setHeroMenuOpen(open => !open)}><span>{heroSlides[heroIndex].label}</span><ChevronUp size={14} /></button><div className="hero-switch-menu">{heroSlides.map((slide, index) => <button key={slide.label} className={index === heroIndex ? 'active' : ''} onClick={() => { setHeroId(slide.id); setHeroMenuOpen(false) }}><span>{String(index + 1).padStart(2, '0')}</span>{slide.short}</button>)}<div className="hero-menu-divider" /><button className="hero-motion-toggle" onClick={toggleHeroAnimation}>{state.settings.animateHero ? <Pause size={14} /> : <Play size={14} />} {state.settings.animateHero ? t('Geçişleri durdur') : t('Geçişleri başlat')}</button></div></div>
+          {state.settings.animateHero && heroSlides.length > 1 && <div className="hero-progress" key={heroSlides[heroIndex].id}><div className="hero-progress-fill" onAnimationEnd={() => setHeroId(heroSlides[(heroIndex + 1) % heroSlides.length].id)} /></div>}
         </div>
           {!online && <div className="offline-banner"><WifiOff size={19} /><div><strong>{t('Çevrimdışı görünüm')}</strong><span>{offlineStatus.accountReady && offlineStatus.versionReady ? t('Bu hesap ve kurulu sürümle oynayabilirsin.') : t('Çevrimdışı hesap veya doğrulanmış Microsoft oturumu ve kurulu sürüm gerekir.')}</span></div></div>}
           <div className="home-bottom">
@@ -909,7 +905,6 @@ function App() {
             <div className="language-setting"><div><strong>{t('Arayüz dili')}</strong><p>{t('Menülerde ve sayfalarda kullanılacak dili seç.')}</p></div><LanguageMenu value={language} language={language} onChange={value => updateSettings({ language: value })} /></div>
             <button className="setting-toggle" onClick={() => updateSettings({ showSnapshots: !settingsDraft.showSnapshots })}><span><strong>{t('Snapshot sürümleri')}</strong><small>{t('Erken sürümleri hızlı seçimde göster')}</small></span><span className={`switch ${settingsDraft.showSnapshots ? 'on' : ''}`} /></button>
             <button className="setting-toggle" onClick={() => updateSettings({ closeOnLaunch: !settingsDraft.closeOnLaunch })}><span><strong>{t('Oyun açılınca küçült')}</strong><small>{t("Launcher'ı görev çubuğuna al")}</small></span><span className={`switch ${settingsDraft.closeOnLaunch ? 'on' : ''}`} /></button>
-            <button className="setting-toggle" onClick={() => updateSettings({ animateHero: !settingsDraft.animateHero })}><span><strong>{t('Ana ekran geçişleri')}</strong><small>{t('Overworld, Nether ve End arasında otomatik geçiş yap')}</small></span><span className={`switch ${settingsDraft.animateHero ? 'on' : ''}`} /></button>
             <button className="setting-toggle" onClick={() => updateSettings({ discordPresence: !settingsDraft.discordPresence })}><span><strong>{t('Discord etkinliği')}</strong><small>{t('Launcher etkinliğini ve oynadığın Minecraft sürümünü Discord profilinde göster')}</small></span><span className={`switch ${settingsDraft.discordPresence ? 'on' : ''}`} /></button>
             <button className="setting-toggle" onClick={() => updateSettings({ minimizeToTray: !settingsDraft.minimizeToTray })}><span><strong>{t('Kapatınca sistem tepsisine küçült')}</strong><small>{t('Pencereyi kapattığında launcher arka planda açık kalsın')}</small></span><span className={`switch ${settingsDraft.minimizeToTray ? 'on' : ''}`} /></button>
             <section className="playtime-settings" aria-labelledby="playtime-settings-title">
@@ -918,6 +913,7 @@ function App() {
               <button type="button" role="checkbox" aria-checked={settingsDraft.savePlaytime !== false} className="setting-toggle" onClick={() => updateSettings({ savePlaytime: settingsDraft.savePlaytime === false })}><span><strong>{t('Profillerde oynanan süreyi kaydet')}</strong><small>{t('Kapalıyken süreler yalnızca launcher açıkken tutulur; kayıtlar diskte saklanmaz.')}</small></span><span aria-hidden="true" className={`switch ${settingsDraft.savePlaytime !== false ? 'on' : ''}`} /></button>
               <button type="button" role="checkbox" aria-checked={settingsDraft.showTotalPlaytime !== false} className="setting-toggle" onClick={() => updateSettings({ showTotalPlaytime: settingsDraft.showTotalPlaytime === false })}><span><strong>{t('Profiller arasında oynanan toplam süreyi göster')}</strong><small>{t('Seçili hesabın tüm profillerindeki toplam oyun süresini Profillerim sayfasında göster.')}</small></span><span aria-hidden="true" className={`switch ${settingsDraft.showTotalPlaytime !== false ? 'on' : ''}`} /></button>
             </section>
+            <HeroSettings settings={settingsDraft} language={language} onChange={updateSettings} onNotice={setToast} />
             <div className="launcher-files"><button className="folder-link" onClick={() => window.launcher.openFolder()}><FolderOpen size={17} /> {t('Launcher dosyalarını aç')} <ArrowRight size={16} /></button><small className="data-path">{state.dataPath}</small></div>
           </div></>}
           {<div hidden={settingsTab !== 'logs'}><ErrorLogPanel entries={errorLogs} language={language} onOpenFile={() => run(() => window.launcher.openErrorLog())} onClear={() => run(async () => { setErrorLogs(await window.launcher.clearErrorLog()) }, t('Hata günlükleri temizlendi.'))} /></div>}

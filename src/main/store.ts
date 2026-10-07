@@ -8,6 +8,7 @@ import { normalizeServerAddress } from '../shared/server-launch'
 import { profilePlaytime } from '../shared/profile-settings'
 import { normalizeProfileIcon } from '../shared/profile-icons'
 import { minecraftWindowSize } from './game-window'
+import { normalizeHeroSettings } from '../shared/hero-backgrounds'
 
 function defaultSettings(): LauncherSettings {
   const primary = screen.getPrimaryDisplay()
@@ -22,6 +23,7 @@ function defaultSettings(): LauncherSettings {
     closeOnLaunch: false,
     showSnapshots: false,
     animateHero: true,
+    ...normalizeHeroSettings({}),
     discordPresence: true,
     minimizeToTray: false,
     downloadSpeedLimitKiB: 0,
@@ -65,6 +67,7 @@ export class LauncherStore {
     settings.savePlaytime = settings.savePlaytime !== false
     settings.showPlaytime = settings.showPlaytime !== false
     settings.showTotalPlaytime = settings.showTotalPlaytime !== false
+    Object.assign(settings, normalizeHeroSettings(settings))
     const playHistory = (Array.isArray(saved.playHistory) && saved.playHistory.length > 0 ? saved.playHistory.slice(0, 100) : (saved.profiles ?? []).filter(profile => profile.lastPlayed).map(profile => ({ id: randomUUID(), profileId: profile.id, profileName: profile.name, versionId: profile.versionId, at: profile.lastPlayed! }))).sort((a, b) => String(b.at).localeCompare(String(a.at)))
     const lastPlayedVersion = playHistory.find(item => /^[a-zA-Z0-9._-]{1,90}$/.test(item.versionId))?.versionId
     this.state = {
@@ -155,6 +158,7 @@ export class LauncherStore {
     if (typeof changes.closeOnLaunch === 'boolean') settings.closeOnLaunch = changes.closeOnLaunch
     if (typeof changes.showSnapshots === 'boolean') settings.showSnapshots = changes.showSnapshots
     if (typeof changes.animateHero === 'boolean') settings.animateHero = changes.animateHero
+    Object.assign(settings, normalizeHeroSettings({ ...settings, ...changes }))
     if (typeof changes.discordPresence === 'boolean') settings.discordPresence = changes.discordPresence
     if (typeof changes.minimizeToTray === 'boolean') settings.minimizeToTray = changes.minimizeToTray
     if (changes.downloadSpeedLimitKiB !== undefined) settings.downloadSpeedLimitKiB = bounded(changes.downloadSpeedLimitKiB, settings.downloadSpeedLimitKiB ?? 0, 0, 102400)

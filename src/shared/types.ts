@@ -63,6 +63,8 @@ export interface CleanupItem { path: string; kind: 'logs' | 'crashReports' | 've
 export interface CleanupPreview { logs: number; crashReports: number; versions: number; bytes: number; items: CleanupItem[] }
 export interface OfflineStatus { accountReady: boolean; versionReady: boolean }
 
+export interface HeroBackground { id: string; name: string; enabled: boolean; panorama: boolean }
+
 export interface LauncherSettings {
   language: 'tr' | 'en' | 'de' | 'fr' | 'ru' | 'pl'
   javaPath: string
@@ -72,6 +74,9 @@ export interface LauncherSettings {
   closeOnLaunch: boolean
   showSnapshots: boolean
   animateHero: boolean
+  heroPanorama?: boolean
+  heroBackgrounds?: HeroBackground[]
+  disabledHeroBackgrounds?: Array<'overworld' | 'nether' | 'end'>
   discordPresence: boolean
   minimizeToTray: boolean
   downloadSpeedLimitKiB?: number
@@ -217,6 +222,8 @@ export interface LauncherApi {
   getState(): Promise<LauncherState>
   getVersions(refresh?: boolean | 'if-stale'): Promise<GameVersion[]>
   saveSettings(settings: Partial<LauncherSettings>): Promise<LauncherState>
+  chooseHeroBackgrounds(limit: number): Promise<HeroBackground[]>
+  readHeroBackground(id: string, thumbnail?: boolean): Promise<string | null>
   saveProfile(profile: Omit<LauncherProfile, 'id' | 'createdAt'> & { id?: string }): Promise<LauncherState>
   cloneProfile(id: string): Promise<{ state: LauncherState; profileId: string }>
   exportProfile(id: string): Promise<string | null>
