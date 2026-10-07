@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { createPortal } from 'react-dom'
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, Layers3, Check, ChevronDown, ChevronRight, ChevronUp, CloudDownload, ExternalLink, FolderOpen,
-  Copy, FileText, ScrollText, Home, LoaderCircle, LogIn, LogOut, Maximize2, MemoryStick, Minus, Monitor, MoreHorizontal, Pause,
+  Copy, FileText, ScrollText, Home, LoaderCircle, LogIn, LogOut, Maximize2, Minus, Monitor, MoreHorizontal, Pause,
   GripVertical, HardDrive, Image as ImageIcon, Info, Languages, Package, Pencil, Pin, Play, Plus, Search, Settings2, ShieldCheck, SlidersHorizontal, Trash2, UserRound,
   Globe2, Sparkles, Server, UsersRound, WifiOff, X
 } from 'lucide-react'
@@ -206,18 +206,11 @@ function ProfileCardContent({ item, language, busy, instances = [], onPlay, onMe
   onPin: () => void
 }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
-  const [modCount, setModCount] = useState(0)
-  useEffect(() => {
-    let active = true
-    window.launcher.getProfileMods(item.id).then(mods => { if (active) setModCount(mods.length) }).catch(() => { if (active) setModCount(0) })
-    return () => { active = false }
-  }, [item])
-  const versionDescription = `${profileVersionLabel(item)}${modCount ? ` · ${t('{count} mod', { count: modCount })}` : ''}`
+  const versionDescription = profileVersionLabel(item)
   return <>
-    <div className="profile-card-cover" style={{ '--profile-color': item.cover?.color ?? '#567fa3' } as CSSProperties}>{item.cover?.image && <img src={item.cover.image} alt="" />}</div>
-    <div className="profile-card-top"><h3 title={item.name}>{item.name}</h3><div className="profile-card-top-actions"><button className={`profile-pin ${item.pinned ? 'active' : ''}`} title={item.pinned ? t('Sabitlemeyi kaldır') : t('Üste sabitle')} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onPin() }}><Pin size={16} fill={item.pinned ? 'currentColor' : 'none'} /></button><button className="profile-more" title={t('Profil seçenekleri')} aria-label={`${item.name}: ${t('Profil seçenekleri')}`} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onMenu(event) }}><MoreHorizontal size={18} /></button></div></div>
-    <div className="profile-card-mid">{item.cover?.description && <p className="profile-description" title={item.cover.description}>{item.cover.description}</p>}<p className="profile-version" title={versionDescription}>{versionDescription}</p></div>
-    <div className="profile-stats"><span><MemoryStick size={14} /> {memoryGb(item.memoryMb)} GB RAM</span><span><Monitor size={14} /> {item.width} × {item.height}</span></div>
+    <div className="profile-card-top-actions"><button className={`profile-pin ${item.pinned ? 'active' : ''}`} title={item.pinned ? t('Sabitlemeyi kaldır') : t('Üste sabitle')} aria-label={`${item.name}: ${item.pinned ? t('Sabitlemeyi kaldır') : t('Üste sabitle')}`} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onPin() }}><Pin size={14} fill={item.pinned ? 'currentColor' : 'none'} /></button><button className="profile-more" title={t('Profil seçenekleri')} aria-label={`${item.name}: ${t('Profil seçenekleri')}`} onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onMenu(event) }}><MoreHorizontal size={16} /></button></div>
+    <div className="profile-card-icon"><ProfileIcon profile={item} /></div>
+    <div className="profile-card-identity"><h3 title={item.name}>{item.name}</h3><p className="profile-version" title={versionDescription}>{versionDescription}</p></div>
     <RunningPlayButton compact instances={instances.filter(instance => instance.profileId === item.id)} disabled={busy} onPlay={onPlay} t={t} />
 
   </>

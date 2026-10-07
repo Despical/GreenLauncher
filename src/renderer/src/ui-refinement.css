@@ -1,26 +1,22 @@
-/* Profile cards and their editor share a fixed cover area. */
+/* Compact profile tiles use the same configured icons as the workspace. */
 /* Heading actions must be available before any lazily loaded page is visited. */
 .servers-heading-actions { display:flex; flex:0 0 auto; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; max-width:100%; }
 .servers-heading-actions .heading-action { flex:none; white-space:nowrap; }
 .page-heading:has(> .servers-heading-actions) { gap:16px 20px; flex-wrap:wrap; }
 .page-heading:has(> .servers-heading-actions) > div:first-child { flex:1 1 240px; min-width:0; }
 @media(max-width:1150px) { .servers-heading-actions .heading-action { font-size:12px; padding:0 11px; } }
-.profile-card { min-height: 278px; padding: 0; border-radius: 10px; background: #141e27; }
-.profile-card .profile-card-cover { height: 164px; opacity: 1; background: linear-gradient(140deg,color-mix(in srgb,var(--profile-color) 42%,#142028),#16212c 75%); }
-.profile-card-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg,#0c131c55,#0c131c11 45%,#111c27e8); }
-.profile-card-cover img { opacity: .8; mask-image: none; }
-.profile-card .profile-card-top { min-height: 49px; padding: 18px 18px 0; align-items: flex-start; }
-.profile-card .profile-card-top > h3 { font-size: 17px; line-height: 30px; color: #f2f6fa; }
-.profile-card .profile-pin, .profile-card .profile-more { border-radius: 50%; background: #1b2638c9; border-color: #53657988; }
-.profile-card .profile-card-mid { display: flex; flex-direction: column; height: 115px; min-height: 115px; max-height: 115px; margin: 0; padding: 8px 18px 17px; }
-.profile-card .profile-description { margin: 0; max-height: 40px; line-height: 20px; color: #d0dae4; font-size: 12px; }
-.profile-card .profile-version { margin-top: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b5c6d8; font-size: 12px; }
-.profile-card .profile-stats { position: relative; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: center; gap: 18px; margin: 0; padding: 16px 18px; border-top: 1px solid #34424e; font-size: 14px; }
-.profile-card .profile-stats::after { content: ''; position: absolute; left: 50%; top: 16px; bottom: 16px; width: 1px; background: #4a5b6a; }
-.profile-card .profile-stats span { gap: 7px; white-space: nowrap; }
-.profile-card .profile-stats svg { width: 18px; height: 18px; flex: none; }
-.profile-card .profile-stats span + span { justify-content: flex-end; border-left: 0; padding-left: 0; }
-.profile-card > .profile-play { width: calc(100% - 36px); margin: auto 18px 17px; min-height: 43px; border-radius: 7px; }
+.profile-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 184px)); gap: 12px; align-items: start; }
+.profile-card { min-width: 0; min-height: 224px; padding: 30px 12px 12px; border-radius: 8px; background: #161b22; }
+.profile-card .profile-card-top-actions { position: absolute; top: 7px; right: 7px; gap: 4px; }
+.profile-card .profile-pin, .profile-card .profile-more { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border-radius: 5px; background: #21262d; border-color: #30363d; }
+.profile-card-icon { display: grid; place-items: center; height: 64px; margin: 0 auto 12px; pointer-events: none; }
+.profile-card-icon > img, .profile-card-icon > .profile-loader-icon { width: 64px; height: 64px; }
+.profile-card-icon img { display: block; max-width: 100%; object-fit: contain; }
+.profile-card-icon .profile-loader-icon[data-loader="none"] img { image-rendering: pixelated; }
+.profile-card-identity { min-width: 0; text-align: center; }
+.profile-card .profile-card-identity h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; height: 38px; margin: 0; font: 600 14px/19px 'Inter Variable', 'Segoe UI', sans-serif; color: var(--text); }
+.profile-card .profile-version { margin: 4px 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; line-height: 16px; }
+.profile-card > .profile-play { width: 100%; margin: auto 0 0; min-height: 34px; border-radius: 6px; font-size: 12px; }
 .profile-cover-preview { height: 164px; background: linear-gradient(140deg,color-mix(in srgb,var(--profile-color) 42%,#142028),#16212c 75%); }
 .profile-cover-preview > img { opacity: .8; }
 .profile-cover-preview > div { inset: 0; padding: 18px; gap: 8px; background: linear-gradient(180deg,#0c131c55,#0c131c11 45%,#111c27e8); }
