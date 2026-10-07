@@ -79,6 +79,14 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.18.1', date: '2026-10-07', title: 'Daha kompakt profiller', intro: 'Profil ikonları, sade seçimler ve daha uygun oyun pencereleri.', changes: [
+    'Profillerim sayfası, profil ikonlarının ve altında adlarının göründüğü kompakt kartlarla yenilendi; RAM ve pencere boyutu bilgileri kaldırıldı.',
+    'Profil kartları tek tıkla profil yönetimini açar; üç nokta menüsü ilgili kartın üzerine gelince veya klavyeyle odaklanınca görünür.',
+    'Profil sabitleme ve menüdeki Kapağı düzenle seçeneği kaldırıldı; profiller sürükleyerek sıralanabilir.',
+    'Ana sayfadaki profil seçicide ve açılır listesinde yalnızca profil ikonu ve adı gösterilir.',
+    'Profil paketi bırakma alanı tüm uygulamayı kapsar; arka plan karartılır ve hafif bulanıklaştırılır.',
+    'Varsayılan oyun penceresi normal boyutta açılır; ekranı dolduran eski pencere boyutları masaüstüne sığdırılır. Tam ekran tercihi ve kaydedilen özel boyutlar korunur.'
+  ] },
   { version: '0.18.0', date: '2026-10-05', title: 'Profilinde daha fazla kontrol', intro: 'Profil çalışma alanı, canlı günlükler ve daha düzenli içerik yönetimi.', changes: [
     'Profil çalışma alanında Minecraft sürümü, mod yükleyicisi, başlatma ayarları ve profil simgesi yönetilebilir.',
     'Modlar, kaynak paketleri ve shader paketleri profil içinde yönetilir; kartın tamamına tıklayarak ayrıntıları seçebilirsin.',
