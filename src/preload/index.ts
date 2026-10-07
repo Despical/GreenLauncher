@@ -28,7 +28,6 @@ const api: LauncherApi = {
   getDroppedFilePath: file => webUtils.getPathForFile(file),
   deleteProfile: id => invoke('delete-profile', id),
   reorderProfiles: ids => invoke('reorder-profiles', ids),
-  toggleProfilePin: id => invoke('toggle-profile-pin', id),
   selectProfile: id => invoke('select-profile', id),
   selectVersion: id => invoke('select-version', id),
   selectAccount: id => invoke('select-account', id),

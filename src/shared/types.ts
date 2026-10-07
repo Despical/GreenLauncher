@@ -44,7 +44,6 @@ export interface LauncherProfile {
   modLoader?: ModLoader
   modLoaderVersion?: string
   modpack?: { projectId: string; versionId: string; title: string; fileCount: number; provider?: ModProvider; sourceUrl?: string; versionNumber?: string; loader?: ModLoader }
-  pinned?: boolean
   lastPlayed?: string
   cover?: ProfileCover
   icon?: ProfileIconConfig
@@ -229,7 +228,6 @@ export interface LauncherApi {
   getDroppedFilePath(file: File): string
   deleteProfile(id: string): Promise<LauncherState>
   reorderProfiles(ids: string[]): Promise<LauncherState>
-  toggleProfilePin(id: string): Promise<LauncherState>
   selectProfile(id: string): Promise<LauncherState>
   selectVersion(id: string): Promise<LauncherState>
   selectAccount(id: string): Promise<LauncherState>

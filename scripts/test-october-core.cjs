@@ -14,8 +14,8 @@ async function main() {
   const { profileVersionLabel } = load('src/shared/profile-version.ts')
   let store = new LauncherStore()
   store.createOfflineAccount('OctoberQA')
-  assert.equal(store.get().settings.width, 2560)
-  assert.equal(store.updateSettings({ width: 640, height: 480 }).settings.height, 1440)
+  assert.equal(store.get().settings.width, 1280)
+  assert.equal(store.updateSettings({ width: 640, height: 480 }).settings.height, 720)
   const profile = { name: 'Locked pack', versionId: '1.20.4', javaPath: '', memoryMb: 4096, width: 2560, height: 1440 }
   const id = store.saveProfile(profile).selectedProfileId
   store.setModLoader(id, '1.20.4', 'fabric', '1.20.4-fabric-0.16.0')
@@ -41,7 +41,7 @@ async function main() {
   store.selectProfile(id)
   assert.equal(store.get().selectedVersionId, '1.20.4-fabric-0.16.0')
   store.selectProfile(other); assert.throws(() => store.selectVersion('1.21.1'))
-  console.log('PASS automatic display defaults, pack version/loader locks, restart, profile switching and runtime labels')
+  console.log('PASS windowed defaults, pack version/loader locks, restart, profile switching and runtime labels')
 
   const { DownloadManager } = load('src/main/download-manager.ts')
   const history = path.join(root, 'download-history.json')

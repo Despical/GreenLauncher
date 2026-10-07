@@ -230,7 +230,6 @@ handle('save-profile-cover',(id,cover)=>{state.profiles.find(p=>p.id===id).cover
 handle('create-profile-shortcut', () => 'C:/QA/Friend.lnk')
 handle('open-folder', () => null)
 handle('select-profile', id => {state.selectedProfileId=id;const profile=state.profiles.find(p=>p.id===id);state.selectedVersionId=profile.modLoaderVersion??profile.versionId;return changed()})
-handle('toggle-profile-pin',id=>{const profile=state.profiles.find(p=>p.id===id);profile.pinned=!profile.pinned;return changed()})
 handle('reorder-profiles',ids=>{state.profiles.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));return changed()})
 handle('delete-profile',id=>{state.profiles=state.profiles.filter(p=>p.id!==id);return changed()})
 handle('get-java-runtimes', () => process.argv.includes('--qa-final-polish') ? [{path:'C:\\Users\\DesignQA\\AppData\\Roaming\\GreenLauncher\\java\\java-25\\bin\\javaw.exe',version:'25.0.1',majorVersion:25,source:'Launcher tarafından kuruldu'},{path:'C:\\Program Files\\Eclipse Adoptium\\jdk-21\\bin\\javaw.exe',version:'21.0.8',majorVersion:21,source:'Bilgisayarda bulundu'},{path:'C:\\Program Files\\Java\\jdk-17\\bin\\java.exe',version:'17.0.12',majorVersion:17,source:'Bilgisayarda bulundu'}] : [])

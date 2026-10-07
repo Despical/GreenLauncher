@@ -472,7 +472,6 @@ else {
     handle('launcher:save-profile-cover', (id: string, cover: import('../shared/types').ProfileCover) => changed(store.setProfileCover(id, cover)))
     handle('launcher:delete-profile', (id: string) => changed(store.deleteProfile(id)))
     handle('launcher:reorder-profiles', (ids: string[]) => changed(store.reorderProfiles(ids)))
-    handle('launcher:toggle-profile-pin', (id: string) => changed(store.toggleProfilePin(id)))
     handle('launcher:select-profile', (id: string) => changed(store.selectProfile(id)))
     handle('launcher:select-version', (id: string) => changed(store.selectVersion(id)))
     handle('launcher:select-account', (id: string) => { accountChangeAllowed(); return changed(store.selectAccount(id)) })

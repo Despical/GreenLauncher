@@ -8,7 +8,8 @@ const { once, EventEmitter } = require('node:events')
 const ts = require('typescript')
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'green-profile-sessions-'))
 let directory = root, checks = 0
-const electron = { app: {getPath: () => directory}, screen: {getPrimaryDisplay: () => ({bounds:{width:1920,height:1080}})} }
+const qaDisplay = { bounds:{width:1920,height:1080}, workAreaSize:{width:1920,height:1040} }
+const electron = { app: {getPath: () => directory}, screen: {getPrimaryDisplay: () => qaDisplay, getDisplayMatching: () => qaDisplay}, BrowserWindow: {getFocusedWindow:()=>null,getAllWindows:()=>[]} }
 function load(file, mocks = {}) {
   const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
   const mod = {exports:{}}
@@ -30,7 +31,7 @@ const second = store.createOfflineAccount('PlayerTwo').selectedAccountId
 check('new account has an empty profile and history list',()=>{assert.equal(store.get().profiles.length,0);assert.equal(store.get().selectedProfileId,null);assert.equal(store.get().playHistory.length,0)})
 const c = store.saveProfile({...profile('First world'),accountId:first}).selectedProfileId
 check('profile ownership cannot be supplied by caller',()=>assert.equal(store.get().profiles[0].accountId,second))
-for (const action of [()=>store.selectProfile(a),()=>store.deleteProfile(a),()=>store.toggleProfilePin(a),()=>store.saveProfile({...profile('Intruder'),id:a}),()=>store.setModLoader(a,'1.21.1','fabric','fabric-test'),()=>store.setModpack(a,{}),()=>store.reorderProfiles([a])]) check('foreign profile operation rejected',()=>assert.throws(action))
+for (const action of [()=>store.selectProfile(a),()=>store.deleteProfile(a),()=>store.saveProfile({...profile('Intruder'),id:a}),()=>store.setModLoader(a,'1.21.1','fabric','fabric-test'),()=>store.setModpack(a,{}),()=>store.reorderProfiles([a])]) check('foreign profile operation rejected',()=>assert.throws(action))
 store.markPlayed(c,'1.21.1')
 store.selectAccount(first)
 check('account selection restores the bound profile version',()=>{assert.equal(store.get().selectedProfileId,b);assert.equal(store.get().selectedVersionId,'1.20.4');assert.equal(store.get().profiles.length,2);assert.equal(store.get().playHistory.length,0)})
@@ -38,6 +39,9 @@ store.selectProfile(a)
 check('selecting another profile restores its version',()=>assert.equal(store.get().selectedVersionId,'1.21.1'))
 store.reorderProfiles([b,a])
 check('reordering keeps other accounts profiles',()=>assert.equal(store.allProfiles().find(p=>p.id===c).accountId,second))
+store.allProfiles().find(p=>p.id===a).pinned=true
+store.reorderProfiles([b,a])
+check('legacy pinned profiles no longer affect requested order',()=>assert.deepEqual(store.get().profiles.map(p=>p.id),[b,a]))
 store = new LauncherStore()
 check('ownership persists across restart',()=>{assert.equal(store.get().selectedAccountId,first);assert.equal(store.get().profiles.length,2);assert.equal(store.allProfiles().length,3)})
 store.removeAccount(first)
@@ -85,14 +89,19 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
  try {
   const windowOptions = path.join(store.gamePath(store.get().profiles.find(p=>p.id===a)), 'options.txt')
   fs.writeFileSync(windowOptions, 'fullscreen:true\ngamma:0.5\n')
+  store.saveProfile({...store.get().profiles.find(p=>p.id===a),width:1920,height:1080})
   assert.equal((await game.play(a)).status,'started')
   check('windowed profile resets remembered fullscreen before spawn and preserves other options',()=>{assert.equal(fs.readFileSync(windowOptions,'utf8'),'fullscreen:false\ngamma:0.5\n');assert.equal(options.at(-1).resolution.fullscreen,false)})
+  check('monitor-sized legacy profile launches in a smaller window without overwriting its saved dimensions',()=>{assert.equal(options.at(-1).resolution.width,1280);assert.equal(options.at(-1).resolution.height,720);assert.equal(store.get().profiles.find(p=>p.id===a).width,1920)})
   check('actual child PID recorded',()=>{assert.equal(game.getRunningInstances()[0].pid,children[0].pid);assert.equal(game.getRunningInstances()[0].accountId,first);assert.equal(game.getLaunchState().preparing,false)})
   check('launch header records the actual username and UUID in pink diagnostic lines',()=>{const lines=game.console.snapshot(a).lines;assert.ok(lines.some(line=>line.level==='launcher'&&line.text==='Kullanıcı adı: PlayerOne'));assert.ok(lines.some(line=>line.level==='launcher'&&line.text===`UUID: ${first}`))})
   const confirmation=await game.play(a)
   check('second launch requires confirmation and spawns nothing',()=>{assert.equal(confirmation.status,'confirmation-required');assert.equal(confirmation.instances.length,1);assert.equal(children.length,1)})
   fs.writeFileSync(windowOptions, 'fullscreen:true\ngamma:0.75\n')
+  store.saveProfile({...store.get().profiles.find(p=>p.id===a),fullscreen:true})
   assert.equal((await game.play(a,undefined,true)).status,'started')
+  check('explicit fullscreen mode still reaches launch with a smaller F11 return window',()=>{assert.equal(options.at(-1).resolution.fullscreen,true);assert.equal(options.at(-1).resolution.width,1280);assert.equal(options.at(-1).resolution.height,720)})
+  store.saveProfile({...store.get().profiles.find(p=>p.id===a),fullscreen:false})
   check('another instance never rewrites options used by a running game',()=>assert.equal(fs.readFileSync(windowOptions,'utf8'),'fullscreen:true\ngamma:0.75\n'))
   check('confirmed second launch tracks two distinct processes',()=>{assert.equal(game.getRunningInstances().length,2);assert.notEqual(children[0].pid,children[1].pid)})
   await stop(children[0])

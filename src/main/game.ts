@@ -1,6 +1,6 @@
 import { diskSpace } from './disk-space'
 import { WorldService } from './worlds'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, screen, shell } from 'electron'
 import { cpus, freemem, totalmem, platform, release, arch } from 'node:os'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
@@ -9,7 +9,7 @@ import { LibraryInfo, MinecraftFolder, Version, launch, type ResolvedVersion } f
 import { normalizeServerAddress, serverLaunchMode, serverLaunchOptions } from '../shared/server-launch'
 import { customRuntime, customJavaVersion, customResolvedVersion } from './custom-runtime'
 import { saveMinecraftServerPreference } from './server-preference'
-import { saveMinecraftWindowPreference } from './game-window'
+import { minecraftWindowSize, saveMinecraftWindowPreference } from './game-window'
 import { offlineAccount } from './offline-account'
 import type { ServerJoinPreference } from '../shared/types'
 import {
@@ -644,6 +644,8 @@ export class GameService {
       } catch { /* Optional diagnostics must not prevent a game launch. */ }
       const memory = profileMemory(profile, state.settings)
       const extraJVMArgs = [...(profile.jvmArgs?.trim() ? parseJvmArgs(profile.jvmArgs) : []), ...permGenArgument(profile, javaInfo?.majorVersion)]
+      const display = screen.getDisplayMatching(BrowserWindow.getFocusedWindow()?.getBounds() ?? BrowserWindow.getAllWindows()[0]?.getBounds() ?? screen.getPrimaryDisplay().bounds)
+      const windowSize = minecraftWindowSize(profile, display.workAreaSize)
       const process = await launch({
         version,
         javaPath,
@@ -656,7 +658,7 @@ export class GameService {
         launcherName: 'Green Launcher',
         launcherBrand: 'GreenLauncher',
         ...memory,
-        resolution: { width: profile.width, height: profile.height, fullscreen: profile.fullscreen === true },
+        resolution: { ...windowSize, fullscreen: profile.fullscreen === true },
         ...(worldId !== undefined ? { quickPlaySingleplayer: worldId } : serverLaunchOptions(version.minecraftVersion || profile.versionId, serverAddress)),
         extraJVMArgs,
         extraExecOption: { detached: false, windowsHide: true }
@@ -668,7 +670,7 @@ export class GameService {
       this.console.begin(this.sessions.get(id)!, accessToken ? [accessToken] : [])
       let mods: string[] = []
       try { mods = readdirSync(join(gamePath, 'mods')).filter(name => /\.jar(?:\.disabled)?$/i.test(name)).sort().map(name => `${name.endsWith('.disabled') ? '[-]' : '[+]'} ${name}`) } catch { /* A vanilla profile has no mods directory. */ }
-      for (const line of gameConsoleHeader({ launcherVersion: app.getVersion?.() ?? '', profile: profile.name, username: account.name, uuid: account.id, mode: offlineAccount ? 'offline' : 'microsoft', gamePath, javaPath, javaVersion: javaInfo?.version ?? String(javaInfo?.majorVersion ?? ''), os: `${platform()} ${release()} (${arch()})`, cpu: cpus()[0]?.model.trim() ?? '', totalMemoryMb: Math.round(totalmem() / 1024 ** 2), availableMemoryMb: Math.round(freemem() / 1024 ** 2), gpu, minecraftVersion: version.minecraftVersion || profile.versionId, loader: profile.modLoader ? `${profile.modLoader} · ${versionId}` : undefined, mainClass: version.mainClass, libraries: (version.libraries ?? []).map(library => library.name), mods, width: profile.width, height: profile.height, fullscreen: profile.fullscreen === true, javaArguments: [`-Xms${memory.minMemory}m`, `-Xmx${memory.maxMemory}m`, ...extraJVMArgs], pid: process.pid }, state.settings.language)) this.console.append(id, line, 'launcher')
+      for (const line of gameConsoleHeader({ launcherVersion: app.getVersion?.() ?? '', profile: profile.name, username: account.name, uuid: account.id, mode: offlineAccount ? 'offline' : 'microsoft', gamePath, javaPath, javaVersion: javaInfo?.version ?? String(javaInfo?.majorVersion ?? ''), os: `${platform()} ${release()} (${arch()})`, cpu: cpus()[0]?.model.trim() ?? '', totalMemoryMb: Math.round(totalmem() / 1024 ** 2), availableMemoryMb: Math.round(freemem() / 1024 ** 2), gpu, minecraftVersion: version.minecraftVersion || profile.versionId, loader: profile.modLoader ? `${profile.modLoader} · ${versionId}` : undefined, mainClass: version.mainClass, libraries: (version.libraries ?? []).map(library => library.name), mods, width: windowSize.width, height: windowSize.height, fullscreen: profile.fullscreen === true, javaArguments: [`-Xms${memory.minMemory}m`, `-Xmx${memory.maxMemory}m`, ...extraJVMArgs], pid: process.pid }, state.settings.language)) this.console.append(id, line, 'launcher')
       this.console.attach(id, process.stdout, 'info')
       this.console.attach(id, process.stderr, 'error')
       process.once('close', (code, signal) => {

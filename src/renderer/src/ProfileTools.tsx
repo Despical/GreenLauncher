@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowDownToLine, Copy, FolderOpen, Image, Layers3, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import type { LauncherProfile, ProfileCover } from '../../shared/types'
 import { AccountDialog } from './AccountControls'
@@ -6,7 +7,7 @@ import { translate, type Language } from './i18n'
 import { profileVersionLabel } from '../../shared/profile-version'
 import './profiles.css'
 
-export type ProfileAction = 'manage' | 'edit' | 'cover' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
+export type ProfileAction = 'manage' | 'edit' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
 
 export function ProfileMenu({ profile, x, y, language, pending, onClose, onAction }: {
   profile: LauncherProfile; x: number; y: number; language: Language; pending: boolean
@@ -42,7 +43,7 @@ export function ProfileMenu({ profile, x, y, language, pending, onClose, onActio
   }, [])
   const actions = [
     { id: 'manage', title: 'Profili yönet', icon: Layers3 },
-    { id: 'edit', title: 'Profili düzenle', icon: Pencil }, { id: 'cover', title: 'Kapağı düzenle', icon: Image },
+    { id: 'edit', title: 'Profili düzenle', icon: Pencil },
     { id: 'clone', title: 'Profili klonla', icon: Copy }, { id: 'export', title: 'Dışa aktar', icon: Upload },
     { id: 'repair', title: 'Dosyaları onar', icon: ShieldCheck }, { id: 'shortcut', title: 'Masaüstüne kısayol oluştur', icon: Monitor },
     { id: 'delete', title: 'Profili sil', icon: Trash2 }
@@ -77,4 +78,4 @@ export function ProfileCoverEditor({ profile, language, onClose, onSaved, onNoti
   </AccountDialog>
 }
 
-export function ProfileDropHint({ language }: { language: Language }) { return <div className="profile-drop-hint"><ArrowDownToLine size={34} /><strong>{translate(language, 'Profil paketini buraya bırak')}</strong><span>Green Launcher · .glprofile / Modrinth · .mrpack</span></div> }
+export function ProfileDropHint({ language }: { language: Language }) { return createPortal(<div className="profile-drop-hint"><ArrowDownToLine size={34} /><strong>{translate(language, 'Profil paketini buraya bırak')}</strong><span>Green Launcher · .glprofile / Modrinth · .mrpack</span></div>, document.body) }

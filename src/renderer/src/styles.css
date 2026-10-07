@@ -711,9 +711,6 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 /* Library, activity and profile launch options */
 .side-nav { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
 .sidebar-spacer { min-height: 10px; }
-.profile-pin { width: 27px; height: 27px; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: #7d8d9d; }
-.profile-pin:hover { background: #303d49; color: #d6e3ee; }
-.profile-pin.active { color: #87bce3; }
 .profile-fullscreen-toggle { display: flex; align-items: center; justify-content: space-between; grid-column: 1/-1; width: 100%; padding: 10px 12px; border: 1px solid #394653; border-radius: 6px; background: #171f28; color: #e6edf3; text-align: left; }
 .profile-fullscreen-toggle span:first-child { display: flex; flex-direction: column; gap: 4px; }
 .profile-fullscreen-toggle strong { font-size: 13px; }
@@ -1212,9 +1209,8 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .profile-card .profile-card-top { align-items: center; gap: 10px; min-height: 30px; }
 .profile-card .profile-card-top > h3 { margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-card .profile-card-top-actions { flex: none; gap: 5px; }
-.profile-card .profile-pin, .profile-card .profile-more, .profile-card .profile-grip { width: 30px; height: 30px; padding: 6px; margin: 0; border: 1px solid #484f58; border-radius: 6px; background: #21262d; color: #b1bac4; }
-.profile-card .profile-pin:hover, .profile-card .profile-more:hover { background: #30363d; border-color: #6e7681; color: #fff; }
-.profile-card .profile-pin.active { color: #e6edf3; }
+.profile-card .profile-more, .profile-card .profile-grip { width: 30px; height: 30px; padding: 6px; margin: 0; border: 1px solid #484f58; border-radius: 6px; background: #21262d; color: #b1bac4; }
+.profile-card .profile-more:hover { background: #30363d; border-color: #6e7681; color: #fff; }
 .profile-card .profile-card-mid { min-height: 88px; max-height: 88px; overflow: hidden; margin-top: 11px; }
 .profile-card .profile-card-mid > p:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .profile-card .profile-description { margin-top: 10px; max-height: 38px; font-size: 12px; line-height: 19px; color: #b1bac4; -webkit-line-clamp: 2; }
@@ -1227,7 +1223,7 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .variant-trigger:hover, .variant-trigger[aria-expanded=true] { background: var(--dropdown-hover); border-color: #638b70; }
 .dropdown-menu .dropdown-search input:focus-visible { outline: none; box-shadow: none; }
 .profile-card .profile-grip:hover { background: #30363d; border-color: #6e7681; color: #fff; }
-.profile-card .profile-pin:focus-visible, .profile-card .profile-more:focus-visible { outline: 2px solid #b1bac4; outline-offset: 2px; }
+.profile-card .profile-more:focus-visible { outline: 2px solid #b1bac4; outline-offset: 2px; }
 
 /* Shared opaque surfaces include menus rendered into body portals. */
 body .dropdown-menu, body .mods-select .dropdown-menu, body .sidebar-account .account-switcher,

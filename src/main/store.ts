@@ -7,15 +7,18 @@ import type { GameAccount, LauncherProfile, LauncherSettings, LauncherState, Pro
 import { normalizeServerAddress } from '../shared/server-launch'
 import { profilePlaytime } from '../shared/profile-settings'
 import { normalizeProfileIcon } from '../shared/profile-icons'
+import { minecraftWindowSize } from './game-window'
 
 function defaultSettings(): LauncherSettings {
-  const display = screen.getPrimaryDisplay().bounds
+  const primary = screen.getPrimaryDisplay()
+  const display = primary.workAreaSize ?? primary.bounds
+  const window = minecraftWindowSize({ width: 1280, height: 720 }, display)
   return {
   language: 'tr',
   javaPath: '',
   memoryMb: 4096,
-  width: display.width,
-  height: display.height,
+  width: window.width,
+  height: window.height,
     closeOnLaunch: false,
     showSnapshots: false,
     animateHero: true,
@@ -98,13 +101,6 @@ export class LauncherStore {
     }
     if (this.state.selectedProfileId && !this.state.profiles.some(p => p.id === this.state.selectedProfileId)) this.state.selectedProfileId = null
     if (this.state.selectedAccountId && !this.state.accounts.some(a => a.id === this.state.selectedAccountId)) this.state.selectedAccountId = null
-    if (saved.settings?.width === 1280 && saved.settings?.height === 720) {
-      this.state.settings.width = defaults.width
-      this.state.settings.height = defaults.height
-      for (const profile of this.state.profiles) {
-        if (profile.width === 1280 && profile.height === 720) { profile.width = defaults.width; profile.height = defaults.height }
-      }
-    }
     if (!saved.accountSelections) this.rememberSelection()
     this.restoreSelection()
     if (migrating) this.save()
@@ -153,9 +149,9 @@ export class LauncherStore {
     if (changes.language && ['tr', 'en', 'de', 'fr', 'ru', 'pl'].includes(changes.language)) settings.language = changes.language
     if (typeof changes.javaPath === 'string') settings.javaPath = changes.javaPath.trim() && !this.isStandardMinecraftPath(changes.javaPath.trim()) ? changes.javaPath.trim() : ''
     if (changes.memoryMb !== undefined) settings.memoryMb = bounded(changes.memoryMb, settings.memoryMb, 1024, 32768)
-    const display = screen.getPrimaryDisplay().bounds
-    settings.width = display.width
-    settings.height = display.height
+    const defaults = defaultSettings()
+    settings.width = defaults.width
+    settings.height = defaults.height
     if (typeof changes.closeOnLaunch === 'boolean') settings.closeOnLaunch = changes.closeOnLaunch
     if (typeof changes.showSnapshots === 'boolean') settings.showSnapshots = changes.showSnapshots
     if (typeof changes.animateHero === 'boolean') settings.animateHero = changes.animateHero
@@ -220,7 +216,6 @@ export class LauncherStore {
       modLoader: current?.modpack ? current.modLoader : input.modLoader,
       modLoaderVersion: current?.modpack ? current.modLoaderVersion : input.modLoaderVersion,
       modpack: current?.versionId === input.versionId ? current.modpack : undefined,
-      pinned: current?.pinned ?? false,
       lastPlayed: current?.lastPlayed,
       cover: current?.cover ?? (input.cover ? normalizeProfileCover(input.cover) : undefined)
     }
@@ -292,14 +287,7 @@ export class LauncherStore {
     }
     const byId = new Map(profiles.map(profile => [profile.id, profile]))
     const reordered = ids.map(id => byId.get(id)!)
-    this.state.profiles = [...this.state.profiles.filter(profile => profile.accountId !== this.state.selectedAccountId), ...reordered.filter(item => item.pinned), ...reordered.filter(item => !item.pinned)]
-    return this.save()
-  }
-
-  toggleProfilePin(id: string): LauncherState {
-    const profile = this.ownedProfile(id)
-    profile.pinned = !profile.pinned
-    this.state.profiles = [...this.state.profiles.filter(item => item.pinned), ...this.state.profiles.filter(item => !item.pinned)]
+    this.state.profiles = [...this.state.profiles.filter(profile => profile.accountId !== this.state.selectedAccountId), ...reordered]
     return this.save()
   }
 

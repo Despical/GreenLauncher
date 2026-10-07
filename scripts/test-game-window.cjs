@@ -3,8 +3,18 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'green-game-window-'))
 const mod = { exports: {} }
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/main/game-window.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { module: mod, exports: mod.exports, require })
-const { saveMinecraftWindowPreference } = mod.exports
+const { saveMinecraftWindowPreference, minecraftWindowSize } = mod.exports
 try {
+  const desktop = { width: 1920, height: 1040 }
+  assert.deepEqual({ ...minecraftWindowSize({ width: 1920, height: 1080 }, desktop) }, { width: 1280, height: 720 })
+  assert.deepEqual({ ...minecraftWindowSize({ width: 854, height: 480 }, desktop) }, { width: 854, height: 480 })
+  assert.deepEqual({ ...minecraftWindowSize({ width: 854, height: 480, name: 'Saved profile' }, desktop) }, { width: 854, height: 480 })
+  assert.deepEqual({ ...minecraftWindowSize({ width: 1600, height: 900 }, desktop) }, { width: 1600, height: 900 })
+  const small = minecraftWindowSize({ width: 1280, height: 720 }, { width: 1280, height: 680 })
+  assert.ok(small.width < 1280 && small.height < 640)
+  const wide = minecraftWindowSize({ width: 3440, height: 1440 }, { width: 1920, height: 1040 })
+  assert.ok(wide.width <= 1280 && wide.height <= 720 && Math.abs(wide.width / wide.height - 3440 / 1440) < .01)
+  console.log('PASS monitor-sized windows shrink with aspect ratio intact; smaller custom windows stay unchanged; taskbar and smaller displays leave room for window decorations')
   const file = path.join(root, 'options.txt')
   const other = 'version:3955\r\nresourcePacks:["vanilla","file/Örnek.zip"]\r\nkey_key.fullscreen:key.keyboard.f11\r\n'
   fs.writeFileSync(file, other + 'fullscreen:true\r\ngamma:0.5\r\n')

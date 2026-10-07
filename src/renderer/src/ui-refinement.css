@@ -8,7 +8,11 @@
 .profile-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 184px)); gap: 12px; align-items: start; }
 .profile-card { min-width: 0; min-height: 224px; padding: 30px 12px 12px; border-radius: 8px; background: #161b22; }
 .profile-card .profile-card-top-actions { position: absolute; top: 7px; right: 7px; gap: 4px; }
-.profile-card .profile-pin, .profile-card .profile-more { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border-radius: 5px; background: #21262d; border-color: #30363d; }
+.profile-card .profile-more { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border-radius: 5px; background: #21262d; border-color: #30363d; opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+.profile-card:hover .profile-more, .profile-card:focus-within .profile-more { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .profile-card .profile-more { opacity: 1; pointer-events: auto; } }
+.home-profile-icon { display: grid; place-items: center; width: 28px; height: 28px; flex: none; }
+.home-profile-icon > img, .home-profile-icon > .profile-loader-icon { width: 28px; height: 28px; object-fit: contain; }
 .profile-card-icon { display: grid; place-items: center; height: 64px; margin: 0 auto 12px; pointer-events: none; }
 .profile-card-icon > img, .profile-card-icon > .profile-loader-icon { width: 64px; height: 64px; }
 .profile-card-icon img { display: block; max-width: 100%; object-fit: contain; }
@@ -51,8 +55,6 @@
 .log-record { grid-template-columns: minmax(0,1fr); }
 .log-detail-summary { margin-bottom: 23px; }
 
-.profile-card .profile-pin:not(.active) { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
-.profile-card:hover .profile-pin:not(.active), .profile-card:focus-within .profile-pin:not(.active) { opacity: 1; pointer-events: auto; }
 .profile-context-menu .version-context-label { font-size: 15px; line-height: 1.45; color: #d5dfe7; }
 .profile-context-menu .version-context-divider { margin: 7px 4px; }
 .profile-context-menu button.danger { color: #ff7b72; }
