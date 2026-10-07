@@ -35,7 +35,6 @@ export function HeroSettings({ settings, language, onChange, onNotice }: { setti
       <button type="button" className="heading-action" onClick={() => void add()} disabled={adding || custom.length >= maxHeroBackgrounds}>{adding ? <LoaderCircle size={17} className="spin" /> : <ImagePlus size={17} />}{t('Görsel ekle')}</button>
     </div>
     <button type="button" role="checkbox" aria-checked={settings.animateHero} className="setting-toggle" onClick={() => onChange({ animateHero: !settings.animateHero })}><span><strong>{t('Ana ekran geçişleri')}</strong><small>{t('Açık arka planlar arasında otomatik geçiş yap')}</small></span><span aria-hidden="true" className={`switch ${settings.animateHero ? 'on' : ''}`} /></button>
-    <button type="button" role="checkbox" aria-checked={normalized.heroPanorama} className="setting-toggle" onClick={() => onChange({ heroPanorama: !normalized.heroPanorama })}><span><strong>{t('Panorama hareketi')}</strong><small>{t('Overworld panoramasında kamera yavaşça döner; diğer görseller hafifçe hareket eder.')}</small></span><span aria-hidden="true" className={`switch ${normalized.heroPanorama ? 'on' : ''}`} /></button>
     <div className="hero-background-list">
       {builtinHeroSlides.map(slide => {
         const enabled = !disabled.includes(slide.id as 'overworld' | 'nether' | 'end')
@@ -49,7 +48,7 @@ export function HeroSettings({ settings, language, onChange, onNotice }: { setti
         <div className="hero-background-preview"><CustomThumbnail id={item.id} /></div>
         <div className="hero-background-info"><strong title={item.name}>{item.name}</strong><small>{t('Özel')}</small></div>
         <label className="hero-background-enabled"><input type="checkbox" checked={item.enabled} disabled={item.enabled && enabledCount <= 1} onChange={() => onChange({ heroBackgrounds: custom.map(current => current.id === item.id ? { ...current, enabled: !current.enabled } : current) })} />{t('Göster')}</label>
-        <div className="hero-background-custom-actions"><label title={t('2:1 oranında, 360° panorama görselleri için aç.')}><input type="checkbox" checked={item.panorama} onChange={() => onChange({ heroBackgrounds: custom.map(current => current.id === item.id ? { ...current, panorama: !current.panorama } : current) })} />{t('360° panorama')}</label>
+        <div className="hero-background-custom-actions">
           <button type="button" className="hero-background-remove" aria-label={t('{name} görselini kaldır', { name: item.name })} title={t('Kaldır')} onClick={() => onChange({ heroBackgrounds: custom.filter(current => current.id !== item.id), disabledHeroBackgrounds: item.enabled && enabledCount <= 1 ? disabled.filter(id => id !== 'overworld') : disabled })}><Trash2 size={15} /></button>
         </div>
       </div>)}

@@ -21,7 +21,7 @@ export class HeroBackgrounds {
       if (image.isEmpty()) throw new Error('Arka plan görseli açılamadı.')
       const { width, height } = image.getSize(), scale = Math.min(1, 4096 / width, 2048 / height)
       const resized = scale < 1 ? image.resize({ width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)), quality: 'best' }) : image
-      prepared.push({ background: { id: randomUUID(), name: basename(file, extname(file)).slice(0, 80), enabled: true, panorama: false }, bytes: resized.toJPEG(90) })
+      prepared.push({ background: { id: randomUUID(), name: basename(file, extname(file)).slice(0, 80), enabled: true }, bytes: resized.toJPEG(90) })
     }
     await mkdir(this.directory, { recursive: true })
     const written: string[] = []

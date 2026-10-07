@@ -4,17 +4,17 @@ export const builtinHeroIds = ['overworld', 'nether', 'end'] as const
 export const maxHeroBackgrounds = 12
 export const heroBackgroundId = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 
-export function normalizeHeroSettings(settings: Partial<LauncherSettings>): Pick<LauncherSettings, 'heroPanorama' | 'heroBackgrounds' | 'disabledHeroBackgrounds'> {
+export function normalizeHeroSettings(settings: Partial<LauncherSettings>): Pick<LauncherSettings, 'heroBackgrounds' | 'disabledHeroBackgrounds'> {
   const seen = new Set<string>()
   const backgrounds: HeroBackground[] = []
   if (Array.isArray(settings.heroBackgrounds)) for (const item of settings.heroBackgrounds) {
     if (!item || typeof item.id !== 'string' || !heroBackgroundId.test(item.id) || seen.has(item.id) || typeof item.name !== 'string') continue
     seen.add(item.id)
-    backgrounds.push({ id: item.id, name: item.name.trim().slice(0, 80) || 'Custom', enabled: item.enabled !== false, panorama: item.panorama === true })
+    backgrounds.push({ id: item.id, name: item.name.trim().slice(0, 80) || 'Custom', enabled: item.enabled !== false })
     if (backgrounds.length >= maxHeroBackgrounds) break
   }
   const disabled = builtinHeroIds.filter(id => Array.isArray(settings.disabledHeroBackgrounds) && settings.disabledHeroBackgrounds.includes(id))
   // Always retain a usable background, including when a malformed saved list is recovered.
   if (disabled.length === builtinHeroIds.length && !backgrounds.some(item => item.enabled)) disabled.splice(disabled.indexOf('overworld'), 1)
-  return { heroPanorama: settings.heroPanorama !== false, heroBackgrounds: backgrounds, disabledHeroBackgrounds: disabled }
+  return { heroBackgrounds: backgrounds, disabledHeroBackgrounds: disabled }
 }
