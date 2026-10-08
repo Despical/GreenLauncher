@@ -79,6 +79,14 @@ const v015Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.18.2', date: '2026-10-08', title: 'Ana sayfanı kişiselleştir', intro: 'Özel arka planlar, animasyonlu sıralama ve daha düzenli ayarlar.', changes: [
+    'Ana sayfaya en fazla 12 özel PNG, JPG veya WebP görseli ekleyebilir, varsayılan ve özel arka planların görünürlüğünü ayrı ayrı değiştirebilirsin.',
+    'Arka plan kartları fareyle veya klavyeyle animasyonlu sıralanabilir; kaydedilen sıra ana sayfada ve arka plan menüsünde korunur.',
+    'Ana sayfa sabit arka plan görselleri kullanır; açık görseller arasında otomatik geçiş isteğe bağlı olarak açılıp kapatılabilir.',
+    'Arka plan ayarlarının ayırıcıları, kart kenarlıkları, yazı boyutları ve yeşil görsel ekleme düğmesi düzenlendi; kaldırma düğmesi kartın üzerine gelince veya klavyeyle odaklanınca Göster seçeneğinin sağında görünür.',
+    'Ana sayfa ve arka plan menüsü yalnızca açık görselleri aynı sırayla numaralandırır; kapalı görseller artık numaralarda boşluk oluşturmaz.',
+    'Profil paketi bırakma alanı Profillerim sayfasının tamamında çalışır; dışa aktarma tamamlandığında veya başarısız olduğunda etkinlik durumu temizlenir.'
+  ] },
   { version: '0.18.1', date: '2026-10-07', title: 'Daha kompakt profiller', intro: 'Profil ikonları, sade seçimler ve daha uygun oyun pencereleri.', changes: [
     'Profillerim sayfası, profil ikonlarının ve altında adlarının göründüğü kompakt kartlarla yenilendi; RAM ve pencere boyutu bilgileri kaldırıldı.',
     'Profil kartları tek tıkla profil yönetimini açar; üç nokta menüsü ilgili kartın üzerine gelince veya klavyeyle odaklanınca görünür.',
