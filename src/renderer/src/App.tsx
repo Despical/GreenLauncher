@@ -361,7 +361,7 @@ function App() {
   const [pendingJavaDelete, setPendingJavaDelete] = useState<JavaRuntimeInfo | null>(null)
   const [errorLogs, setErrorLogs] = useState<LauncherErrorEntry[]>([])
   const [heroId, setHeroId] = useState('overworld')
-  const heroSlides = useMemo(() => enabledHeroSlides(state?.settings ?? {}), [state?.settings.heroBackgrounds, state?.settings.disabledHeroBackgrounds])
+  const heroSlides = useMemo(() => enabledHeroSlides(state?.settings ?? {}), [state?.settings.heroBackgrounds, state?.settings.disabledHeroBackgrounds, state?.settings.heroBackgroundOrder])
   const heroIndex = Math.max(0, heroSlides.findIndex(slide => slide.id === heroId))
   const [heroMenuOpen, setHeroMenuOpen] = useState(false)
   const [pendingVersionDelete, setPendingVersionDelete] = useState<string | null>(null)

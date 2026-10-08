@@ -75,6 +75,7 @@ export interface LauncherSettings {
   showSnapshots: boolean
   animateHero: boolean
   heroBackgrounds?: HeroBackground[]
+  heroBackgroundOrder?: string[]
   disabledHeroBackgrounds?: Array<'overworld' | 'nether' | 'end'>
   discordPresence: boolean
   minimizeToTray: boolean

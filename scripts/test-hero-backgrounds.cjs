@@ -52,6 +52,13 @@ app.whenReady().then(async () => {
     assert.equal(JSON.stringify(legacy.heroBackgrounds), JSON.stringify(restored.heroBackgrounds))
     assert.equal('heroPanorama' in legacy, false)
     assert.equal(restored.disabledHeroBackgrounds.length, 3)
+    const order = [added[1].id, 'end', added[0].id, 'overworld', 'nether']
+    store.updateSettings({ heroBackgroundOrder: order })
+    assert.deepEqual([...new LauncherStore().get().settings.heroBackgroundOrder], order, 'mixed builtin/custom order survives reopening the store')
+    const recoveredOrder = normalizeHeroSettings({ ...restored, heroBackgroundOrder: ['end', 'end', '../account', added[1].id, null] }).heroBackgroundOrder
+    assert.deepEqual([...recoveredOrder], ['end', added[1].id, 'overworld', 'nether', added[0].id], 'invalid and repeated IDs are discarded; missing backgrounds are appended')
+    const removedOrder = normalizeHeroSettings({ ...restored, heroBackgroundOrder: order, heroBackgrounds: [added[1]] }).heroBackgroundOrder
+    assert.deepEqual([...removedOrder], [added[1].id, 'end', 'overworld', 'nether'], 'removal preserves the order of remaining backgrounds')
     const fallback = normalizeHeroSettings({ ...restored, heroBackgrounds: added.map(item => ({ ...item, enabled: false })) })
     assert.equal(fallback.disabledHeroBackgrounds.includes('overworld'), false)
     const malformed = normalizeHeroSettings({ heroBackgrounds: [{ id: '../account', name: 'bad' }, added[0], added[0]], disabledHeroBackgrounds: ['unknown'] })
@@ -63,7 +70,7 @@ app.whenReady().then(async () => {
     assert.deepEqual(fs.readdirSync(path.join(root, 'data', 'backgrounds')), before)
     await service.remove(added[0].id); assert.equal(await service.read(added[0].id), null)
     assert.equal(fs.existsSync(second), true); assert.ok(await service.read(added[1].id))
-    console.log('PASS multi-image import, thumbnails, original-file independence, persistent selection/motion, empty-list recovery, ID validation, atomic invalid-batch rejection and owned-file removal')
+    console.log('PASS multi-image import, thumbnails, original-file independence, persistent selection/motion/order, malformed and removed order recovery, empty-list recovery, ID validation, atomic invalid-batch rejection and owned-file removal')
   app.exit(0)
 }).catch(error => { console.error(error); app.exit(1) })
 }

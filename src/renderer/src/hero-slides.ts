@@ -12,6 +12,10 @@ export const builtinHeroSlides: HeroSlide[] = [
 ]
 export function enabledHeroSlides(settings: Partial<LauncherSettings>): HeroSlide[] {
   const normalized = normalizeHeroSettings(settings)
-  return [...builtinHeroSlides.filter(slide => !normalized.disabledHeroBackgrounds?.includes(slide.id as 'overworld' | 'nether' | 'end')),
+  const slides = [...builtinHeroSlides.filter(slide => !normalized.disabledHeroBackgrounds?.includes(slide.id as 'overworld' | 'nether' | 'end')),
     ...(normalized.heroBackgrounds ?? []).filter(item => item.enabled).map(item => ({ ...builtinHeroSlides[0], id: item.id, label: item.name, short: item.name, image: '', custom: true }))]
+  return normalized.heroBackgroundOrder!.flatMap(id => {
+    const slide = slides.find(item => item.id === id)
+    return slide ? [slide] : []
+  }).map((slide, index) => ({ ...slide, label: `${String(index + 1).padStart(2, '0')} / ${slide.custom ? slide.short : `THE ${slide.short.toUpperCase()}`}` }))
 }
