@@ -78,7 +78,21 @@ const v015Sections = [
   ] }
 ]
 
+const v019Sections = [
+  { title: 'Yeni özellikler', changes: [
+    'Analiz sayfası toplam oyun süresini, oturumları, oynanan günleri ve ortalama oturum süresini gösterir; tüm profiller veya tek bir profil için zaman aralığı seçebilirsin.',
+    'Oyun süresi grafikleri, haftanın günleri ve profil karşılaştırması en çok ne zaman ve hangi profilde oynadığını gösterir; bilgiler ilgili sütunun üstünde açılır.',
+    'Etkinlik takvimi son 365 günü boş günlerle birlikte gösterir; günlerin üzerine gelerek süre ve oturum sayısını, takvimde de güncel oyun serini görebilirsin.',
+    'Grafikten veya takvimden bir gün seçerek oturumlarını inceleyebilirsin. Gece yarısını aşan oturumlar günlere bölünür; çalışan oyunların süreleri yaklaşık 30 saniyede bir yenilenir.',
+    'Ekran görüntüleri sağ tık menüsünden yeniden adlandırılabilir; uzantı değişikliği aynı pencerede ayrıca onaylanır ve kaydedince bildirim gösterilir. Aynı adlı dosyaların üzerine yazılmaz.'
+  ] },
+  { title: 'Arayüz ve performans', changes: [
+    'Analiz sayfasının yazı boyutları, grafik etiketleri, profil menüsündeki sırası ve oturum filtrelerinin yerleşimi düzenlendi; fareyi aynı sütunda gezdirmek bilgileri yeniden çizmez.'
+  ] }
+]
+
 const releases: ReleaseNotes[] = [
+  { version: '0.19.0', date: '2026-10-09', title: 'Oyun alışkanlıklarını keşfet', intro: 'Profil analizleri, etkinlik takvimi ve ekran görüntüsü adlandırma.', changes: v019Sections.flatMap(section => section.changes), sections: v019Sections },
   { version: '0.18.2', date: '2026-10-08', title: 'Ana sayfanı kişiselleştir', intro: 'Özel arka planlar, animasyonlu sıralama ve daha düzenli ayarlar.', changes: [
     'Ana sayfaya en fazla 12 özel PNG, JPG veya WebP görseli ekleyebilir, varsayılan ve özel arka planların görünürlüğünü ayrı ayrı değiştirebilirsin.',
     'Arka plan kartları fareyle veya klavyeyle animasyonlu sıralanabilir; kaydedilen sıra ana sayfada ve arka plan menüsünde korunur.',
