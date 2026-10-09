@@ -19,8 +19,12 @@ writeFileSync('build/update-bootstrap.nsh',`!macro customInit
   bridgeExtract:
   CreateDirectory "$R1"
   SetOutPath "$R1"
+  ; The portable payload already contains individually compressed files.
+  ; Recompressing it as one NSIS stream destroys differential block reuse.
+  SetCompress off
   File /oname=update-helper.exe "${nsisPath(helper)}"
   File /oname=launcher-update.exe "${nsisPath(portable)}"
+  SetCompress auto
   ReadEnvStr $R3 "GREEN_LAUNCHER_UPDATE_QA_ROOT"
   StrCmp $R3 "" regularReceipt
     StrCpy $R3 "$R3\\GreenLauncher\\update-result.json"
