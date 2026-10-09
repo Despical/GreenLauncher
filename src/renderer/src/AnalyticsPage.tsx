@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Activity, ArrowLeft, ArrowRight, BarChart3, CalendarDays, Clock3, Flame, Info, Timer, Trophy } from 'lucide-react'
 import type { LauncherProfile, LauncherState, RunningInstance } from '../../shared/types'
 import { localDayKey, playAnalytics, type AnalyticsBucket, type AnalyticsPeriod } from '../../shared/play-analytics'
@@ -11,6 +12,7 @@ import './analytics.css'
 type Picker = (value: string, options: Array<{ value: string; label: string; icon?: ReactNode }>, onChange: (id: string) => void) => ReactNode
 const locales = { tr: 'tr-TR', en: 'en-GB', de: 'de-DE', fr: 'fr-FR', ru: 'ru-RU', pl: 'pl-PL' }
 const periods: AnalyticsPeriod[] = ['7d', '30d', '90d', 'all']
+interface HoverTip { source: 'chart' | 'calendar'; label: string; durationMs: number; sessions?: number; x: number; y: number }
 
 export function AnalyticsPage({ state, language, instances, profile, picker, onProfile, onSettings, isVisible }: {
   state: LauncherState; language: Language; instances: RunningInstance[]; profile?: LauncherProfile; picker: Picker
@@ -22,7 +24,10 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
   const [now, setNow] = useState(() => new Date())
   const [hovered, setHovered] = useState<number | null>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
-  const [calendarHover, setCalendarHover] = useState<string | null>(null)
+  const [tooltip, setTooltip] = useState<HoverTip | null>(null)
+  const tooltipId = useId()
+  const chart = useRef<HTMLDivElement>(null)
+  const [chartWidth, setChartWidth] = useState(800)
   const [limit, setLimit] = useState(8)
   const scope = profile?.id ?? (state.profiles.some(item => item.id === filter) ? filter : '')
   const scopedProfile = state.profiles.find(item => item.id === scope)
@@ -33,9 +38,28 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
     return () => window.clearInterval(timer)
   }, [isVisible])
   useEffect(() => { if (isVisible) setNow(new Date()) }, [state.playSessions, isVisible])
-  useEffect(() => { setHovered(null); setSelectedDay(null); setCalendarHover(null); setLimit(8) }, [period, scope, state.selectedAccountId])
+  useEffect(() => { setHovered(null); setSelectedDay(null); setTooltip(null); setLimit(8) }, [period, scope, state.selectedAccountId])
   useEffect(() => { setFilter('') }, [state.selectedAccountId])
+  useEffect(() => { if (!isVisible) setTooltip(null) }, [isVisible])
+  useEffect(() => {
+    const close = () => setTooltip(null)
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') close() }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    window.addEventListener('keydown', escape)
+    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close); window.removeEventListener('keydown', escape) }
+  }, [])
   const data = useMemo(() => playAnalytics(state.profiles, state.playSessions ?? [], period, scope, now), [state.profiles, state.playSessions, period, scope, now])
+  const calendarData = useMemo(() => playAnalytics(state.profiles, state.playSessions ?? [], '365d', scope, now), [state.profiles, state.playSessions, scope, now])
+  useLayoutEffect(() => {
+    const element = chart.current
+    if (!element || !isVisible) return
+    const measure = () => setChartWidth(element.getBoundingClientRect().width || 800)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [isVisible, data.total > 0])
   const duration = (value: number) => playDuration(value, language)
   const number = (value: number) => new Intl.NumberFormat(locales[language]).format(value)
   const formatDate = (value: number, full = false) => new Intl.DateTimeFormat(locales[language], { day: 'numeric', month: full ? 'long' : 'short', ...(full && { year: 'numeric' as const }) }).format(value)
@@ -44,8 +68,8 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
   const visibleIds = new Set(state.profiles.map(item => item.id))
   const running = new Set(instances.filter(item => item.profileId && visibleIds.has(item.profileId) && (!scope || item.profileId === scope)).map(item => item.id))
   const memoryOnly = (scopedProfile ? [scopedProfile] : state.profiles).some(item => !profilePlaytime(item, state.settings, 'savePlaytime'))
-  const history = selectedDay ? data.sessions.filter(session => {
-    const day = data.calendar.find(item => item.key === selectedDay)
+  const history = selectedDay ? calendarData.sessions.filter(session => {
+    const day = calendarData.calendar.find(item => item.key === selectedDay)
     if (!day) return false
     const end = new Date(day.date); end.setDate(end.getDate() + 1)
     return Date.parse(session.startedAt) < end.getTime() && Date.parse(session.endedAt) > day.date
@@ -63,14 +87,15 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
   const chartIndex = hovered !== null && data.buckets[hovered] ? hovered : Math.max(0, data.buckets.findIndex(bucket => data.bestDay && data.bestDay.date >= bucket.from && data.bestDay.date < bucket.to))
   const chartBucket = data.buckets[chartIndex]
   const peak = Math.max(...data.weekdays.map(day => day.durationMs), 1)
-  const calendarPeak = Math.max(...data.calendar.map(day => day.durationMs), 1)
-  const calendarDay = data.calendar.find(day => day.key === (calendarHover ?? selectedDay)) ?? data.calendar.filter(day => day.inRange).reduce<typeof data.bestDay>((best, day) => !best || day.durationMs > best.durationMs ? day : best, undefined)
+  const calendarPeak = Math.max(...calendarData.calendar.map(day => day.durationMs), 1)
+  const calendarWeeks = calendarData.calendar.length / 7
+  const hover = (source: HoverTip['source'], label: string, durationMs: number, x: number, y: number, sessions?: number) => setTooltip({ source, label, durationMs, x, y, sessions })
   const sessionDuration = (session: typeof data.sessions[number]) => {
-    const day = data.calendar.find(item => item.key === selectedDay)
+    const day = calendarData.calendar.find(item => item.key === selectedDay)
     if (!day) return session.playedMs
     const next = new Date(day.date); next.setDate(next.getDate() + 1)
     const start = Date.parse(session.startedAt), end = Date.parse(session.endedAt)
-    return session.durationMs * Math.max(0, Math.min(end, next.getTime(), data.to) - Math.max(start, day.date, data.from)) / (end - start)
+    return session.durationMs * Math.max(0, Math.min(end, next.getTime(), data.to) - Math.max(start, day.date)) / (end - start)
   }
   const metric = (icon: ReactNode, label: string, value: string, detail: string) => <article className="analytics-metric"><div className="analytics-metric-label">{icon}<span>{label}</span></div><strong>{value}</strong><small>{detail}</small></article>
   return <div className="content-page analytics-page" data-scope={scope || 'all'} data-period={period}>
@@ -89,15 +114,24 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
     {memoryOnly && <div className="analytics-notice"><Info size={17} /><p>{t('Bazı profillerde süreyi kaydetme kapalı. Bu profillerin mevcut oturum kayıtları launcher kapandığında silinir.')}</p><button onClick={() => onSettings(scope || undefined)}>{t('Süre ayarları')}<ArrowRight size={14} /></button></div>}
     {data.total === 0 ? <section className="analytics-empty"><BarChart3 size={36} /><h3>{t('Bu zaman aralığında oyun kaydı yok')}</h3><p>{t('Bir profil üzerinden Minecraft oynadığında gerçek oyun süren ve alışkanlıkların burada görünür. Geçmişte ölçülmeyen süreler eklenmez.')}</p>{period !== 'all' && <button className="heading-action" onClick={() => setPeriod('all')}>{t('Tüm zamanları göster')}<ArrowRight size={15} /></button>}</section> : <>
       <section className="analytics-panel analytics-trend"><div className="analytics-panel-heading"><div><h3>{t('Oyun süresi dağılımı')}</h3><p>{data.unit === 'day' ? t('Günlük oyun süren') : data.unit === 'week' ? t('Haftalık oyun süren') : data.unit === 'month' ? t('Aylık oyun süren') : t('Yıllık oyun süren')}</p></div><span>{periodName(period)}</span></div>
-        <div className="analytics-chart"><svg viewBox="0 0 800 230" role="group" aria-label={t('Oyun süresi dağılımı')}>
+        <div ref={chart} className="analytics-chart" style={{ '--analytics-axis-font': `${13 * 800 / chartWidth}px` } as CSSProperties} onMouseLeave={() => setTooltip(null)}><svg viewBox="0 0 800 230" role="group" aria-label={t('Oyun süresi dağılımı')}>
           {[0, 1, 2, 3, 4].map(tick => <g key={tick} aria-hidden="true"><line x1="62" x2="794" y1={184 - tick * 40} y2={184 - tick * 40} className="analytics-gridline" /><text x="51" y={188 - tick * 40} textAnchor="end">{axis(niceMax * tick / 4)}</text></g>)}
           {data.buckets.map((bucket, index) => { const step = 730 / data.buckets.length, height = bucket.durationMs / niceMax * 160; return <g key={bucket.from}>
-            <rect x={63 + index * step} y="20" width={step} height="166" fill="transparent" tabIndex={0} role="button" aria-label={`${bucketLabel(bucket)}: ${duration(bucket.durationMs)}`} onMouseEnter={() => setHovered(index)} onFocus={() => setHovered(index)} onClick={() => { if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } else setHovered(index) }} onKeyDown={event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } } if (['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); const rects = event.currentTarget.ownerSVGElement?.querySelectorAll<SVGRectElement>('[role=button]'); rects?.[Math.max(0, Math.min(data.buckets.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)))]?.focus() } }}><title>{bucketLabel(bucket)} · {duration(bucket.durationMs)}</title></rect>
+            <rect x={63 + index * step} y="20" width={step} height="166" fill="transparent" tabIndex={0} role="button" aria-label={`${bucketLabel(bucket)}: ${duration(bucket.durationMs)}`} aria-describedby={tooltip?.source === 'chart' && chartIndex === index ? tooltipId : undefined}
+              onMouseEnter={event => { setHovered(index); hover('chart', bucketLabel(bucket), bucket.durationMs, event.clientX, event.clientY) }}
+              onMouseMove={event => hover('chart', bucketLabel(bucket), bucket.durationMs, event.clientX, event.clientY)}
+              onFocus={event => { setHovered(index); const rect = event.currentTarget.getBoundingClientRect(); hover('chart', bucketLabel(bucket), bucket.durationMs, rect.left + rect.width / 2, rect.top + rect.height / 2) }}
+              onBlur={() => setTooltip(null)}
+              onClick={() => { if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } else setHovered(index) }}
+              onKeyDown={event => {
+                if (['Enter', ' '].includes(event.key)) { event.preventDefault(); if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } }
+                if (['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); const rects = event.currentTarget.ownerSVGElement?.querySelectorAll<SVGRectElement>('[role=button]'); rects?.[Math.max(0, Math.min(data.buckets.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)))]?.focus() }
+              }} />
             <rect pointerEvents="none" x={63 + index * step + step * .16} y={184 - height} width={step * .68} height={Math.max(bucket.durationMs ? 2 : 0, height)} rx={Math.min(3, step * .15)} className={`analytics-bar ${chartIndex === index ? 'active' : ''}`} />
           </g> })}
           {[...new Set([0, Math.floor((data.buckets.length - 1) / 2), data.buckets.length - 1])].map(index => <text key={index} x={63 + (index + .5) * 730 / data.buckets.length} y="213" textAnchor={index === 0 ? 'start' : index === data.buckets.length - 1 ? 'end' : 'middle'}>{tickLabel(data.buckets[index].from)}</text>)}
         </svg></div>
-        <div className="analytics-chart-detail" aria-live="polite"><span>{chartBucket && bucketLabel(chartBucket)}</span><strong>{chartBucket && duration(chartBucket.durationMs)}</strong><small>{data.unit === 'day' ? t('Grafikte bir güne tıklayarak oturumlarını inceleyebilirsin.') : t('Takvimden bir gün seçerek oturumlarını inceleyebilirsin.')}</small></div>
+        <div className="analytics-chart-detail" aria-live="polite"><span>{chartBucket && bucketLabel(chartBucket)}</span><small>{data.unit === 'day' ? t('Grafikte bir güne tıklayarak oturumlarını inceleyebilirsin.') : t('Takvimden bir gün seçerek oturumlarını inceleyebilirsin.')}</small></div>
       </section>
       <div className="analytics-two-columns">
         <section className="analytics-panel"><div className="analytics-panel-heading"><div><h3>{t('Haftanın hangi günleri?')}</h3><p>{t('Haftanın günlerine göre toplam süre')}</p></div><CalendarDays size={18} /></div><div className="analytics-weekdays">{data.weekdays.map(day => <div className="analytics-weekday" key={day.index}><span>{weekday(day.index)}</span><div><span style={{ width: `${day.durationMs / peak * 100}%` }} /></div><strong>{duration(day.durationMs)}</strong></div>)}</div></section>
@@ -111,16 +145,26 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
           {scopedProfile && !profile && <button className="analytics-text-button" onClick={() => onProfile(scopedProfile.id)}>{t('Profil analizini aç')}<ArrowRight size={14} /></button>}
         </section>
       </div>
-      <section className="analytics-panel analytics-calendar"><div className="analytics-panel-heading"><div><h3>{t('Etkinlik takvimi')}</h3><p>{period === 'all' ? t('Son 13 haftadaki oyun günlerin') : t('Daha açık kareler daha fazla oyun süresini gösterir.')}</p></div><span className="analytics-streak"><Flame size={15} />{t('Güncel seri: {count} gün', { count: data.currentStreak })}</span></div>
-        <div className="analytics-calendar-layout"><div className="analytics-calendar-weekdays">{[0, 2, 4, 6].map(index => <span key={index} style={{ gridRow: index + 1 }}>{weekday(index, true)}</span>)}</div><div className="analytics-calendar-grid" style={{ gridTemplateColumns: `repeat(${data.calendar.length / 7}, 23px)` }}>{data.calendar.map(day => <button type="button" key={day.key} disabled={!day.inRange} className={`${selectedDay === day.key ? 'selected' : ''} ${!day.inRange ? 'outside' : ''}`} data-level={day.durationMs === 0 ? 0 : Math.ceil(day.durationMs / calendarPeak * 4)} aria-pressed={selectedDay === day.key} aria-label={`${formatDate(day.date, true)}: ${duration(day.durationMs)}`} title={`${formatDate(day.date, true)} · ${duration(day.durationMs)}`} onMouseEnter={() => setCalendarHover(day.key)} onFocus={() => setCalendarHover(day.key)} onClick={() => { setSelectedDay(selectedDay === day.key ? null : day.key); setLimit(8) }} />)}</div><div className="analytics-calendar-summary" aria-live="polite"><span>{calendarDay ? formatDate(calendarDay.date, true) : t('En yoğun gün')}</span><strong>{duration(calendarDay?.durationMs ?? 0)}</strong><small>{t('{count} oturum', { count: calendarDay?.sessions ?? 0 })}</small><p>{t('Takvimden bir gün seçerek oturumlarını inceleyebilirsin.')}</p></div></div>
-        <div className="analytics-calendar-footer"><span>{t('{count} günde oynadın', { count: data.calendar.filter(day => day.inRange && day.durationMs > 0).length })}</span><div><span>{t('Az')}</span>{[0, 1, 2, 3, 4].map(level => <i data-level={level} key={level} />)}<span>{t('Çok')}</span></div></div>
+    </>}
+      <section className="analytics-panel analytics-calendar"><div className="analytics-panel-heading"><div><h3>{t('Etkinlik takvimi')}</h3><p>{t('Son 365 gün. Daha açık kareler daha fazla oyun süresini gösterir.')}</p></div><span className={`analytics-streak ${calendarData.currentStreak > 1 ? 'is-active' : ''}`}><Flame size={16} />{t('Güncel seri: {count} gün', { count: calendarData.currentStreak })}</span></div>
+        <div className="analytics-calendar-months" style={{ gridTemplateColumns: `repeat(${calendarWeeks}, minmax(0, 1fr))` }} aria-hidden="true">{calendarData.calendar.filter((_, index) => index % 7 === 0).map((day, index, weeks) => index === 0 || new Date(day.date).getMonth() !== new Date(weeks[index - 1].date).getMonth() ? <span key={day.key} style={{ gridColumn: index + 1 }}>{new Intl.DateTimeFormat(locales[language], { month: 'short' }).format(day.date)}</span> : null)}</div>
+        <div className="analytics-calendar-layout" onMouseLeave={() => setTooltip(null)}><div className="analytics-calendar-weekdays">{[0, 2, 4, 6].map(index => <span key={index} style={{ gridRow: index + 1 }}>{weekday(index, true)}</span>)}</div>
+          <div className="analytics-calendar-grid" style={{ gridTemplateColumns: `repeat(${calendarWeeks}, minmax(0, 1fr))`, aspectRatio: `${calendarWeeks} / 7` }}>{calendarData.calendar.map(day => <button type="button" key={day.key} disabled={!day.inRange} className={`${selectedDay === day.key ? 'selected' : ''} ${!day.inRange ? 'outside' : ''}`} data-date={day.key} data-level={day.durationMs === 0 ? 0 : Math.ceil(day.durationMs / calendarPeak * 4)} aria-pressed={selectedDay === day.key} aria-label={`${formatDate(day.date, true)}: ${duration(day.durationMs)}`} aria-describedby={tooltip?.source === 'calendar' && tooltip.label === formatDate(day.date, true) ? tooltipId : undefined}
+            onMouseEnter={event => hover('calendar', formatDate(day.date, true), day.durationMs, event.clientX, event.clientY, day.sessions)}
+            onMouseMove={event => hover('calendar', formatDate(day.date, true), day.durationMs, event.clientX, event.clientY, day.sessions)}
+            onFocus={event => { const rect = event.currentTarget.getBoundingClientRect(); hover('calendar', formatDate(day.date, true), day.durationMs, rect.left + rect.width / 2, rect.bottom, day.sessions) }}
+            onBlur={() => setTooltip(null)}
+            onClick={() => { setSelectedDay(selectedDay === day.key ? null : day.key); setLimit(8) }}
+          />)}</div>
+        </div>
+        <div className="analytics-calendar-footer"><span>{t('{count} günde {duration} oynadın', { count: calendarData.activeDays, duration: duration(calendarData.total) })}</span><div><span>{t('Az')}</span>{[0, 1, 2, 3, 4].map(level => <i data-level={level} key={level} />)}<span>{t('Çok')}</span></div></div>
       </section>
-      <section className="analytics-panel analytics-history"><div className="analytics-panel-heading"><div><h3>{t('Oturum geçmişi')}</h3><p>{selectedDay ? formatDate(data.calendar.find(day => day.key === selectedDay)?.date ?? Date.parse(`${selectedDay}T12:00:00`), true) : t('Son oyun oturumların ve ölçülen süreleri')}</p></div>{selectedDay && <button className="analytics-text-button" onClick={() => { setSelectedDay(null); setLimit(8) }}><ArrowLeft size={14} />{t('Tüm oturumlar')}</button>}<span>{t('{count} oturum', { count: history.length })}</span></div>
-        <div className="analytics-session-table" role="table" aria-label={t('Oturum geçmişi')}><div className="analytics-session-head" role="row"><span role="columnheader">{t('Profil')}</span><span role="columnheader">{t('Başlangıç')}</span><span role="columnheader">{t('Sürüm')}</span><span role="columnheader">{selectedDay ? t('Bu gündeki süre') : t('Süre')}</span></div>{history.slice(0, limit).map(session => { const owner = state.profiles.find(item => item.id === session.profileId)!; return <div className="analytics-session-row" role="row" key={session.id}><div role="cell"><span className="analytics-session-icon"><ProfileIcon profile={owner} /></span><span title={owner.name}>{owner.name}{running.has(session.id) && <small className="analytics-session-live">{t('Devam ediyor')}</small>}</span></div><span role="cell">{new Intl.DateTimeFormat(locales[language], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(session.startedAt))}</span><span role="cell" className="analytics-session-version" title={session.versionId}>{session.versionId}</span><strong role="cell">{duration(sessionDuration(session))}</strong></div> })}</div>
-        {!history.length && <p className="analytics-history-empty">{t('Bu gün için oyun oturumu yok.')}</p>}
+      <section className="analytics-panel analytics-history"><div className="analytics-panel-heading"><div><h3>{t('Oturum geçmişi')}</h3><p>{selectedDay ? formatDate(calendarData.calendar.find(day => day.key === selectedDay)?.date ?? Date.parse(`${selectedDay}T12:00:00`), true) : t('Son oyun oturumların ve ölçülen süreleri')}</p></div>{selectedDay && <button className="analytics-text-button" onClick={() => { setSelectedDay(null); setLimit(8) }}><ArrowLeft size={14} />{t('Tüm oturumlar')}</button>}<span>{t('{count} oturum', { count: history.length })}</span></div>
+        <div className={`analytics-session-table ${history.length > limit ? 'has-more' : ''}`} role="table" aria-label={t('Oturum geçmişi')}><div className="analytics-session-head" role="row"><span role="columnheader">{t('Profil')}</span><span role="columnheader">{t('Başlangıç')}</span><span role="columnheader">{t('Sürüm')}</span><span role="columnheader">{selectedDay ? t('Bu gündeki süre') : t('Süre')}</span></div>{history.slice(0, limit).map(session => { const owner = state.profiles.find(item => item.id === session.profileId)!; return <div className="analytics-session-row" role="row" key={session.id}><div role="cell"><span className="analytics-session-icon"><ProfileIcon profile={owner} /></span><span title={owner.name}>{owner.name}{running.has(session.id) && <small className="analytics-session-live">{t('Devam ediyor')}</small>}</span></div><span role="cell">{new Intl.DateTimeFormat(locales[language], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(session.startedAt))}</span><span role="cell" className="analytics-session-version" title={session.versionId}>{session.versionId}</span><strong role="cell">{duration(sessionDuration(session))}</strong></div> })}</div>
+        {!history.length && <p className="analytics-history-empty">{selectedDay ? t('Bu gün için oyun oturumu yok.') : t('Bu zaman aralığında oyun kaydı yok')}</p>}
         {history.length > limit && <button className="analytics-show-more" onClick={() => setLimit(value => value + 8)}>{t('Daha fazla göster')}</button>}
         <p className="analytics-footnote"><Info size={14} />{t('Süreler oyunun açık kaldığı zamanı gösterir; menü ve bekleme süreleri dahildir. Gece yarısını aşan oturumlar günlere bölünür. Çalışan oyunlar yaklaşık 30 saniyede bir güncellenir.')}</p>
       </section>
-    </>}
+    {isVisible && tooltip && createPortal(<div id={tooltipId} role="tooltip" className="analytics-tooltip" data-source={tooltip.source} style={{ left: Math.min(Math.max(12, tooltip.x + 14), window.innerWidth - 272), top: tooltip.y > window.innerHeight - 130 ? Math.max(12, tooltip.y - 115) : tooltip.y + 14 }}><span>{tooltip.label}</span><strong>{duration(tooltip.durationMs)}</strong>{tooltip.sessions !== undefined && <small>{t('{count} oturum', { count: tooltip.sessions })}</small>}</div>, document.body)}
   </div>
 }

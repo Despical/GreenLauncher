@@ -1,6 +1,6 @@
 import type { LauncherProfile, PlaySession } from './types'
 
-export type AnalyticsPeriod = '7d' | '30d' | '90d' | 'all'
+export type AnalyticsPeriod = '7d' | '30d' | '90d' | '365d' | 'all'
 export interface AnalyticsDay { key: string; date: number; durationMs: number; sessions: number }
 export interface AnalyticsBucket { from: number; to: number; durationMs: number }
 export interface AnalyticsSession extends PlaySession { playedMs: number }

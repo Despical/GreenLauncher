@@ -22,6 +22,15 @@ const click = async selector => { await evaluate(`document.querySelector(${JSON.
 const button = async text => { await evaluate(`(()=>{const b=[...document.querySelectorAll('.analytics-page button')].find(b=>b.offsetParent&&b.textContent.trim()===${JSON.stringify(text)});if(!b)throw Error('Button missing: '+${JSON.stringify(text)});b.click()})()`); await pause(120) }
 const shot = async name => { await pause(150); const result = await call('Page.captureScreenshot', { format: 'png' }); writeFileSync(`build/${name}.png`, Buffer.from(result.data, 'base64')) }
 const metrics = () => evaluate("[...document.querySelector('.retained-page:not([hidden]) .analytics-page').querySelectorAll('.analytics-metric > strong')].map(e=>e.textContent)")
+const hover = async (selector, index = 0) => {
+  await evaluate(`document.querySelectorAll(${JSON.stringify(selector)})[${index}].scrollIntoView({block:'center'})`)
+  await pause(80)
+  const point = await evaluate(`(()=>{const r=document.querySelectorAll(${JSON.stringify(selector)})[${index}].getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()`)
+  await call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+  await until("document.querySelector('.analytics-tooltip')")
+  const fits = await evaluate("(()=>{const r=document.querySelector('.analytics-tooltip').getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight})()")
+  assert.equal(fits, true, 'Hover tooltip fits inside the window')
+}
 try {
   let occupied = false
   try { occupied = (await fetch(`${origin}/json/version`, { signal: AbortSignal.timeout(500) })).ok } catch {}
@@ -66,9 +75,43 @@ try {
   assert.equal(await evaluate("document.querySelector('.analytics-page').textContent.includes('foreign')"), false)
   assert.equal(await evaluate("document.querySelectorAll('.analytics-session-row').length"), 8)
   assert.equal(await evaluate("document.querySelectorAll('.analytics-session-live').length"), 1)
+  assert.equal(await evaluate("document.querySelectorAll('.analytics-calendar-grid button:not(:disabled)').length"), 365)
+  assert.equal(await evaluate("document.querySelectorAll('.analytics-calendar-grid button').length"), 371)
+  assert.equal(await evaluate("[...document.querySelectorAll('.analytics-calendar-grid button')].every(e=>getComputedStyle(e).visibility==='visible'&&e.getBoundingClientRect().width>0)"), true)
+  assert.equal(await evaluate("document.querySelector('.analytics-calendar-footer > span').textContent"), '14 günde 27 sa 0 dk oynadın')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.analytics-session-row:last-child')).borderBottomWidth"), '1px')
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.analytics-streak')).color"), 'rgb(240, 164, 92)')
+  assert.equal(await evaluate("!!document.querySelector('.analytics-chart-detail > strong,.analytics-calendar-summary')"), false)
+  assert.equal(await evaluate("(()=>{const h=document.querySelector('.analytics-trend h3').getBoundingClientRect(),p=document.querySelector('.analytics-trend .analytics-panel-heading > span').getBoundingClientRect();return Math.abs(h.top-p.top)<=1})()"), true)
+  assert.equal(await evaluate("['.analytics-trend .analytics-panel-heading > span','.analytics-history .analytics-panel-heading > span','.analytics-chart-detail > small','.analytics-streak','.analytics-calendar-footer','.analytics-session-head','.analytics-session-row','.analytics-footnote'].every(selector=>parseFloat(getComputedStyle(document.querySelector(selector)).fontSize)>=13)"), true)
   await shot('qa-analytics-overview-1280')
   await button('Daha fazla göster'); assert.equal(await evaluate("document.querySelectorAll('.analytics-session-row').length"), 13)
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.analytics-session-row:last-child')).borderBottomWidth"), '0px')
   await button('Son 7 gün'); assert.deepEqual((await metrics()).slice(0, 3), ['13 sa 0 dk', '7', '7'])
+  await call('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false })
+  await hover('.analytics-chart [role=button]', 6)
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip').dataset.source"), 'chart')
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip strong').textContent"), '1 sa 0 dk')
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip').parentElement===document.body"), true)
+  await shot('qa-analytics-refined-chart-1920')
+  await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' }); await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape' }); await until("!document.querySelector('.analytics-tooltip')")
+  const oldKey = sessions.find(session => session.id === 'old').startedAt
+  const oldDate = new Date(oldKey), dayKey = `${oldDate.getFullYear()}-${String(oldDate.getMonth()+1).padStart(2,'0')}-${String(oldDate.getDate()).padStart(2,'0')}`
+  await hover(`.analytics-calendar-grid [data-date="${dayKey}"]`)
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip').dataset.source"), 'calendar')
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip strong').textContent"), '2 sa 0 dk')
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip small').textContent"), '1 oturum')
+  await shot('qa-analytics-refined-calendar-1920')
+  await click(`.analytics-calendar-grid [data-date="${dayKey}"]`)
+  assert.equal(await evaluate("document.querySelectorAll('.analytics-session-row').length"), 1)
+  assert.equal(await evaluate("document.querySelector('.analytics-session-row strong').textContent"), '2 sa 0 dk', 'Annual day drilldown includes sessions outside the seven-day chart filter')
+  await button('Tüm oturumlar')
+  await hover('.analytics-calendar-grid button:not(:disabled)[data-level="0"]')
+  assert.equal(await evaluate("document.querySelector('.analytics-tooltip strong').textContent"), '0 dk 0 sn')
+  await click('.analytics-calendar-grid button:not(:disabled)[data-level="0"]')
+  assert.equal(await evaluate("document.querySelectorAll('.analytics-session-row').length"), 0)
+  await button('Tüm oturumlar')
+  await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false })
   await button('Son 90 gün'); assert.equal(await evaluate("document.querySelectorAll('.analytics-chart [role=button]').length"), 90)
   await button('Tüm zamanlar'); assert.deepEqual((await metrics()).slice(0, 3), ['27 sa 0 dk', '14', '14'])
   assert.ok(await evaluate("document.querySelectorAll('.analytics-chart [role=button]').length") < 30)
@@ -85,6 +128,7 @@ try {
   assert.equal(await evaluate("document.querySelector('.profile-workspace-nav [data-profile-page=profile-analytics]').getAttribute('aria-current')"), 'page')
   assert.equal(await evaluate("document.querySelector('.retained-page:not([hidden]) .analytics-page').dataset.scope"), 'qa-profile')
   assert.equal(await evaluate("!!document.querySelector('.retained-page:not([hidden]) .analytics-profile-filter')"), false)
+  assert.equal(await evaluate("(()=>{const items=[...document.querySelectorAll('.profile-workspace-nav > button')].map(e=>e.textContent.trim());return items.indexOf('Analiz')+1===items.indexOf('Ekran görüntüleri')})()"), true)
   await shot('qa-analytics-profile-1280')
   await click('.profile-workspace-back'); await click('[data-page=analytics]')
   // Select today's heatmap cell; only the portion on that date should be shown.
@@ -104,6 +148,9 @@ try {
       await call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
       assert.equal(await evaluate("(()=>{const e=document.querySelector('.main-content');return e.scrollWidth<=e.clientWidth})()"), true, `${language} at ${width}px horizontal overflow`)
       assert.equal(await evaluate("[...document.querySelectorAll('.analytics-metric')].every(e=>e.scrollWidth<=e.clientWidth)"), true, `${language} metric overflow`)
+      await pause(60)
+      const axisSize = await evaluate("(()=>{const e=document.querySelector('.analytics-chart text');return parseFloat(getComputedStyle(e).fontSize)*e.getScreenCTM().a})()")
+      assert.ok(Math.abs(axisSize-13)<.2, `${language} at ${width}px: chart labels should stay 13 screen pixels, got ${axisSize}`)
     }
   }
   await save({ language: 'tr' }); await call('Page.reload'); await until("document.querySelector('[data-page=analytics]')"); await click('[data-page=analytics]'); await until("document.querySelector('.analytics-trend')"); await button('Son 90 gün'); await call('Emulation.setDeviceMetricsOverride', { width: 1080, height: 700, deviceScaleFactor: 1, mobile: false })
@@ -126,10 +173,14 @@ try {
   await until("document.querySelector('.analytics-trend p').textContent==='Yıllık oyun süren'")
   const years = await evaluate("[...document.querySelector('.analytics-chart svg').querySelectorAll('text[y=\"213\"]')].map(e=>e.textContent)")
   assert.equal(new Set(years).size, 3); assert.ok(years.every(year => /^\d{4}$/.test(year)))
+  assert.equal(await evaluate("document.querySelector('.analytics-streak').classList.contains('is-active')"), false, 'One-day streak stays neutral')
   await save({ qaPlaySessions: [] }); await until("document.querySelector('.analytics-empty')"); await shot('qa-analytics-empty-1080')
+  assert.equal(await evaluate("document.querySelectorAll('.analytics-calendar-grid button:not(:disabled)').length"), 365)
+  assert.equal(await evaluate("document.querySelector('.analytics-streak').classList.contains('is-active')"), false, 'Zero-day streak stays neutral')
   assert.equal(errors.length, 0, JSON.stringify(errors))
-  console.log('PASS analytics totals, filters, profile ranking and workspace, session pagination, live checkpoints, account isolation, empty/memory-only states, keyboard chart/picker, six languages and 1080/1280/1920 layouts')
+  console.log('PASS analytics totals, annual calendar with all 365 days, older-day drilldown, pointer/focus tooltips, constant-size chart labels, header alignment, readable typography, orange multi-day streaks, sidebar order, conditional final-row separators, account isolation, six languages and 1080/1280/1920 layouts')
 } catch (error) {
+  if (socket?.readyState === WebSocket.OPEN) { try { await shot('qa-analytics-failure') } catch {} }
   console.error(output.join('').slice(-3000)); throw error
 } finally {
   clearTimeout(timer)
