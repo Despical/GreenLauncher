@@ -1,5 +1,5 @@
-// Renderer-only fixture: all state stays in memory and Chromium uses a separate
-// directory. No launcher services, login endpoints or user data are touched.
+// Isolated UI fixture: state stays in memory and Chromium uses a separate
+// directory. Optional service checks use owned files, never user data or logins.
 const { app, BrowserWindow, ipcMain, nativeImage } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -9,11 +9,12 @@ app.setPath('userData', dataPath)
 app.disableHardwareAcceleration()
 app.commandLine.appendSwitch('remote-debugging-port', process.env.GREEN_QA_DEBUG_PORT || '9225')
 const withAnalytics = process.argv.includes('--qa-analytics')
-if (withAnalytics) ipcMain.handle('launcher:get-resource-packs', () => [])
 const withProfileTools = process.argv.includes('--qa-profile-tools')
 const withOctober = process.argv.includes('--qa-october')
 const withContent = process.argv.includes('--qa-content')
 const withSkin = process.argv.includes('--qa-skin')
+const withScreenshotRename = process.argv.includes('--qa-screenshot-rename')
+if (withAnalytics || withScreenshotRename) ipcMain.handle('launcher:get-resource-packs', () => [])
 const withOfficial = process.argv.includes('--qa-microsoft')
 const withWorlds = process.argv.includes('--qa-worlds')
 const withProfileServers = process.argv.includes('--qa-profile-servers')
@@ -75,6 +76,7 @@ if (withOctober) {
   state.profiles[2].cover = { color: '#9172a8', description: 'Dünyalarını keşfet, kendi maceranı oluştur.', image: nativeImage.createFromPath(path.join(root, 'src', 'renderer', 'assets', 'green-landscape.png')).resize({ width: 640 }).toDataURL() }
 }
 const snapshots = { fileOpened: 0, externalOpened: [], connections: 0 }
+const screenshotRenames = []
 const launches = []
 const running = process.argv.includes('--qa-running') ? Array.from({length:2}, (_,index)=>({id:`qa-instance-${index}`,pid:9000+index,profileId:'qa-profile',profileName:'Test World',accountId:'qa-offline',accountName:'DesignQA',versionId:'1.21.1-fabric',loader:'fabric',startedAt:new Date().toISOString()})) : []
 const rendererState = () => {
@@ -85,7 +87,7 @@ const rendererState = () => {
 }
 const changed = () => { const current = rendererState(); window.webContents.send('launcher:state', structuredClone(current)); window.webContents.send('launcher:downloads', downloadSnapshot()); return current }
 const handle = (name, handler) => ipcMain.handle(`launcher:${name}`, (_event, ...args) => handler(...args))
-handle('get-state', () => ({...rendererState(),qaPresence:presenceContext,qaProjectRequests:projectRequests,qaLaunches:launches,qaExternalOpened:snapshots.externalOpened,qaUpdateDownloads}))
+handle('get-state', () => ({...rendererState(),qaPresence:presenceContext,qaProjectRequests:projectRequests,qaLaunches:launches,qaExternalOpened:snapshots.externalOpened,qaUpdateDownloads,qaScreenshotRenames:screenshotRenames}))
 handle('play', (profileId, allowAdditional, versionId, serverAddress, serverPreference, worldId) => { launches.push({profileId,allowAdditional,versionId,serverAddress,serverPreference,worldId});return running.length && !allowAdditional ? {status:'confirmation-required',instances:running} : {status:'started'} })
 handle('play-version', (versionId, allowAdditional, serverAddress, serverPreference, temporaryOfflineName) => { launches.push({profileId:null,versionId,allowAdditional,serverAddress,serverPreference,temporaryOfflineName});return {status:'started'} })
 handle('get-profile-mods-path', id => id === 'qa-profile-2' ? null : path.join(dataPath,'profiles',id,'mods'))
@@ -182,9 +184,32 @@ const mockCapes = () => fixtureSkin ? [
 ] : []
 handle('get-account-capes', mockCapes)
 handle('set-account-cape', (_id, capeId) => { if (!withOfficial || !['none', 'minecraft:qa', 'minecraft:qb'].includes(capeId)) throw new Error('QA cape denied'); activeCape = capeId; return mockCapes() })
-handle('get-screenshots', () => fixtureSkin ? [{ id: 'qa-shot', profileId: null, name: 'QA screenshot', modifiedAt: '2026-09-30T10:00:00Z', thumbnail: fixtureSkin }] : [])
-handle('get-screenshot', () => nativeImage.createFromDataURL(fixtureSkin).resize({ width: 128, height: 128 }).toDataURL())
-handle('get-screenshot-preview', () => nativeImage.createFromDataURL(fixtureSkin).resize({ width: 128, height: 128 }).toDataURL())
+let screenshotLibrary
+if (withScreenshotRename) {
+  const ts = require('typescript'), vm = require('node:vm')
+  function load(file) {
+    const mod = { exports: {} }
+    vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module: mod, exports: mod.exports, Buffer, console, require: name => name === 'electron' ? { ...require('electron'), app: { getPath: () => path.join(dataPath, 'appData') } } : name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts')) : require(name) })
+    return mod.exports
+  }
+  const { LibraryService } = load(path.join(root, 'src/main/library.ts'))
+  screenshotLibrary = new LibraryService({ get: () => rendererState(), gamePath: profile => path.join(dataPath, 'profiles', profile.id) })
+  const directory = path.join(dataPath, 'profiles', 'qa-profile', 'screenshots')
+  fs.mkdirSync(directory, { recursive: true })
+  for (const [name, time] of [['QA screenshot.png', '2026-09-30'], ['existing.png', '2026-09-29']]) {
+    const file = path.join(directory, name)
+    fs.writeFileSync(file, nativeImage.createFromDataURL(fixtureSkin).toPNG()); fs.utimesSync(file, new Date(time), new Date(time))
+  }
+}
+handle('get-screenshots', (...args) => screenshotLibrary ? screenshotLibrary.screenshots(...args) : fixtureSkin ? [{ id: 'qa-shot', profileId: null, name: 'QA screenshot', modifiedAt: '2026-09-30T10:00:00Z', thumbnail: fixtureSkin }] : [])
+handle('get-screenshot', id => screenshotLibrary ? screenshotLibrary.screenshot(id) : nativeImage.createFromDataURL(fixtureSkin).resize({ width: 128, height: 128 }).toDataURL())
+handle('get-screenshot-preview', id => screenshotLibrary ? screenshotLibrary.screenshotPreview(id) : nativeImage.createFromDataURL(fixtureSkin).resize({ width: 128, height: 128 }).toDataURL())
+handle('rename-screenshot', async (id, name, confirmed) => {
+  if (!screenshotLibrary) throw Error('Screenshot rename fixture is disabled')
+  const result = await screenshotLibrary.renameScreenshot(id, name, confirmed)
+  screenshotRenames.push({ id, name, confirmed, result })
+  return result
+})
 handle('get-running-instances', () => running)
 handle('get-offline-status', () => ({ accountReady: true, versionReady: true }))
 handle('get-disk-usage', () => ({ profiles: state.profiles.map(item => ({ id: item.id, name: item.name, bytes: 300000000 })), sharedBytes: 900000000, totalBytes: 2400000000 }))

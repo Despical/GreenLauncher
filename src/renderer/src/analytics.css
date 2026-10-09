@@ -110,6 +110,9 @@
 .analytics-notice button { display: flex; align-items: center; gap: 8px; padding: 8px; border: 0; border-radius: 4px; background: transparent; color: #c9d1d9; font-size: 13px; white-space: nowrap; }
 .analytics-notice button:hover { background: #30363d; }
 .analytics-history-empty { text-align: center; color: #8b949e; font-size: 13px; padding: 15px 0; }
+.analytics-history-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.analytics-history-filter .analytics-text-button { padding: 5px 9px; border: 1px solid #30363d; background: #21262d; }
+.analytics-history-filter .analytics-text-button:hover { background: #30363d; }
 .analytics-page button:focus-visible { outline: 2px solid #a5b7ca; outline-offset: 2px; }
 .analytics-tooltip { position: fixed; z-index: 180; width: 258px; box-sizing: border-box; padding: 13px 15px; border: 1px solid #484f58; border-radius: 7px; background: #21262d; color: #e6edf3; box-shadow: 0 8px 24px #0006; pointer-events: none; font: 13px/1.5 'Inter Variable', 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; }
 .analytics-tooltip > span { display: block; color: #b1bac4; }

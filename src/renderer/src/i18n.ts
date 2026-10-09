@@ -10,6 +10,19 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
+  'Yeniden adlandır': ['Rename', 'Umbenennen', 'Renommer', 'Переименовать', 'Zmień nazwę'],
+  'Ekran görüntüsünü yeniden adlandır': ['Rename screenshot', 'Screenshot umbenennen', 'Renommer la capture', 'Переименовать снимок экрана', 'Zmień nazwę zrzutu ekranu'],
+  'Dosyanın adını değiştir.': ['Change the file name.', 'Ändere den Dateinamen.', 'Modifiez le nom du fichier.', 'Измените имя файла.', 'Zmień nazwę pliku.'],
+  'Dosya uzantısı değiştirilsin mi?': ['Change the file extension?', 'Dateiendung ändern?', 'Modifier l’extension du fichier ?', 'Изменить расширение файла?', 'Zmienić rozszerzenie pliku?'],
+  'Uzantıyı değiştirmek dosya türünü dönüştürmez. Desteklenmeyen uzantılar galeride görünmez.': ['Changing the extension does not convert the file. Unsupported extensions will not appear in the gallery.', 'Eine andere Endung konvertiert die Datei nicht. Nicht unterstützte Endungen werden nicht in der Galerie angezeigt.', 'Changer l’extension ne convertit pas le fichier. Les extensions non prises en charge n’apparaîtront pas dans la galerie.', 'Изменение расширения не преобразует файл. Файлы с неподдерживаемыми расширениями не появятся в галерее.', 'Zmiana rozszerzenia nie konwertuje pliku. Nieobsługiwane rozszerzenia nie pojawią się w galerii.'],
+  'Uzantı yok': ['No extension', 'Keine Endung', 'Sans extension', 'Без расширения', 'Brak rozszerzenia'],
+  'Adı düzenle': ['Edit name', 'Namen bearbeiten', 'Modifier le nom', 'Изменить имя', 'Edytuj nazwę'],
+  'Değiştir ve kaydet': ['Change and save', 'Ändern und speichern', 'Modifier et enregistrer', 'Изменить и сохранить', 'Zmień i zapisz'],
+  'Ekran görüntüsü yeniden adlandırıldı.': ['Screenshot renamed.', 'Screenshot umbenannt.', 'Capture renommée.', 'Снимок экрана переименован.', 'Zmieniono nazwę zrzutu ekranu.'],
+  'Dosya adı boş olamaz.': ['The file name cannot be empty.', 'Der Dateiname darf nicht leer sein.', 'Le nom du fichier ne peut pas être vide.', 'Имя файла не может быть пустым.', 'Nazwa pliku nie może być pusta.'],
+  'Geçerli bir dosya adı yaz. Klasör yolu ve özel karakterler kullanılamaz.': ['Enter a valid file name. Folder paths and special characters are not allowed.', 'Gib einen gültigen Dateinamen ein. Ordnerpfade und Sonderzeichen sind nicht erlaubt.', 'Saisissez un nom de fichier valide. Les chemins et caractères spéciaux ne sont pas autorisés.', 'Введите допустимое имя файла. Пути к папкам и специальные символы запрещены.', 'Wpisz prawidłową nazwę pliku. Ścieżki folderów i znaki specjalne są niedozwolone.'],
+  'Dosya uzantısını değiştirmek için onay gerekiyor.': ['Confirmation is required to change the file extension.', 'Zum Ändern der Dateiendung ist eine Bestätigung erforderlich.', 'Une confirmation est nécessaire pour modifier l’extension du fichier.', 'Для изменения расширения файла требуется подтверждение.', 'Zmiana rozszerzenia pliku wymaga potwierdzenia.'],
+  'Bu adla bir dosya zaten var.': ['A file with this name already exists.', 'Eine Datei mit diesem Namen existiert bereits.', 'Un fichier portant ce nom existe déjà.', 'Файл с таким именем уже существует.', 'Plik o tej nazwie już istnieje.'],
   '{count} günde {duration} oynadın': ['You played for {duration} across {count} days', 'Du hast an {count} Tagen insgesamt {duration} gespielt', 'Vous avez joué {duration} sur {count} jours', 'Вы играли {duration} за {count} дней', 'Grano przez {duration} w ciągu {count} dni'],
   '{hours} sa': ['{hours} h', '{hours} Std.', '{hours} h', '{hours} ч', '{hours} godz.'],
   '{minutes} dk': ['{minutes} min', '{minutes} Min.', '{minutes} min', '{minutes} мин', '{minutes} min'],

@@ -83,6 +83,7 @@ const api: LauncherApi = {
   copyScreenshot: id => invoke('copy-screenshot', id),
   openScreenshotLocation: id => invoke('open-screenshot-location', id),
   deleteScreenshot: id => invoke('delete-screenshot', id),
+  renameScreenshot: (id, name, confirmExtension) => invoke('rename-screenshot', id, name, confirmExtension),
   getDiskUsage: () => invoke('get-disk-usage'),
   getCleanupPreview: () => invoke('get-cleanup-preview'),
   cleanUnusedFiles: approvedPaths => invoke('clean-unused-files', approvedPaths),

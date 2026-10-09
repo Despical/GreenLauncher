@@ -97,6 +97,10 @@ try {
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip').dataset.source"), 'chart')
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip strong').textContent"), '1 sa 0 dk')
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip').parentElement===document.body"), true)
+  for (const index of [1, 6]) {
+    await hover('.analytics-chart [role=button]', index)
+    assert.equal(await evaluate(`(()=>{const b=document.querySelectorAll('.analytics-bar')[${index}].getBoundingClientRect(),t=document.querySelector('.analytics-tooltip').getBoundingClientRect();return Math.abs(b.top-t.bottom-10)<1})()`), true, 'Tooltip sits immediately above the real bar top')
+  }
   const anchoredTip = await evaluate("document.querySelector('.analytics-tooltip').getBoundingClientRect().toJSON()")
   const hoveredColumn = await evaluate("document.querySelectorAll('.analytics-chart [role=button]')[6].getBoundingClientRect().toJSON()")
   await evaluate("window.__qaTipMutations=0;window.__qaTipObserver=new MutationObserver(changes=>window.__qaTipMutations+=changes.length);window.__qaTipObserver.observe(document.querySelector('.analytics-tooltip'),{attributes:true,childList:true,subtree:true,characterData:true})")
@@ -117,8 +121,11 @@ try {
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip small').textContent"), '1 oturum')
   await shot('qa-analytics-refined-calendar-1920')
   await click(`.analytics-calendar-grid [data-date="${dayKey}"]`)
+  assert.equal(await evaluate("!!document.querySelector('.analytics-history-filter .analytics-text-button')"), true, 'All sessions is beside the selected date')
   assert.equal(await evaluate("document.querySelectorAll('.analytics-session-row').length"), 1)
   assert.equal(await evaluate("document.querySelector('.analytics-session-row strong').textContent"), '2 sa 0 dk', 'Annual day drilldown includes sessions outside the seven-day chart filter')
+  await evaluate("document.querySelector('.analytics-history').scrollIntoView({block:'center'})")
+  await shot('qa-analytics-history-filter-1920')
   await button('Tüm oturumlar')
   await hover('.analytics-calendar-grid button:not(:disabled)[data-level="0"]')
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip strong').textContent"), '0 dk 0 sn')

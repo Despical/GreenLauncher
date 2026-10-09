@@ -1,10 +1,12 @@
 import { app, clipboard, ClipboardItem, nativeImage, shell } from 'electron'
-import { lstat, readFile, readdir, stat } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
-import { screenshotPageSize, type CleanupItem, type CleanupPreview, type DiskUsage, type ScreenshotItem, type ScreenshotSort } from '../shared/types'
+import { copyFile, lstat, readFile, readdir, rename, stat, unlink, utimes } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { basename, dirname, extname, join } from 'node:path'
+import { screenshotPageSize, type CleanupItem, type CleanupPreview, type DiskUsage, type ScreenshotItem, type ScreenshotRenameResult, type ScreenshotSort } from '../shared/types'
+import { screenshotFilename, screenshotExtension, screenshotImageExtensions } from '../shared/screenshot-name'
 import { LauncherStore } from './store'
 
-const imageExtensions = new Set(['.png', '.jpg', '.jpeg'])
+const imageExtensions = screenshotImageExtensions
 const olderThan = Date.now() - 14 * 24 * 60 * 60 * 1000
 
 async function filesIn(path: string): Promise<string[]> {
@@ -132,6 +134,31 @@ export class LibraryService {
     const path = this.screenshotPath(id)
     if (!(await lstat(path)).isFile()) throw new Error('Ekran görüntüsü bulunamadı.')
     await shell.trashItem(path)
+  }
+
+  async renameScreenshot(id: string, value: string, confirmExtension = false): Promise<ScreenshotRenameResult> {
+    const source = this.screenshotPath(id), name = screenshotFilename(value)
+    const info = await lstat(source)
+    if (!info.isFile()) throw new Error('Ekran görüntüsü bulunamadı.')
+    if (screenshotExtension(basename(source)) !== screenshotExtension(name) && confirmExtension !== true) throw new Error('Dosya uzantısını değiştirmek için onay gerekiyor.')
+    const destination = join(dirname(source), name)
+    if (destination !== source) {
+      let existing: Awaited<ReturnType<typeof lstat>> | undefined
+      try { existing = await lstat(destination) } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+      if (existing && !(basename(source).toLowerCase() === name.toLowerCase() && existing.ino === info.ino && existing.dev === info.dev && existing.isFile())) throw new Error('Bu adla bir dosya zaten var.')
+      if (existing) await rename(source, destination)
+      else {
+        // Exclusive creation protects existing files, including a destination
+        // created by another process after the initial check.
+        try { await copyFile(source, destination, constants.COPYFILE_EXCL) }
+        catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new Error('Bu adla bir dosya zaten var.'); throw error }
+        try { await utimes(destination, info.atime, info.mtime); await unlink(source) }
+        catch (error) { await unlink(destination).catch(() => {}); throw error }
+      }
+      for (const cache of [this.thumbnailCache, this.previewCache]) for (const key of cache.keys()) if (key.startsWith(`${source}\0`) || key.startsWith(`${destination}\0`)) cache.delete(key)
+    }
+    const descriptor = JSON.parse(Buffer.from(id, 'base64url').toString('utf8')) as { profileId: string | null }
+    return { id: Buffer.from(JSON.stringify({ profileId: descriptor.profileId, name })).toString('base64url'), name, visible: imageExtensions.has(screenshotExtension(name)) }
   }
 
   async diskUsage(): Promise<DiskUsage> {

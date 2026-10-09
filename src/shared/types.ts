@@ -57,6 +57,7 @@ export interface PlayHistoryEntry { id: string; profileId: string; profileName: 
 export interface PlaySession { id: string; profileId: string; profileName: string; versionId: string; startedAt: string; endedAt: string; durationMs: number }
 export const screenshotPageSize = 18
 export interface ScreenshotItem { id: string; profileId: string | null; name: string; modifiedAt: string; thumbnail: string }
+export interface ScreenshotRenameResult { id: string; name: string; visible: boolean }
 export type ScreenshotSort = 'newest' | 'oldest'
 export interface DiskUsage { profiles: Array<{ id: string; name: string; bytes: number }>; sharedBytes: number; totalBytes: number }
 export interface CleanupItem { path: string; kind: 'logs' | 'crashReports' | 'versions'; bytes: number }
@@ -288,6 +289,7 @@ export interface LauncherApi {
   copyScreenshot(id: string): Promise<void>
   openScreenshotLocation(id: string): Promise<void>
   deleteScreenshot(id: string): Promise<void>
+  renameScreenshot(id: string, name: string, confirmExtension?: boolean): Promise<ScreenshotRenameResult>
   getDiskUsage(): Promise<DiskUsage>
   getCleanupPreview(): Promise<CleanupPreview>
   cleanUnusedFiles(approvedPaths: string[]): Promise<CleanupPreview>

@@ -768,6 +768,7 @@ else {
     handle('launcher:copy-screenshot', (id: string) => library.copyScreenshot(id))
     handle('launcher:open-screenshot-location', (id: string) => library.openScreenshotLocation(id))
     handle('launcher:delete-screenshot', (id: string) => library.deleteScreenshot(id))
+    handle('launcher:rename-screenshot', (id: string, name: string, confirmExtension?: boolean) => library.renameScreenshot(id, name, confirmExtension))
     handle('launcher:get-disk-usage', () => library.diskUsage())
     handle('launcher:get-cleanup-preview', () => library.cleanupPreview())
     handle('launcher:get-offline-status', () => {

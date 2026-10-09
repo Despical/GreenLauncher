@@ -1,0 +1,13 @@
+.screenshot-rename-dialog { width: 500px; max-width: calc(100vw - 48px); }
+.screenshot-name-field { display: flex; flex-direction: column; gap: 10px; color: #c9d1d9; font-size: 14px; font-weight: 600; }
+.screenshot-name-field input { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #e6edf3; font-size: 14px; }
+.screenshot-name-field input:focus { outline: 2px solid #8192a8; outline-offset: 2px; }
+.screenshot-name-field input:disabled { opacity: .7; }
+.screenshot-extension-confirm { margin-top: 22px; padding: 17px; border: 1px solid #484f58; border-radius: 7px; background: #21262d; }
+.screenshot-extension-confirm > div:first-child { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+.screenshot-extension-confirm svg { flex: none; }
+.screenshot-extension-confirm p { margin: 12px 0; color: #b1bac4; font-size: 13px; line-height: 1.7; }
+.screenshot-extension-change { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.screenshot-extension-change > span:not(:nth-child(2)) { padding: 3px 8px; border: 1px solid #484f58; border-radius: 4px; background: #161b22; }
+.screenshot-extension-confirm .modal-actions { margin-top: 18px; flex-wrap: wrap; }
+.screenshot-rename-error { margin: 16px 0 0; color: #f09595; font-size: 13px; line-height: 1.7; }

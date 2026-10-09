@@ -25,6 +25,7 @@ import { SkinPreview } from './SkinPreview'
 import { DownloadsPage } from './DownloadsPage'
 import { DropdownOptions } from './DropdownOptions'
 import { ScreenshotThumbnail } from './ScreenshotThumbnail'
+import { ScreenshotRenameDialog } from './ScreenshotRenameDialog'
 import { ErrorLogPanel } from './ErrorLogPanel'
 import { AboutPanel } from './AboutPanel'
 import { ProfileEmptyState } from './ProfileEmptyState'
@@ -379,6 +380,7 @@ function App() {
   const [screenshotContextMenu, setScreenshotContextMenu] = useState<{ item: ScreenshotItem; x: number; y: number } | null>(null)
   const screenshotContextMenuRef = useRef<HTMLDivElement>(null)
   const [pendingScreenshotDelete, setPendingScreenshotDelete] = useState<ScreenshotItem | null>(null)
+  const [pendingScreenshotRename, setPendingScreenshotRename] = useState<ScreenshotItem | null>(null)
   const [diskUsage, setDiskUsage] = useState<DiskUsage | null>(null)
   const [cleanupPreview, setCleanupPreview] = useState<CleanupPreview | null>(null)
   const [cleaning, setCleaning] = useState(false)
@@ -422,6 +424,7 @@ function App() {
     setScreenshotOpen(null)
     setScreenshotContextMenu(null)
     setPendingScreenshotDelete(null)
+    setPendingScreenshotRename(null)
     window.launcher.getVersions().then(value => { if (current) setVersions(value) }).catch(error => { if (current) setToast(friendlyError(error)) })
     return () => { current = false }
   }, [state?.selectedAccountId])
@@ -474,7 +477,7 @@ function App() {
       .finally(() => { if (request === screenshotRequest.current) setScreenshotsLoading(false) })
   }, [page, screenshotScope, screenshotSort, state?.selectedAccountId])
   useEffect(() => { setVersionContextMenu(null) }, [page, filter, scope, query])
-  useEffect(() => { if (page !== 'gallery') setScreenshotContextMenu(null) }, [page])
+  useEffect(() => { if (page !== 'gallery') { setScreenshotContextMenu(null); setPendingScreenshotRename(null) } }, [page])
   useEffect(() => {
     if (!screenshotContextMenu) return
     const close = (event: MouseEvent) => { if (!(event.target as Element).closest('.screenshot-more') && !screenshotContextMenuRef.current?.contains(event.target as Node)) setScreenshotContextMenu(null) }
@@ -587,10 +590,10 @@ function App() {
     setVersionContextMenu({ id, installed, x: Math.max(8, Math.min(event.clientX, window.innerWidth - 252)), y: Math.max(8, Math.min(event.clientY, window.innerHeight - 184)) })
   }
   const openScreenshotContextMenu = (item: ScreenshotItem, x: number, y: number) => {
-    setScreenshotContextMenu({ item, x: Math.max(8, Math.min(x, window.innerWidth - 252)), y: Math.max(8, Math.min(y, window.innerHeight - 188)) })
+    setScreenshotContextMenu({ item, x: Math.max(8, Math.min(x, window.innerWidth - 252)), y: Math.max(8, Math.min(y, window.innerHeight - 232)) })
   }
   const toggleScreenshotContextMenu = (item: ScreenshotItem, x: number, y: number) => {
-    setScreenshotContextMenu(current => current?.item.id === item.id ? null : { item, x: Math.max(8, Math.min(x, window.innerWidth - 252)), y: Math.max(8, Math.min(y, window.innerHeight - 188)) })
+    setScreenshotContextMenu(current => current?.item.id === item.id ? null : { item, x: Math.max(8, Math.min(x, window.innerWidth - 252)), y: Math.max(8, Math.min(y, window.innerHeight - 232)) })
   }
   const launchTarget = async (request: LaunchRequest, confirmed = false) => {
     if (launchLock.current) return
@@ -929,7 +932,7 @@ function App() {
     {changelogOpen && <Suspense fallback={null}><Changelog language={language} update={updates.update} onCheck={() => updates.action('check')} onUpdate={() => { setChangelogOpen(false); setPage('downloads'); void updates.action('download').catch(() => {}) }} onClose={()=>setChangelogOpen(false)}/></Suspense>}
     {profileMenu && page === 'profiles' && state.profiles.some(item => item.id === profileMenu.id) && <ProfileMenu profile={state.profiles.find(item => item.id === profileMenu.id)!} x={profileMenu.x} y={profileMenu.y} language={language} pending={profileTasks.includes(profileMenu.id) || instances.some(item => item.profileId === profileMenu.id)} onClose={() => setProfileMenu(null)} onAction={action => void profileAction(profileMenu.id, action)} />}
     {versionContextMenu && page === 'versions' && <div ref={versionContextMenuRef} className="version-context-menu" role="menu" style={{ left: versionContextMenu.x, top: versionContextMenu.y }}><div className="version-context-label">Minecraft {versionContextMenu.id}</div><div className="version-context-divider" /><button role="menuitem" disabled={launchBusy} onClick={() => { const id = versionContextMenu.id; setVersionContextMenu(null); playVersion(id) }}><Play size={16} fill="currentColor" /> {t('Başlat')}</button><button role="menuitem" onClick={() => { const id = versionContextMenu.id; setVersionContextMenu(null); run(() => window.launcher.createVersionShortcut(id), t('{version} için masaüstü kısayolu oluşturuldu.', { version: id })) }}><Monitor size={16} /> {t('Masaüstüne kısayol oluştur')}</button><button role="menuitem" disabled={!versionContextMenu.installed} title={versionContextMenu.installed ? t('Sürüm klasörünü aç') : t('Sürüm henüz yüklü değil')} onClick={() => { const id = versionContextMenu.id; setVersionContextMenu(null); run(() => window.launcher.openVersionLocation(id)) }}><FolderOpen size={16} /> {t('Dosya konumunda aç')}</button></div>}
-    {screenshotContextMenu && page === 'gallery' && <div ref={screenshotContextMenuRef} className="version-context-menu screenshot-context-menu" role="menu" style={{ left: screenshotContextMenu.x, top: screenshotContextMenu.y }}><div className="version-context-label" title={screenshotContextMenu.item.name}>{screenshotContextMenu.item.name}</div><div className="version-context-divider" /><button role="menuitem" onClick={() => { const item = screenshotContextMenu.item; setScreenshotContextMenu(null); run(() => window.launcher.copyScreenshot(item.id), t('Ekran görüntüsü kopyalandı.')) }}><Copy size={16} /> {t('Görüntüyü kopyala')}</button><button role="menuitem" onClick={() => { const item = screenshotContextMenu.item; setScreenshotContextMenu(null); run(() => window.launcher.openScreenshotLocation(item.id)) }}><FolderOpen size={16} /> {t('Dosya konumunda aç')}</button><div className="version-context-divider" /><button role="menuitem" className="context-danger" onClick={() => { setPendingScreenshotDelete(screenshotContextMenu.item); setScreenshotContextMenu(null) }}><Trash2 size={16} /> {t('Sil')}</button></div>}
+    {screenshotContextMenu && page === 'gallery' && <div ref={screenshotContextMenuRef} className="version-context-menu screenshot-context-menu" role="menu" style={{ left: screenshotContextMenu.x, top: screenshotContextMenu.y }}><div className="version-context-label" title={screenshotContextMenu.item.name}>{screenshotContextMenu.item.name}</div><div className="version-context-divider" /><button role="menuitem" onClick={() => { const item = screenshotContextMenu.item; setScreenshotContextMenu(null); run(() => window.launcher.copyScreenshot(item.id), t('Ekran görüntüsü kopyalandı.')) }}><Copy size={16} /> {t('Görüntüyü kopyala')}</button><button role="menuitem" onClick={() => { const item = screenshotContextMenu.item; setScreenshotContextMenu(null); run(() => window.launcher.openScreenshotLocation(item.id)) }}><FolderOpen size={16} /> {t('Dosya konumunda aç')}</button><button role="menuitem" onClick={() => { setPendingScreenshotRename(screenshotContextMenu.item); setScreenshotContextMenu(null) }}><Pencil size={16} /> {t('Yeniden adlandır')}</button><div className="version-context-divider" /><button role="menuitem" className="context-danger" onClick={() => { setPendingScreenshotDelete(screenshotContextMenu.item); setScreenshotContextMenu(null) }}><Trash2 size={16} /> {t('Sil')}</button></div>}
     {page === 'settings' && dirty && <div className="save-bar"><span>{t('Kaydedilmemiş değişikliklerin var.')}</span><button onClick={() => setSettingsDraft(state.settings)}>{t('Sıfırla')}</button><button className="save-confirm" disabled={savingSettings} onClick={saveSettings}>{savingSettings ? t('Kaydediliyor...') : t('Değişiklikleri kaydet')}</button></div>}
     {activity.kind === 'launching' && <div className="activity-screen"><div className="activity-card"><img src={logo} /><h2>{t(activity.label)}</h2><p>{activity.detail || t('Oyun hazırlanıyor')}</p><div className="activity-track"><div style={{ width: `${Math.max(10, activity.progress || 10)}%` }} /></div><small>{t('Dosyalar hazırlanırken launcher açık kalmalı.')}</small></div></div>}
     {toast && <div key={`${toastRevision}:${toast}`} className={`toast ${toastLeaving ? 'leaving' : ''}`} role="status" aria-live="polite"><span>{toast}</span><button aria-label={t('Kapat')} onClick={dismissToast}><X size={16} /></button></div>}
@@ -955,6 +958,13 @@ function App() {
     </div></div>}
     {screenshotOpen && <div className="modal-backdrop screenshot-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setScreenshotOpen(null) }}><div className="screenshot-viewer"><div><strong>{screenshotOpen.name}</strong><button onClick={() => setScreenshotOpen(null)} aria-label={t('Kapat')}><X size={20} /></button></div><img src={screenshotOpen.url} alt={screenshotOpen.name} /></div></div>}
     {pendingScreenshotDelete && <div className="modal-backdrop"><div className="modal confirm-modal"><DialogHeading title={<>{t('Ekran görüntüsü silinsin mi?')}</>} description={<><strong>{pendingScreenshotDelete.name}</strong> {t('Geri Dönüşüm Kutusu’na taşınacak.')}</>} closeLabel={t('Kapat')} onClose={() => setPendingScreenshotDelete(null)} /><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setPendingScreenshotDelete(null)}>{t('Vazgeç')}</button><button className="delete-button" onClick={() => deleteScreenshot(pendingScreenshotDelete)}><Trash2 size={16} /> {t('Sil')}</button></div></div></div>}
+    {pendingScreenshotRename && <ScreenshotRenameDialog key={pendingScreenshotRename.id} item={pendingScreenshotRename} language={language} onClose={() => setPendingScreenshotRename(null)} onRenamed={result => {
+      ++screenshotRequest.current
+      setScreenshotsLoading(false)
+      setScreenshots(current => current.flatMap(item => item.id !== pendingScreenshotRename.id ? [item] : result.visible ? [{ ...item, id: result.id, name: result.name }] : []))
+      setPendingScreenshotRename(null)
+      notifyCape(t('Ekran görüntüsü yeniden adlandırıldı.'))
+    }} />}
     {confirmCleanup && cleanupPreview && <div className="modal-backdrop"><div className="modal confirm-modal cleanup-preview-modal"><DialogHeading title={<>{t('Temizleme önizlemesi')}</>} description={<>{t('{size} tutan {count} öğe Geri Dönüşüm Kutusu’na taşınacak.', { size: formatBytes(cleanupPreview.bytes), count: cleanupPreview.items.length })}</>} closeLabel={t('Kapat')} onClose={() => setConfirmCleanup(false)} /><div className="cleanup-preview-list">{cleanupPreview.items.map(item => <div key={item.path}><span className="cleanup-kind">{item.kind === 'logs' ? t('Günlük') : item.kind === 'crashReports' ? t('Çökme raporu') : t('Kullanılmayan sürüm')}</span><strong>{item.path.split(/[\\/]/).pop()}</strong><small title={item.path}>{item.path}</small><b>{formatBytes(item.bytes)}</b></div>)}</div><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setConfirmCleanup(false)}>{t('Vazgeç')}</button><button className="delete-button" disabled={cleaning || cleanupPreview.items.length === 0} onClick={() => { const paths = cleanupPreview.items.map(item => item.path); setConfirmCleanup(false); cleanFiles(paths) }}><Trash2 size={16} /> {t('Geri Dönüşüm Kutusu’na taşı')}</button></div></div></div>}
     {deleteId && <div className="modal-backdrop"><div className="modal confirm-modal"><DialogHeading title={<>{t('Profil silinsin mi?')}</>} description={<>{t('Profil listeden kaldırılacak. Dünyaların bilgisayarında kalacak.')}</>} closeLabel={t('Kapat')} onClose={() => setDeleteId(null)} /><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setDeleteId(null)}>{t('Vazgeç')}</button><button className="delete-button" onClick={() => run(async () => { setState(await window.launcher.deleteProfile(deleteId)); setDeleteId(null) }, t('Profil kaldırıldı.'))}><Trash2 size={16} /> {t('Profili sil')}</button></div></div></div>}
     {pendingVersionDelete && <div className="modal-backdrop"><div className="modal confirm-modal"><DialogHeading title={<>{t('Sürüm kaldırılsın mı?')}</>} description={<><strong>{pendingVersionDelete}</strong> {t('Sürüm dosyaları Geri Dönüşüm Kutusu’na taşınacak. Dünyaların ve profillerin korunur.')}</>} closeLabel={t('Kapat')} onClose={() => setPendingVersionDelete(null)} /><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setPendingVersionDelete(null)}>{t('Vazgeç')}</button><button className="delete-button" onClick={deleteSelectedVersion}><Trash2 size={16} /> {t('Sürümü kaldır')}</button></div></div></div>}
