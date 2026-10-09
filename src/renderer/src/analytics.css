@@ -73,8 +73,9 @@
 .analytics-calendar-grid > button { display: block; min-width: 0; min-height: 0; padding: 0; border: 1px solid #343f4e; border-radius: 2px; transition: border-color .15s; }
 .analytics-calendar-grid > button:hover { border-color: #e6edf3; }
 .analytics-calendar-grid > button.selected { outline: 2px solid #e6edf3; outline-offset: 1px; }
-.analytics-calendar-grid > button.outside { opacity: .35; }
-.analytics-calendar-grid [data-level="0"], .analytics-calendar-footer [data-level="0"] { background: #202833; }
+.analytics-calendar-grid > button.outside { opacity: 1; }
+.analytics-calendar-grid [data-level="0"], .analytics-calendar-footer [data-level="0"] { background: #1a2028; }
+.analytics-calendar-grid [data-level="0"] { border-color: #212832; }
 .analytics-calendar-grid [data-level="1"], .analytics-calendar-footer [data-level="1"] { background: #3a485b; }
 .analytics-calendar-grid [data-level="2"], .analytics-calendar-footer [data-level="2"] { background: #596d87; }
 .analytics-calendar-grid [data-level="3"], .analytics-calendar-footer [data-level="3"] { background: #8499b4; }
@@ -94,7 +95,8 @@
 .analytics-session-head > :last-child, .analytics-session-row > :last-child { text-align: right; font-weight: 500; }
 .analytics-session-live { display: block; margin-top: 4px; color: #8b949e; font-size: 12px; }
 .analytics-footnote { display: flex; align-items: flex-start; gap: 8px; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid #30363d; color: #8b949e; font-size: 13px; line-height: 1.7; }
-.analytics-footnote svg { flex: none; margin-top: 2px; }
+.analytics-footnote svg { flex: none; margin-top: calc((1.7em - 14px) / 2); }
+.analytics-footnote > span { flex: 1; min-width: 0; }
 .analytics-show-more { display: block; margin: 15px auto 0; padding: 9px 14px; border: 1px solid #30363d; border-radius: 5px; background: #21262d; color: #c9d1d9; font-size: 13px; }
 .analytics-show-more:hover { background: #30363d; }
 .analytics-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; padding: 55px 30px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; }

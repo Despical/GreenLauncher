@@ -19,6 +19,21 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
   onProfile: (id: string) => void; onSettings: (id?: string) => void; isVisible: boolean
 }) {
   const t = (source: string, values?: Record<string, string | number>) => translate(language, source, values)
+  const formats = useMemo(() => {
+    const locale = locales[language]
+    return {
+      date: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }),
+      fullDate: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }),
+      weekday: new Intl.DateTimeFormat(locale, { weekday: 'long' }),
+      shortWeekday: new Intl.DateTimeFormat(locale, { weekday: 'short' }),
+      month: new Intl.DateTimeFormat(locale, { month: 'short' }),
+      monthYear: new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }),
+      year: new Intl.DateTimeFormat(locale, { year: 'numeric' }),
+      session: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      number: new Intl.NumberFormat(locale),
+      axis: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
+    }
+  }, [language])
   const [period, setPeriod] = useState<AnalyticsPeriod>('30d')
   const [filter, setFilter] = useState('')
   const [now, setNow] = useState(() => new Date())
@@ -61,9 +76,9 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
     return () => observer.disconnect()
   }, [isVisible, data.total > 0])
   const duration = (value: number) => playDuration(value, language)
-  const number = (value: number) => new Intl.NumberFormat(locales[language]).format(value)
-  const formatDate = (value: number, full = false) => new Intl.DateTimeFormat(locales[language], { day: 'numeric', month: full ? 'long' : 'short', ...(full && { year: 'numeric' as const }) }).format(value)
-  const weekday = (index: number, short = false) => new Intl.DateTimeFormat(locales[language], { weekday: short ? 'short' : 'long' }).format(new Date(2026, 0, 5 + index))
+  const number = (value: number) => formats.number.format(value)
+  const formatDate = (value: number, full = false) => (full ? formats.fullDate : formats.date).format(value)
+  const weekday = (index: number, short = false) => (short ? formats.shortWeekday : formats.weekday).format(new Date(2026, 0, 5 + index))
   const periodName = (value: AnalyticsPeriod) => value === '7d' ? t('Son 7 gün') : value === '30d' ? t('Son 30 gün') : value === '90d' ? t('Son 90 gün') : t('Tüm zamanlar')
   const visibleIds = new Set(state.profiles.map(item => item.id))
   const running = new Set(instances.filter(item => item.profileId && visibleIds.has(item.profileId) && (!scope || item.profileId === scope)).map(item => item.id))
@@ -79,17 +94,23 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
   const rawStep = max / axisUnit / 4, magnitude = 10 ** Math.floor(Math.log10(rawStep))
   const niceMax = ([1, 2, 5, 10].find(step => step * magnitude >= rawStep) ?? 10) * magnitude * 4 * axisUnit
   const axis = (value: number) => {
-    const amount = new Intl.NumberFormat(locales[language], { maximumFractionDigits: 1 }).format(value / axisUnit)
+    const amount = formats.axis.format(value / axisUnit)
     return axisUnit === 60_000 ? t('{minutes} dk', { minutes: amount }) : t('{hours} sa', { hours: amount })
   }
   const bucketLabel = (bucket: AnalyticsBucket) => data.unit === 'day' ? formatDate(bucket.from, true) : `${formatDate(bucket.from)} – ${formatDate(Math.max(bucket.from, bucket.to - 1), true)}`
-  const tickLabel = (value: number) => data.unit === 'year' ? new Intl.DateTimeFormat(locales[language], { year: 'numeric' }).format(value) : data.unit === 'month' ? new Intl.DateTimeFormat(locales[language], { month: 'short', year: 'numeric' }).format(value) : formatDate(value)
+  const tickLabel = (value: number) => data.unit === 'year' ? formats.year.format(value) : data.unit === 'month' ? formats.monthYear.format(value) : formatDate(value)
   const chartIndex = hovered !== null && data.buckets[hovered] ? hovered : Math.max(0, data.buckets.findIndex(bucket => data.bestDay && data.bestDay.date >= bucket.from && data.bestDay.date < bucket.to))
   const chartBucket = data.buckets[chartIndex]
   const peak = Math.max(...data.weekdays.map(day => day.durationMs), 1)
   const calendarPeak = Math.max(...calendarData.calendar.map(day => day.durationMs), 1)
   const calendarWeeks = calendarData.calendar.length / 7
-  const hover = (source: HoverTip['source'], label: string, durationMs: number, x: number, y: number, sessions?: number) => setTooltip({ source, label, durationMs, x, y, sessions })
+  const hover = (source: HoverTip['source'], label: string, durationMs: number, target: Element, sessions?: number) => {
+    const rect = target.getBoundingClientRect()
+    const x = Math.min(Math.max(12, rect.left + rect.width / 2 - 129), window.innerWidth - 270)
+    const y = source === 'chart' ? rect.top + 12 : rect.bottom + 10
+    const top = y > window.innerHeight - 120 ? Math.max(12, rect.top - 110) : Math.max(12, y)
+    setTooltip(previous => previous?.source === source && previous.label === label && previous.durationMs === durationMs && previous.sessions === sessions && previous.x === x && previous.y === top ? previous : { source, label, durationMs, x, y: top, sessions })
+  }
   const sessionDuration = (session: typeof data.sessions[number]) => {
     const day = calendarData.calendar.find(item => item.key === selectedDay)
     if (!day) return session.playedMs
@@ -118,9 +139,8 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
           {[0, 1, 2, 3, 4].map(tick => <g key={tick} aria-hidden="true"><line x1="62" x2="794" y1={184 - tick * 40} y2={184 - tick * 40} className="analytics-gridline" /><text x="51" y={188 - tick * 40} textAnchor="end">{axis(niceMax * tick / 4)}</text></g>)}
           {data.buckets.map((bucket, index) => { const step = 730 / data.buckets.length, height = bucket.durationMs / niceMax * 160; return <g key={bucket.from}>
             <rect x={63 + index * step} y="20" width={step} height="166" fill="transparent" tabIndex={0} role="button" aria-label={`${bucketLabel(bucket)}: ${duration(bucket.durationMs)}`} aria-describedby={tooltip?.source === 'chart' && chartIndex === index ? tooltipId : undefined}
-              onMouseEnter={event => { setHovered(index); hover('chart', bucketLabel(bucket), bucket.durationMs, event.clientX, event.clientY) }}
-              onMouseMove={event => hover('chart', bucketLabel(bucket), bucket.durationMs, event.clientX, event.clientY)}
-              onFocus={event => { setHovered(index); const rect = event.currentTarget.getBoundingClientRect(); hover('chart', bucketLabel(bucket), bucket.durationMs, rect.left + rect.width / 2, rect.top + rect.height / 2) }}
+              onMouseEnter={event => { setHovered(index); hover('chart', bucketLabel(bucket), bucket.durationMs, event.currentTarget) }}
+              onFocus={event => { setHovered(index); hover('chart', bucketLabel(bucket), bucket.durationMs, event.currentTarget) }}
               onBlur={() => setTooltip(null)}
               onClick={() => { if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } else setHovered(index) }}
               onKeyDown={event => {
@@ -146,13 +166,12 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
         </section>
       </div>
     </>}
-      <section className="analytics-panel analytics-calendar"><div className="analytics-panel-heading"><div><h3>{t('Etkinlik takvimi')}</h3><p>{t('Son 365 gün. Daha açık kareler daha fazla oyun süresini gösterir.')}</p></div><span className={`analytics-streak ${calendarData.currentStreak > 1 ? 'is-active' : ''}`}><Flame size={16} />{t('Güncel seri: {count} gün', { count: calendarData.currentStreak })}</span></div>
-        <div className="analytics-calendar-months" style={{ gridTemplateColumns: `repeat(${calendarWeeks}, minmax(0, 1fr))` }} aria-hidden="true">{calendarData.calendar.filter((_, index) => index % 7 === 0).map((day, index, weeks) => index === 0 || new Date(day.date).getMonth() !== new Date(weeks[index - 1].date).getMonth() ? <span key={day.key} style={{ gridColumn: index + 1 }}>{new Intl.DateTimeFormat(locales[language], { month: 'short' }).format(day.date)}</span> : null)}</div>
+      <section className="analytics-panel analytics-calendar"><div className="analytics-panel-heading"><div><h3>{t('Etkinlik takvimi')}</h3></div><span className={`analytics-streak ${calendarData.currentStreak > 1 ? 'is-active' : ''}`}><Flame size={16} />{t('Güncel seri: {count} gün', { count: calendarData.currentStreak })}</span></div>
+        <div className="analytics-calendar-months" style={{ gridTemplateColumns: `repeat(${calendarWeeks}, minmax(0, 1fr))` }} aria-hidden="true">{calendarData.calendar.filter((_, index) => index % 7 === 0).map((day, index, weeks) => index === 0 || new Date(day.date).getMonth() !== new Date(weeks[index - 1].date).getMonth() ? <span key={day.key} style={{ gridColumn: index + 1 }}>{formats.month.format(day.date)}</span> : null)}</div>
         <div className="analytics-calendar-layout" onMouseLeave={() => setTooltip(null)}><div className="analytics-calendar-weekdays">{[0, 2, 4, 6].map(index => <span key={index} style={{ gridRow: index + 1 }}>{weekday(index, true)}</span>)}</div>
           <div className="analytics-calendar-grid" style={{ gridTemplateColumns: `repeat(${calendarWeeks}, minmax(0, 1fr))`, aspectRatio: `${calendarWeeks} / 7` }}>{calendarData.calendar.map(day => <button type="button" key={day.key} disabled={!day.inRange} className={`${selectedDay === day.key ? 'selected' : ''} ${!day.inRange ? 'outside' : ''}`} data-date={day.key} data-level={day.durationMs === 0 ? 0 : Math.ceil(day.durationMs / calendarPeak * 4)} aria-pressed={selectedDay === day.key} aria-label={`${formatDate(day.date, true)}: ${duration(day.durationMs)}`} aria-describedby={tooltip?.source === 'calendar' && tooltip.label === formatDate(day.date, true) ? tooltipId : undefined}
-            onMouseEnter={event => hover('calendar', formatDate(day.date, true), day.durationMs, event.clientX, event.clientY, day.sessions)}
-            onMouseMove={event => hover('calendar', formatDate(day.date, true), day.durationMs, event.clientX, event.clientY, day.sessions)}
-            onFocus={event => { const rect = event.currentTarget.getBoundingClientRect(); hover('calendar', formatDate(day.date, true), day.durationMs, rect.left + rect.width / 2, rect.bottom, day.sessions) }}
+            onMouseEnter={event => hover('calendar', formatDate(day.date, true), day.durationMs, event.currentTarget, day.sessions)}
+            onFocus={event => hover('calendar', formatDate(day.date, true), day.durationMs, event.currentTarget, day.sessions)}
             onBlur={() => setTooltip(null)}
             onClick={() => { setSelectedDay(selectedDay === day.key ? null : day.key); setLimit(8) }}
           />)}</div>
@@ -160,11 +179,11 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
         <div className="analytics-calendar-footer"><span>{t('{count} günde {duration} oynadın', { count: calendarData.activeDays, duration: duration(calendarData.total) })}</span><div><span>{t('Az')}</span>{[0, 1, 2, 3, 4].map(level => <i data-level={level} key={level} />)}<span>{t('Çok')}</span></div></div>
       </section>
       <section className="analytics-panel analytics-history"><div className="analytics-panel-heading"><div><h3>{t('Oturum geçmişi')}</h3><p>{selectedDay ? formatDate(calendarData.calendar.find(day => day.key === selectedDay)?.date ?? Date.parse(`${selectedDay}T12:00:00`), true) : t('Son oyun oturumların ve ölçülen süreleri')}</p></div>{selectedDay && <button className="analytics-text-button" onClick={() => { setSelectedDay(null); setLimit(8) }}><ArrowLeft size={14} />{t('Tüm oturumlar')}</button>}<span>{t('{count} oturum', { count: history.length })}</span></div>
-        <div className={`analytics-session-table ${history.length > limit ? 'has-more' : ''}`} role="table" aria-label={t('Oturum geçmişi')}><div className="analytics-session-head" role="row"><span role="columnheader">{t('Profil')}</span><span role="columnheader">{t('Başlangıç')}</span><span role="columnheader">{t('Sürüm')}</span><span role="columnheader">{selectedDay ? t('Bu gündeki süre') : t('Süre')}</span></div>{history.slice(0, limit).map(session => { const owner = state.profiles.find(item => item.id === session.profileId)!; return <div className="analytics-session-row" role="row" key={session.id}><div role="cell"><span className="analytics-session-icon"><ProfileIcon profile={owner} /></span><span title={owner.name}>{owner.name}{running.has(session.id) && <small className="analytics-session-live">{t('Devam ediyor')}</small>}</span></div><span role="cell">{new Intl.DateTimeFormat(locales[language], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(session.startedAt))}</span><span role="cell" className="analytics-session-version" title={session.versionId}>{session.versionId}</span><strong role="cell">{duration(sessionDuration(session))}</strong></div> })}</div>
+        <div className={`analytics-session-table ${history.length > limit ? 'has-more' : ''}`} role="table" aria-label={t('Oturum geçmişi')}><div className="analytics-session-head" role="row"><span role="columnheader">{t('Profil')}</span><span role="columnheader">{t('Başlangıç')}</span><span role="columnheader">{t('Sürüm')}</span><span role="columnheader">{selectedDay ? t('Bu gündeki süre') : t('Süre')}</span></div>{history.slice(0, limit).map(session => { const owner = state.profiles.find(item => item.id === session.profileId)!; return <div className="analytics-session-row" role="row" key={session.id}><div role="cell"><span className="analytics-session-icon"><ProfileIcon profile={owner} /></span><span title={owner.name}>{owner.name}{running.has(session.id) && <small className="analytics-session-live">{t('Devam ediyor')}</small>}</span></div><span role="cell">{formats.session.format(new Date(session.startedAt))}</span><span role="cell" className="analytics-session-version" title={session.versionId}>{session.versionId}</span><strong role="cell">{duration(sessionDuration(session))}</strong></div> })}</div>
         {!history.length && <p className="analytics-history-empty">{selectedDay ? t('Bu gün için oyun oturumu yok.') : t('Bu zaman aralığında oyun kaydı yok')}</p>}
         {history.length > limit && <button className="analytics-show-more" onClick={() => setLimit(value => value + 8)}>{t('Daha fazla göster')}</button>}
-        <p className="analytics-footnote"><Info size={14} />{t('Süreler oyunun açık kaldığı zamanı gösterir; menü ve bekleme süreleri dahildir. Gece yarısını aşan oturumlar günlere bölünür. Çalışan oyunlar yaklaşık 30 saniyede bir güncellenir.')}</p>
+        <p className="analytics-footnote"><Info size={14} /><span>{t('Süreler oyunun açık kaldığı zamanı gösterir; menü ve bekleme süreleri dahildir. Gece yarısını aşan oturumlar günlere bölünür. Çalışan oyunlar yaklaşık 30 saniyede bir güncellenir.')}</span></p>
       </section>
-    {isVisible && tooltip && createPortal(<div id={tooltipId} role="tooltip" className="analytics-tooltip" data-source={tooltip.source} style={{ left: Math.min(Math.max(12, tooltip.x + 14), window.innerWidth - 272), top: tooltip.y > window.innerHeight - 130 ? Math.max(12, tooltip.y - 115) : tooltip.y + 14 }}><span>{tooltip.label}</span><strong>{duration(tooltip.durationMs)}</strong>{tooltip.sessions !== undefined && <small>{t('{count} oturum', { count: tooltip.sessions })}</small>}</div>, document.body)}
+    {isVisible && tooltip && createPortal(<div id={tooltipId} role="tooltip" className="analytics-tooltip" data-source={tooltip.source} style={{ left: tooltip.x, top: tooltip.y }}><span>{tooltip.label}</span><strong>{duration(tooltip.durationMs)}</strong>{tooltip.sessions !== undefined && <small>{t('{count} oturum', { count: tooltip.sessions })}</small>}</div>, document.body)}
   </div>
 }

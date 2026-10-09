@@ -81,6 +81,10 @@ try {
   assert.equal(await evaluate("document.querySelector('.analytics-calendar-footer > span').textContent"), '14 günde 27 sa 0 dk oynadın')
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.analytics-session-row:last-child')).borderBottomWidth"), '1px')
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.analytics-streak')).color"), 'rgb(240, 164, 92)')
+  assert.equal(await evaluate("!!document.querySelector('.analytics-calendar .analytics-panel-heading p')"), false)
+  const zeroColors = await evaluate("[document.querySelector('.analytics-calendar-grid .outside'),document.querySelector('.analytics-calendar-grid button:not(:disabled)[data-level=\"0\"]')].map(e=>{const s=getComputedStyle(e);return {background:s.backgroundColor,border:s.borderColor,opacity:s.opacity}})")
+  assert.deepEqual(zeroColors[0], zeroColors[1], 'Unplayed dates match the dark padding cells')
+  assert.equal(await evaluate("(()=>{const p=document.querySelector('.analytics-footnote'),i=p.querySelector('svg').getBoundingClientRect(),s=p.querySelector('span'),r=s.getBoundingClientRect();return Math.abs(i.top+i.height/2-r.top-parseFloat(getComputedStyle(s).lineHeight)/2)<.6})()"), true, 'Info icon is centered on the first text line')
   assert.equal(await evaluate("!!document.querySelector('.analytics-chart-detail > strong,.analytics-calendar-summary')"), false)
   assert.equal(await evaluate("(()=>{const h=document.querySelector('.analytics-trend h3').getBoundingClientRect(),p=document.querySelector('.analytics-trend .analytics-panel-heading > span').getBoundingClientRect();return Math.abs(h.top-p.top)<=1})()"), true)
   assert.equal(await evaluate("['.analytics-trend .analytics-panel-heading > span','.analytics-history .analytics-panel-heading > span','.analytics-chart-detail > small','.analytics-streak','.analytics-calendar-footer','.analytics-session-head','.analytics-session-row','.analytics-footnote'].every(selector=>parseFloat(getComputedStyle(document.querySelector(selector)).fontSize)>=13)"), true)
@@ -93,6 +97,16 @@ try {
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip').dataset.source"), 'chart')
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip strong').textContent"), '1 sa 0 dk')
   assert.equal(await evaluate("document.querySelector('.analytics-tooltip').parentElement===document.body"), true)
+  const anchoredTip = await evaluate("document.querySelector('.analytics-tooltip').getBoundingClientRect().toJSON()")
+  const hoveredColumn = await evaluate("document.querySelectorAll('.analytics-chart [role=button]')[6].getBoundingClientRect().toJSON()")
+  await evaluate("window.__qaTipMutations=0;window.__qaTipObserver=new MutationObserver(changes=>window.__qaTipMutations+=changes.length);window.__qaTipObserver.observe(document.querySelector('.analytics-tooltip'),{attributes:true,childList:true,subtree:true,characterData:true})")
+  for (const [x, y] of [[.2, .3], [.7, .6], [.4, .4]]) {
+    await call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: hoveredColumn.left + hoveredColumn.width * x, y: hoveredColumn.top + hoveredColumn.height * y })
+    await pause(30)
+    assert.deepEqual(await evaluate("document.querySelector('.analytics-tooltip').getBoundingClientRect().toJSON()"), anchoredTip, 'Tooltip stays anchored while moving within the hovered column')
+  }
+  assert.equal(await evaluate('window.__qaTipMutations'), 0, 'Pointer movement within a column does not redraw the tooltip')
+  await evaluate('window.__qaTipObserver.disconnect()')
   await shot('qa-analytics-refined-chart-1920')
   await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' }); await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape' }); await until("!document.querySelector('.analytics-tooltip')")
   const oldKey = sessions.find(session => session.id === 'old').startedAt
@@ -178,7 +192,7 @@ try {
   assert.equal(await evaluate("document.querySelectorAll('.analytics-calendar-grid button:not(:disabled)').length"), 365)
   assert.equal(await evaluate("document.querySelector('.analytics-streak').classList.contains('is-active')"), false, 'Zero-day streak stays neutral')
   assert.equal(errors.length, 0, JSON.stringify(errors))
-  console.log('PASS analytics totals, annual calendar with all 365 days, older-day drilldown, pointer/focus tooltips, constant-size chart labels, header alignment, readable typography, orange multi-day streaks, sidebar order, conditional final-row separators, account isolation, six languages and 1080/1280/1920 layouts')
+  console.log('PASS analytics totals, 365-day calendar, dark unplayed cells, anchored pointer/focus tooltips without redraws on movement, aligned info icon, constant-size chart labels, readable typography, orange streaks, sidebar order, history separators, account isolation, six languages and 1080/1280/1920 layouts')
 } catch (error) {
   if (socket?.readyState === WebSocket.OPEN) { try { await shot('qa-analytics-failure') } catch {} }
   console.error(output.join('').slice(-3000)); throw error

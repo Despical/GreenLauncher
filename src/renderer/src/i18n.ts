@@ -10,7 +10,6 @@ export const languages: Array<{ code: Language; nativeName: string }> = [
 ]
 
 const dictionary: Record<string, [string, string, string, string, string]> = {
-  'Son 365 gün. Daha açık kareler daha fazla oyun süresini gösterir.': ['Last 365 days. Lighter squares mean more playtime.', 'Letzte 365 Tage. Hellere Felder bedeuten mehr Spielzeit.', '365 derniers jours. Les cases plus claires indiquent plus de temps de jeu.', 'Последние 365 дней. Более светлые клетки означают больше времени игры.', 'Ostatnie 365 dni. Jaśniejsze pola oznaczają więcej czasu gry.'],
   '{count} günde {duration} oynadın': ['You played for {duration} across {count} days', 'Du hast an {count} Tagen insgesamt {duration} gespielt', 'Vous avez joué {duration} sur {count} jours', 'Вы играли {duration} за {count} дней', 'Grano przez {duration} w ciągu {count} dni'],
   '{hours} sa': ['{hours} h', '{hours} Std.', '{hours} h', '{hours} ч', '{hours} godz.'],
   '{minutes} dk': ['{minutes} min', '{minutes} Min.', '{minutes} min', '{minutes} мин', '{minutes} min'],
