@@ -47,6 +47,7 @@ export class DiscordPresence {
       return favorites ? `${provider} favorilerine bakıyor` : `${provider} ${contentType === 'modpack' || section === 'technic' ? 'mod paketlerine' : 'modlarına'} bakıyor`
     }
     if (page === 'account') return section === 'capes' ? 'Pelerinlerini görüntülüyor' : 'Hesabını görüntülüyor'
+    if (page === 'analytics') return 'Oyun istatistiklerini inceliyor'
     if (page === 'shader-packs') return 'Shader paketlerini yönetiyor'
     if (page === 'resource-packs') return 'Kaynak paketlerini yönetiyor'
     if (page === 'settings') return section === 'logs' ? 'Günlükleri inceliyor' : section === 'java' ? 'Java kurulumlarını yönetiyor' : 'Launcher ayarlarını düzenliyor'

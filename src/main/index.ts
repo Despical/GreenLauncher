@@ -358,7 +358,7 @@ else {
     })
     handle('launcher:get-downloads', () => downloads.snapshot())
     handle('launcher:set-presence-context', (context: import('../shared/types').LauncherPresenceContext) => {
-      if (!context || !['home', 'versions', 'profiles', 'servers', 'worlds', 'mods', 'gallery', 'downloads', 'storage', 'settings', 'account', 'resource-packs', 'shader-packs'].includes(context.page)) throw new Error('Geçersiz etkinlik sayfası.')
+      if (!context || !['home', 'versions', 'profiles', 'servers', 'worlds', 'mods', 'gallery', 'downloads', 'storage', 'settings', 'account', 'resource-packs', 'shader-packs', 'analytics'].includes(context.page)) throw new Error('Geçersiz etkinlik sayfası.')
       discord.setLauncherContext({ page: context.page, section: typeof context.section === 'string' ? context.section.slice(0, 40) : undefined, contentType: context.contentType === 'modpack' ? 'modpack' : 'mod', favorites: context.favorites === true })
     })
     handle('launcher:control-downloads', (action: string, id?: string, beforeId?: string) => { if (!['pause-all', 'resume-all', 'pause', 'resume', 'prioritize', 'reorder', 'clear'].includes(action)) throw new Error('Geçersiz indirme işlemi.'); const update = updater.get(); return downloads.control(action, action === 'clear' && update.downloadedAt && update.version ? `launcher-update-${update.version}` : id, beforeId) })

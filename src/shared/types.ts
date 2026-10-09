@@ -140,7 +140,7 @@ export interface GameLogSnapshot {
   firstSeq: number; nextSeq: number; revision: number; dropped: number
 }
 export interface GameLogChange { profileId: string; instanceId: string }
-export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'resource-packs' | 'shader-packs'
+export type LauncherPage = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'resource-packs' | 'shader-packs' | 'analytics'
 export interface LauncherPresenceContext {
   page: LauncherPage
   section?: string

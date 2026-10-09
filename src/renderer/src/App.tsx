@@ -8,7 +8,7 @@ import {
   ArrowDownToLine, ArrowLeft, ArrowRight, Layers3, Check, ChevronDown, ChevronRight, ChevronUp, CloudDownload, ExternalLink, FolderOpen,
   Copy, FileText, ScrollText, Home, LoaderCircle, LogIn, LogOut, Maximize2, Minus, Monitor, MoreHorizontal, Pause,
   GripVertical, HardDrive, Image as ImageIcon, Info, Languages, Package, Pencil, Play, Plus, Search, Settings2, ShieldCheck, SlidersHorizontal, Trash2, UserRound,
-  Globe2, Sparkles, Server, UsersRound, WifiOff, X
+  BarChart3, Globe2, Sparkles, Server, UsersRound, WifiOff, X
 } from 'lucide-react'
 import type { CleanupPreview, DownloadSnapshot, DiskUsage, GameVersion, JavaRuntimeInfo, LauncherActivity, LauncherErrorEntry, LauncherProfile, LauncherSettings, LauncherState, OfflineStatus, ScreenshotItem, ScreenshotSort, VersionType, RunningInstance, LaunchRequest, LauncherPresenceContext } from '../../shared/types'
 import { screenshotPageSize } from '../../shared/types'
@@ -54,9 +54,10 @@ const ResourcePacksPage = lazy(() => import('./ResourcePacksPage').then(module =
 const SystemLogsPage = lazy(() => import('./SystemLogsPage').then(module => ({ default: module.SystemLogsPage })))
 const MinecraftLogPage = lazy(() => import('./MinecraftLogPage').then(module => ({ default: module.MinecraftLogPage })))
 const Changelog = lazy(() => import('./Changelog').then(module => ({ default: module.Changelog })))
+const AnalyticsPage = lazy(() => import('./AnalyticsPage').then(module => ({ default: module.AnalyticsPage })))
 
-type Page = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'profile-settings' | 'system-logs' | 'minecraft-log' | 'resource-packs' | 'shader-packs' | 'profile-version'
-const profileWorkspacePages: Page[] = ['servers', 'worlds', 'mods', 'gallery', 'profile-settings', 'system-logs', 'minecraft-log', 'resource-packs', 'shader-packs', 'profile-version']
+type Page = 'home' | 'versions' | 'profiles' | 'servers' | 'worlds' | 'mods' | 'gallery' | 'downloads' | 'storage' | 'settings' | 'account' | 'profile-settings' | 'system-logs' | 'minecraft-log' | 'resource-packs' | 'shader-packs' | 'profile-version' | 'analytics' | 'profile-analytics'
+const profileWorkspacePages: Page[] = ['servers', 'worlds', 'mods', 'gallery', 'profile-settings', 'system-logs', 'minecraft-log', 'resource-packs', 'shader-packs', 'profile-version', 'profile-analytics']
 type Filter = VersionType | 'all'
 type Scope = 'all' | 'installed' | 'optifine' | 'custom'
 type ProfileDraft = Omit<LauncherProfile, 'id' | 'createdAt' | 'lastPlayed'> & { id?: string }
@@ -114,7 +115,7 @@ function Dropdown({ value, options, onChange, placeholder, searchable = false, c
   const [query, setQuery] = useState('')
   const root = useRef<HTMLDivElement>(null)
   const menu = useRef<HTMLDivElement>(null)
-  const profilePicker = ['home-profile-select', 'gallery-profile-select', 'servers-profile-select', 'servers-list-profile-select', 'workspace-profile-select'].includes(className)
+  const profilePicker = ['home-profile-select', 'gallery-profile-select', 'servers-profile-select', 'servers-list-profile-select', 'workspace-profile-select', 'analytics-profile-choice'].includes(className)
   const portalled = className === 'profile-version-select' || className === 'server-resource-select' || className === 'profile-setting-select' || profilePicker
   const [position, setPosition] = useState<CSSProperties | null>(null)
   useEffect(() => {
@@ -350,7 +351,7 @@ function App() {
   const [accountView, setAccountView] = useState<'account' | 'capes'>('account')
   useEffect(() => {
     const section = changelogOpen ? 'changelog' : profileDraft ? 'edit-profile' : page === 'settings' ? settingsTab : page === 'account' ? accountView : undefined
-    const presencePage = page === 'profile-settings' || page === 'system-logs' || page === 'minecraft-log' || page === 'profile-version' ? 'profiles' : page
+    const presencePage = page === 'profile-analytics' ? 'analytics' : page === 'profile-settings' || page === 'system-logs' || page === 'minecraft-log' || page === 'profile-version' ? 'profiles' : page
     const context = section ? { page: presencePage, section } : page === 'profile-settings' ? { page: presencePage, section: 'edit-profile' } : page === 'mods' ? modsPresence : { page: presencePage }
     void window.launcher.setPresenceContext(context).catch(() => {})
   }, [page, settingsTab, accountView, modsPresence, changelogOpen, !!profileDraft])
@@ -765,6 +766,7 @@ function App() {
           <button className={page === 'shader-packs' ? 'active' : ''} aria-current={page === 'shader-packs' ? 'page' : undefined} onClick={() => setPage('shader-packs')}><Sparkles size={19} />{t('Shader paketleri')}</button>
           <div className="nav-divider" />
           <button className={page === 'gallery' ? 'active' : ''} aria-current={page === 'gallery' ? 'page' : undefined} onClick={() => setPage('gallery')}><ImageIcon size={19} />{t('Ekran görüntüleri')}</button>
+          <button data-profile-page="profile-analytics" className={page === 'profile-analytics' ? 'active' : ''} aria-current={page === 'profile-analytics' ? 'page' : undefined} onClick={() => setPage('profile-analytics')}><BarChart3 size={19} />{t('Analiz')}</button>
           <button data-profile-page="minecraft-log" className={page === 'minecraft-log' ? 'active' : ''} aria-current={page === 'minecraft-log' ? 'page' : undefined} onClick={() => setPage('minecraft-log')}><FileText size={19} />{t('Minecraft günlüğü')}</button>
           <button data-profile-page="system-logs" className={page === 'system-logs' ? 'active' : ''} aria-current={page === 'system-logs' ? 'page' : undefined} onClick={() => setPage('system-logs')}><ScrollText size={19} />{t('Diğer sistem kayıtları')}</button>
           <button data-profile-page="profile-settings" className={page === 'profile-settings' ? 'active' : ''} aria-current={page === 'profile-settings' ? 'page' : undefined} onClick={() => editProfile(managedProfile)}><Settings2 size={19} />{t('Ayarlar')}</button>
@@ -775,6 +777,7 @@ function App() {
           <button className={page === 'home' ? 'active' : ''} onClick={() => setPage('home')}><Home size={19} /> {t('Ana Sayfa')}</button>
           <button className={page === 'versions' ? 'active' : ''} onClick={() => setPage('versions')}><Layers3 size={19} /> {t('Sürümler')}</button>
           <button className={page === 'profiles' ? 'active' : ''} onClick={() => setPage('profiles')}><UsersRound size={19} /> {t('Profillerim')}</button>
+          <button data-page="analytics" className={page === 'analytics' ? 'active' : ''} aria-current={page === 'analytics' ? 'page' : undefined} onClick={() => setPage('analytics')}><BarChart3 size={19} /> {t('Analiz')}</button>
           <button className={page === 'mods' ? 'active' : ''} onClick={() => setPage('mods', true)}><Package size={19} /> {t('Modlar')}</button>
           <div className="nav-divider" />
           <div className="nav-heading">{t('UYGULAMA')}</div>
@@ -797,6 +800,7 @@ function App() {
           const paths = [...event.dataTransfer.files].map(file => window.launcher.getDroppedFilePath(file)).filter(Boolean)
           if (paths.length) void importProfileFiles(paths)
         }}>
+        {(['analytics', 'profile-analytics'] as const).map(analyticsPage => visited.has(analyticsPage) && (analyticsPage === 'analytics' || managedProfile) && <div className="retained-page" key={analyticsPage} hidden={page !== analyticsPage}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><AnalyticsPage state={state} language={language} instances={instances} profile={analyticsPage === 'profile-analytics' ? managedProfile : undefined} isVisible={page === analyticsPage} onProfile={id => openProfileWorkspace(id, 'profile-analytics')} onSettings={id => { if (id) openProfileWorkspace(id, 'profile-settings'); else { setSettingsTab('launcher'); setPage('settings') } }} picker={(value, options, onChange) => <Dropdown className="analytics-profile-choice" language={language} value={value} options={options} onChange={onChange} placeholder={t('Profil seç')} searchable showAll searchPlaceholder={t('Profil ara')} />} /></Suspense></div>)}
         {visited.has('system-logs') && managedProfile && <div className="retained-page" hidden={page !== 'system-logs'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><SystemLogsPage key={managedProfile.id} profile={managedProfile} language={language} isVisible={page === 'system-logs'} running={instances.some(instance => instance.profileId === managedProfile.id)} onNotice={notifyCape} picker={(value, options, onChange, disabled) => <Dropdown disabled={disabled} className="system-log-picker" language={language} value={value} options={options} onChange={onChange} placeholder={t('Günlük dosyası')} searchPlaceholder={t('Kayıt ara')} showAll searchable />} /></Suspense></div>}
         {visited.has('minecraft-log') && managedProfile && <div className="retained-page" hidden={page !== 'minecraft-log'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><MinecraftLogPage key={managedProfile.id} profile={managedProfile} requestedSession={consoleTarget?.profileId === managedProfile.id ? consoleTarget : undefined} language={language} isVisible={page === 'minecraft-log'} instances={instances} onNotice={notifyCape} sessionPicker={(value, options, onChange) => <Dropdown className="minecraft-log-session" language={language} value={value} options={options} onChange={onChange} placeholder={t('Oyun oturumu')} showAll />} /></Suspense></div>}
         {visited.has('profile-version') && managedProfile && <div className="retained-page" hidden={page !== 'profile-version'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><ProfileVersionPage key={managedProfile.id} profile={managedProfile} versions={versions} language={language} isVisible={page === 'profile-version'} running={instances.some(instance => instance.profileId === managedProfile.id)} onState={setState} onVersions={setVersions} onNotice={setToast} picker={(value, options, onChange, label, disabled, searchable) => <Dropdown className="profile-version-choice" language={language} value={value} options={options} onChange={onChange} placeholder={label} disabled={disabled} searchable={searchable} searchPlaceholder={t('Sürüm ara')} showAll />} /></Suspense></div>}

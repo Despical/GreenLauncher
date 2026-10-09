@@ -7,7 +7,9 @@ const root = path.join(__dirname, '..')
 const dataPath = fs.mkdtempSync(path.join(root, 'build', 'qa-ui-refresh-'))
 app.setPath('userData', dataPath)
 app.disableHardwareAcceleration()
-app.commandLine.appendSwitch('remote-debugging-port', '9225')
+app.commandLine.appendSwitch('remote-debugging-port', process.env.GREEN_QA_DEBUG_PORT || '9225')
+const withAnalytics = process.argv.includes('--qa-analytics')
+if (withAnalytics) ipcMain.handle('launcher:get-resource-packs', () => [])
 const withProfileTools = process.argv.includes('--qa-profile-tools')
 const withOctober = process.argv.includes('--qa-october')
 const withContent = process.argv.includes('--qa-content')
@@ -75,9 +77,15 @@ if (withOctober) {
 const snapshots = { fileOpened: 0, externalOpened: [], connections: 0 }
 const launches = []
 const running = process.argv.includes('--qa-running') ? Array.from({length:2}, (_,index)=>({id:`qa-instance-${index}`,pid:9000+index,profileId:'qa-profile',profileName:'Test World',accountId:'qa-offline',accountName:'DesignQA',versionId:'1.21.1-fabric',loader:'fabric',startedAt:new Date().toISOString()})) : []
-const changed = () => { window.webContents.send('launcher:state', structuredClone(state)); window.webContents.send('launcher:downloads', downloadSnapshot()); return state }
+const rendererState = () => {
+  if (!withAnalytics) return state
+  const profiles = state.profiles.filter(profile => (profile.accountId ?? 'qa-offline') === state.selectedAccountId)
+  const ids = new Set(profiles.map(profile => profile.id))
+  return { ...state, profiles, selectedProfileId: ids.has(state.selectedProfileId) ? state.selectedProfileId : profiles[0]?.id ?? null, playSessions: (state.playSessions ?? []).filter(session => ids.has(session.profileId)) }
+}
+const changed = () => { const current = rendererState(); window.webContents.send('launcher:state', structuredClone(current)); window.webContents.send('launcher:downloads', downloadSnapshot()); return current }
 const handle = (name, handler) => ipcMain.handle(`launcher:${name}`, (_event, ...args) => handler(...args))
-handle('get-state', () => ({...state,qaPresence:presenceContext,qaProjectRequests:projectRequests,qaLaunches:launches,qaExternalOpened:snapshots.externalOpened,qaUpdateDownloads}))
+handle('get-state', () => ({...rendererState(),qaPresence:presenceContext,qaProjectRequests:projectRequests,qaLaunches:launches,qaExternalOpened:snapshots.externalOpened,qaUpdateDownloads}))
 handle('play', (profileId, allowAdditional, versionId, serverAddress, serverPreference, worldId) => { launches.push({profileId,allowAdditional,versionId,serverAddress,serverPreference,worldId});return running.length && !allowAdditional ? {status:'confirmation-required',instances:running} : {status:'started'} })
 handle('play-version', (versionId, allowAdditional, serverAddress, serverPreference, temporaryOfflineName) => { launches.push({profileId:null,versionId,allowAdditional,serverAddress,serverPreference,temporaryOfflineName});return {status:'started'} })
 handle('get-profile-mods-path', id => id === 'qa-profile-2' ? null : path.join(dataPath,'profiles',id,'mods'))
@@ -242,7 +250,7 @@ handle('connect-curseforge', async key => {
 handle('open-external', url => { snapshots.externalOpened.push(url); return snapshots })
 handle('window-action', action => { if (action === 'close') app.quit() })
 handle('save-profile', profile => {
-  const saved = { ...profile, id: profile.id ?? 'qa-profile', accountId: 'qa-offline', createdAt: new Date().toISOString() }
+  const saved = { ...profile, id: profile.id ?? 'qa-profile', accountId: withAnalytics ? state.selectedAccountId : 'qa-offline', createdAt: new Date().toISOString() }
   const index=state.profiles.findIndex(p=>p.id===saved.id);if(index>=0)state.profiles[index]=saved;else state.profiles.push(saved);state.selectedProfileId=saved.id
   return changed()
 })
