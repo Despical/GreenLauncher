@@ -59,6 +59,7 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
     return axisUnit === 60_000 ? t('{minutes} dk', { minutes: amount }) : t('{hours} sa', { hours: amount })
   }
   const bucketLabel = (bucket: AnalyticsBucket) => data.unit === 'day' ? formatDate(bucket.from, true) : `${formatDate(bucket.from)} – ${formatDate(Math.max(bucket.from, bucket.to - 1), true)}`
+  const tickLabel = (value: number) => data.unit === 'year' ? new Intl.DateTimeFormat(locales[language], { year: 'numeric' }).format(value) : data.unit === 'month' ? new Intl.DateTimeFormat(locales[language], { month: 'short', year: 'numeric' }).format(value) : formatDate(value)
   const chartIndex = hovered !== null && data.buckets[hovered] ? hovered : Math.max(0, data.buckets.findIndex(bucket => data.bestDay && data.bestDay.date >= bucket.from && data.bestDay.date < bucket.to))
   const chartBucket = data.buckets[chartIndex]
   const peak = Math.max(...data.weekdays.map(day => day.durationMs), 1)
@@ -77,7 +78,7 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
     <div className="analytics-toolbar">
       {!profile && <div className="analytics-profile-filter"><label>{t('Profil')}</label>{picker(scope, [{ value: '', label: t('Tüm profiller'), icon: <BarChart3 size={18} /> }, ...state.profiles.map(item => ({ value: item.id, label: item.name, icon: <span className="analytics-picker-icon"><ProfileIcon profile={item} /></span> }))], setFilter)}</div>}
       <div className="analytics-period-filter"><span>{t('Zaman aralığı')}</span><div className="analytics-periods" role="group" aria-label={t('Zaman aralığı')}>{periods.map(value => <button key={value} aria-pressed={value === period} className={value === period ? 'active' : ''} onClick={() => setPeriod(value)}>{periodName(value)}</button>)}</div></div>
-      <span className="analytics-date-range">{formatDate(data.from)} – {formatDate(data.to, true)}</span>
+      <span className="analytics-date-range">{formatDate(data.from, new Date(data.from).getFullYear() !== now.getFullYear())} – {formatDate(data.to, true)}</span>
     </div>
     <div className="analytics-metrics">
       {metric(<Clock3 size={16} />, t('Oyun süresi'), duration(data.total), t('Seçili zaman aralığında'))}
@@ -94,7 +95,7 @@ export function AnalyticsPage({ state, language, instances, profile, picker, onP
             <rect x={63 + index * step} y="20" width={step} height="166" fill="transparent" tabIndex={0} role="button" aria-label={`${bucketLabel(bucket)}: ${duration(bucket.durationMs)}`} onMouseEnter={() => setHovered(index)} onFocus={() => setHovered(index)} onClick={() => { if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } else setHovered(index) }} onKeyDown={event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); if (data.unit === 'day') { setSelectedDay(localDayKey(new Date(bucket.from))); setLimit(8) } } if (['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); const rects = event.currentTarget.ownerSVGElement?.querySelectorAll<SVGRectElement>('[role=button]'); rects?.[Math.max(0, Math.min(data.buckets.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)))]?.focus() } }}><title>{bucketLabel(bucket)} · {duration(bucket.durationMs)}</title></rect>
             <rect pointerEvents="none" x={63 + index * step + step * .16} y={184 - height} width={step * .68} height={Math.max(bucket.durationMs ? 2 : 0, height)} rx={Math.min(3, step * .15)} className={`analytics-bar ${chartIndex === index ? 'active' : ''}`} />
           </g> })}
-          {[...new Set([0, Math.floor((data.buckets.length - 1) / 2), data.buckets.length - 1])].map(index => <text key={index} x={63 + (index + .5) * 730 / data.buckets.length} y="213" textAnchor={index === 0 ? 'start' : index === data.buckets.length - 1 ? 'end' : 'middle'}>{formatDate(data.buckets[index].from)}</text>)}
+          {[...new Set([0, Math.floor((data.buckets.length - 1) / 2), data.buckets.length - 1])].map(index => <text key={index} x={63 + (index + .5) * 730 / data.buckets.length} y="213" textAnchor={index === 0 ? 'start' : index === data.buckets.length - 1 ? 'end' : 'middle'}>{tickLabel(data.buckets[index].from)}</text>)}
         </svg></div>
         <div className="analytics-chart-detail" aria-live="polite"><span>{chartBucket && bucketLabel(chartBucket)}</span><strong>{chartBucket && duration(chartBucket.durationMs)}</strong><small>{data.unit === 'day' ? t('Grafikte bir güne tıklayarak oturumlarını inceleyebilirsin.') : t('Takvimden bir gün seçerek oturumlarını inceleyebilirsin.')}</small></div>
       </section>

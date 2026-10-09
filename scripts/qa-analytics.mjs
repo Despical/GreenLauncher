@@ -121,6 +121,11 @@ try {
   assert.equal((await metrics())[0], '0 dk 0 sn')
   assert.equal(await evaluate("document.querySelector('.analytics-page').textContent.includes('Hayatta kalma')"), false)
   await evaluate("window.launcher.selectAccount('qa-offline')"); await until("document.querySelector('.analytics-trend')")
+  const multiYear = [make('year-old', 2400, 1), make('year-recent', 1, 1)]
+  await save({ qaPlaySessions: multiYear }); await button('Tüm zamanlar')
+  await until("document.querySelector('.analytics-trend p').textContent==='Yıllık oyun süren'")
+  const years = await evaluate("[...document.querySelector('.analytics-chart svg').querySelectorAll('text[y=\"213\"]')].map(e=>e.textContent)")
+  assert.equal(new Set(years).size, 3); assert.ok(years.every(year => /^\d{4}$/.test(year)))
   await save({ qaPlaySessions: [] }); await until("document.querySelector('.analytics-empty')"); await shot('qa-analytics-empty-1080')
   assert.equal(errors.length, 0, JSON.stringify(errors))
   console.log('PASS analytics totals, filters, profile ranking and workspace, session pagination, live checkpoints, account isolation, empty/memory-only states, keyboard chart/picker, six languages and 1080/1280/1920 layouts')
