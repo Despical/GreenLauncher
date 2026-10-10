@@ -1,0 +1,76 @@
+name: Bug Report
+description: "Found a glitch or unexpected behavior? Help us squash it by providing a detailed report."
+title: "[BUG] "
+labels: ["bug"]
+assignees:
+  - Despical
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report. Please provide as much detail as possible.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. Open the launcher
+        2. Click on ...
+        3. See error ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of Green Launcher are you running?
+      placeholder: e.g. 0.19.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Windows version
+      description: Which Windows version are you using?
+      multiple: true
+      options:
+        - Windows 11
+        - Windows 10
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Minecraft and Java versions
+      placeholder: e.g. Minecraft 26.3, Java 25, Fabric
+    validations:
+      required: true
+  - type: textarea
+    id: launcher-settings
+    attributes:
+      label: Profile and installation details
+      description: Include the Minecraft version, loader, setup or portable package, and relevant profile settings. Do not share account tokens or private data.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Include relevant logs after removing tokens, account details and private paths.
+      render: log
+  - type: checkboxes
+    id: validation
+    attributes:
+      label: Validation
+      description: Check these before submitting.
+      options:
+        - label: I have checked for existing issues regarding this bug.
+          required: true

@@ -1,3 +1,0 @@
-#include <windows.h>
-#include <string>
-int WINAPI WinMain(HINSTANCE,HINSTANCE,LPSTR,int){wchar_t root[4096]{};GetEnvironmentVariableW(L"GREEN_UPDATE_HELPER_TEST",root,4096);std::wstring p=std::wstring(root)+L"\\update-result.json";HANDLE f=CreateFileW(p.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,0,nullptr);char b[4096]{};DWORD n=0;if(f!=INVALID_HANDLE_VALUE){ReadFile(f,b,sizeof(b)-1,&n,nullptr);CloseHandle(f);}std::string s(b,n);auto pos=s.find("applied");if(pos!=std::string::npos)s.replace(pos,7,"confirmed");f=CreateFileW(p.c_str(),GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,CREATE_ALWAYS,0,nullptr);if(f!=INVALID_HANDLE_VALUE){WriteFile(f,s.data(),s.size(),&n,nullptr);CloseHandle(f);}return 0;}

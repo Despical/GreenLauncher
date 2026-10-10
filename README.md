@@ -1,4 +1,14 @@
+![Green Launcher](.github/cover.png)
+
 # Green Launcher
+
+[![Build](https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml/badge.svg)](https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml)
+[![Release](https://img.shields.io/github/v/release/Despical/GreenLauncher)](https://github.com/Despical/GreenLauncher/releases/latest)
+[![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+
+**[Website](https://launcher.despical.dev)** · [Download](https://launcher.despical.dev/download) ·
+[Features](https://launcher.despical.dev/features) · [Release notes](https://launcher.despical.dev/changelog) ·
+[Discord](https://discord.gg/uXVU8jmtpU)
 
 An independent Windows launcher for Minecraft: Java Edition, built with Electron, React and TypeScript.
 
@@ -38,7 +48,7 @@ node scripts/test-profile-server-sync.cjs
 node scripts/test-worlds.cjs
 ```
 
-The core checks use isolated fixtures. Renderer QA helpers in `scripts/` also use a separate fixture directory under `build/`; do not run destructive checks against real launcher or Minecraft data.
+The committed scripts provide packaging, translation validation and isolated CI checks. One-off source editors, screenshot tools and local renderer QA helpers are kept outside Git. Never run destructive checks against real launcher or Minecraft data.
 
 ## Windows distribution
 
@@ -49,7 +59,7 @@ pnpm dist:setup
 node scripts/verify-release.cjs
 ```
 
-The setup, its blockmap and `latest.yml` must all be uploaded to the same stable GitHub release. The publisher settings in `package.json` generate the update metadata. Release notes belong to the GitHub release. Create releases only at the user’s explicit request. Use a draft until all assets are present and verified. A future website can serve the same NSIS installer and update metadata through a generic update provider.
+The setup, its blockmap and `latest.yml` must all be uploaded to the same stable GitHub release. The publisher settings in `package.json` generate the update metadata. Release notes belong to the GitHub release. Create releases only at the user’s explicit request. Use a draft until all assets are present and verified. The [website](https://launcher.despical.dev) provides downloads and release notes. The desktop updater currently uses the official GitHub release feed.
 
 Portable packaging requires Visual Studio C++ Build Tools and the Windows SDK for the native splash helper.
 
@@ -72,7 +82,7 @@ Offline accounts do not require Microsoft sign-in and can join only servers that
 
 ## Contributions and commits
 
-Read [AGENTS.md](AGENTS.md) for UI conventions, validation and the delegated commit workflow. Significant verified changes use focused English commits on `main`; generated output, credentials and runtime data must stay out of commits.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md). Keep changes focused; generated output, credentials and runtime data must stay out of commits.
 
 The Windows GitHub Actions workflow runs translations, core checks, update lifecycle checks and a production build for pushes and pull requests.
 

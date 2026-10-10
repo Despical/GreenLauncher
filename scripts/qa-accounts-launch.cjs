@@ -1,6 +1,0 @@
-const { app } = require('electron')
-const { join } = require('node:path')
-const root = join(__dirname, '..')
-app.setAppPath(root)
-app.setPath('appData', join(root, 'build', 'qa-accounts-data'))
-require('../out/main/index.js')
