@@ -1,4 +1,4 @@
-name: Build and core checks
+name: Build and checks
 
 on:
   push:

@@ -7,11 +7,11 @@
 <p align="center">An independent Windows launcher for Minecraft: Java Edition, built with Electron, React and TypeScript.</p>
 
 <p align="center">
-  <a href="https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml"><img src="https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml/badge.svg?branch=main" alt="Checks"></a>
+  <a href="https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml"><img src="https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml/badge.svg?branch=main" alt="Build and checks"></a>
   <a href="https://github.com/Despical/GreenLauncher/releases/latest"><img src="https://img.shields.io/github/v/release/Despical/GreenLauncher.svg?label=Release&amp;color=62b47a&amp;cacheSeconds=300" alt="Latest Release"></a>
-  <img src="https://img.shields.io/badge/Platform-Windows-0078D6" alt="Windows">
+  <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078D6" alt="Windows x64">
   <img src="https://img.shields.io/badge/Languages-6-75e8dc" alt="6 Languages">
-  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&amp;logoColor=white" alt="TypeScript 5.9">
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6" alt="TypeScript 5.9">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="GPLv3 License"></a>
 </p>
 
