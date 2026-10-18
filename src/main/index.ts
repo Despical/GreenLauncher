@@ -790,7 +790,7 @@ else {
       const trustedSite = ['www.curseforge.com', 'curseforge.com', 'console.curseforge.com', 'support.curseforge.com', 'www.technicpack.net', 'technicpack.net', 'modrinth.com', 'microsoft.com', 'www.microsoft.com', 'aka.ms', 'minecraft.net', 'www.minecraft.net', 'learn.microsoft.com', 'optifine.net', 'www.optifine.net'].includes(parsed.hostname)
       const projectRepository = parsed.hostname === 'github.com' && /^\/Despical(?:\/GreenLauncher)?\/?$/.test(parsed.pathname)
       const gplLicense = parsed.hostname === 'www.gnu.org' && parsed.pathname === '/licenses/gpl-3.0.html'
-      const launcherSite = ['greenlauncher.org', 'www.greenlauncher.org'].includes(parsed.hostname)
+      const launcherSite = parsed.hostname === 'launcher.despical.dev'
       const launcherDiscord = parsed.hostname === 'discord.gg' && parsed.pathname === '/uXVU8jmtpU'
       if (parsed.protocol !== 'https:' || (!trustedSite && !projectRepository && !gplLicense && !launcherSite && !launcherDiscord)) {
         throw new Error('Bu bağlantı açılamıyor.')
