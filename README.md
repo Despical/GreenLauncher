@@ -1,16 +1,29 @@
-![Green Launcher](.github/cover.png)
+<p align="center">
+  <img src="build/icon.png" width="128" height="128" alt="Green Launcher icon">
+</p>
 
-# Green Launcher
+<h1 align="center">Green Launcher</h1>
 
-[![Build](https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml/badge.svg)](https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml)
-[![Release](https://img.shields.io/github/v/release/Despical/GreenLauncher)](https://github.com/Despical/GreenLauncher/releases/latest)
-[![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+<p align="center">An independent Windows launcher for Minecraft: Java Edition, built with Electron, React and TypeScript.</p>
 
-**[Website](https://launcher.despical.dev)** · [Download](https://launcher.despical.dev/download) ·
-[Features](https://launcher.despical.dev/features) · [Release notes](https://launcher.despical.dev/changelog) ·
-[Discord](https://discord.gg/uXVU8jmtpU)
+<p align="center">
+  <a href="https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml"><img src="https://github.com/Despical/GreenLauncher/actions/workflows/checks.yml/badge.svg?branch=main" alt="Checks"></a>
+  <a href="https://github.com/Despical/GreenLauncher/releases/latest"><img src="https://img.shields.io/github/v/release/Despical/GreenLauncher.svg?label=Release&amp;color=62b47a&amp;cacheSeconds=300" alt="Latest Release"></a>
+  <img src="https://img.shields.io/badge/Platform-Windows-0078D6" alt="Windows">
+  <img src="https://img.shields.io/badge/Languages-6-75e8dc" alt="6 Languages">
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&amp;logoColor=white" alt="TypeScript 5.9">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="GPLv3 License"></a>
+</p>
 
-An independent Windows launcher for Minecraft: Java Edition, built with Electron, React and TypeScript.
+<p align="center">
+  <a href="https://launcher.despical.dev">Website</a> ·
+  <a href="https://launcher.despical.dev/download">Download</a> ·
+  <a href="https://launcher.despical.dev/features">Features</a> ·
+  <a href="https://launcher.despical.dev/changelog">Release Notes</a> ·
+  <a href="https://discord.gg/uXVU8jmtpU">Discord</a>
+</p>
+
+---
 
 ## Features
 
