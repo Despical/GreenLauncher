@@ -10,6 +10,7 @@ export interface GameVersion {
   optifineVersions: Array<{ id: string; source: 'launcher' | 'minecraft' }>
   optifineAvailable?: boolean
   custom?: boolean
+  icon?: string
 }
 
 export interface LauncherProfile {

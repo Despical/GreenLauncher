@@ -67,6 +67,7 @@ servers.json
 !/scripts/test-profile-sessions.cjs
 !/scripts/test-release-notes.cjs
 !/scripts/test-servers-custom.cjs
+!/scripts/test-custom-client-icons.cjs
 !/scripts/test-updater-download.cjs
 !/scripts/test-updater.cjs
 !/scripts/test-worlds.cjs

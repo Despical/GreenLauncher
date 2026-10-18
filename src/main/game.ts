@@ -8,6 +8,7 @@ import { dirname, join, relative, sep } from 'node:path'
 import { LibraryInfo, MinecraftFolder, Version, launch, type ResolvedVersion } from '@xmcl/core'
 import { normalizeServerAddress, serverLaunchMode, serverLaunchOptions } from '../shared/server-launch'
 import { customRuntime, customJavaVersion, customResolvedVersion } from './custom-runtime'
+import { CustomClientIcons } from './custom-client-icons'
 import { saveMinecraftServerPreference } from './server-preference'
 import { minecraftWindowSize, saveMinecraftWindowPreference } from './game-window'
 import { offlineAccount } from './offline-account'
@@ -67,6 +68,7 @@ export class GameService {
   private optifineUpdatedAt = 0
   private catalogAttemptAt = 0
   private readonly folder: MinecraftFolder
+  private readonly customIcons: CustomClientIcons
   private busy = false
   private sessions = new Map<string, RunningInstance>()
   private readonly playtime: PlaytimeTracker
@@ -93,6 +95,7 @@ export class GameService {
     this.manifestPath = join(store.dataPath, 'versions-cache.json')
     this.optifineCachePath = join(store.dataPath, 'optifine-cache.json')
     this.folder = new MinecraftFolder(store.minecraftPath)
+    this.customIcons = new CustomClientIcons(store.minecraftPath)
     if (existsSync(this.manifestPath)) {
       try {
         const cached = JSON.parse(readFileSync(this.manifestPath, 'utf8')) as unknown
@@ -219,7 +222,8 @@ export class GameService {
       id, custom: local.vanilla.get(id)?.custom === true, type: local.vanilla.get(id)?.type ?? 'release', releaseTime: local.vanilla.get(id)?.releaseTime ?? new Date(0).toISOString(), url: '', installed: local.vanilla.has(id), installedFrom: local.vanilla.get(id)?.source, optifineAvailable: this.optifineCatalog.has(id),
       optifineVersions: (local.optifine.get(id) ?? []).map(({ id: optifineId, source }) => ({ id: optifineId, source }))
     })).sort((a, b) => Date.parse(b.releaseTime) - Date.parse(a.releaseTime))
-    return [...official, ...extras]
+    return Promise.all([...official, ...extras].map(async version => version.custom
+      ? { ...version, icon: await this.customIcons.icon(version.id) } : version))
   }
 
   private async refreshCatalogs(force = true): Promise<void> {

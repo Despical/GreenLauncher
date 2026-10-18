@@ -19,6 +19,7 @@ import { serverLaunchMode } from '../../shared/server-launch'
 import { JavaSettings } from './JavaSettings'
 import { LauncherMenu } from './LauncherMenu'
 import { ProfileIcon } from './ProfileIcon'
+import { ClientIcon, ClientIconsProvider } from './ClientIcons'
 import { diagnoseError } from '../../shared/errors'
 import { languages, translate, type Language } from './i18n'
 import { SkinPreview } from './SkinPreview'
@@ -33,7 +34,6 @@ import { ProfileMenu, ProfileDropHint, type ProfileAction } from './ProfileTools
 import { RunningPlayButton, LaunchConfirmation } from './RunningGames'
 import { AccountAvatar, AccountManager, AccountSwitcher, OfflineAccountDialog, DialogHeading } from './AccountControls'
 import logo from '../../../build/launcher-mark.png'
-import customIcon from '../assets/cracked-stone-bricks.svg'
 import releaseIcon from '../assets/minecraft-release.png'
 import snapshotIcon from '../assets/minecraft-snapshot.png'
 import classicIcon from '../assets/minecraft-classic.png'
@@ -77,8 +77,9 @@ const relativeDate = (value: string, language: Language) => {
 const releaseNotesUrl = (version: GameVersion) => version.type === 'release'
   ? `https://www.minecraft.net/en-us/article/minecraft-java-edition-${version.id.replaceAll('.', '-')}`
   : 'https://www.minecraft.net/en-us/articles'
-function VersionGlyph({ type = 'release', custom = false }: { type?: VersionType; custom?: boolean }) {
-  return <img src={custom ? customIcon : type === 'release' ? releaseIcon : type === 'snapshot' ? snapshotIcon : classicIcon} alt="" draggable={false} />
+function VersionGlyph({ type = 'release', custom = false, versionId }: { type?: VersionType; custom?: boolean; versionId?: string }) {
+  if (custom) return <ClientIcon versionId={versionId} />
+  return <img src={type === 'release' ? releaseIcon : type === 'snapshot' ? snapshotIcon : classicIcon} alt="" draggable={false} />
 }
 
 function OptifineGlyph() { return <img className="optifine-glyph" src={optifineIcon} alt="" draggable={false} /> }
@@ -149,14 +150,14 @@ function Dropdown({ value, options, onChange, placeholder, searchable = false, c
   const choices = <div ref={menu} style={portalled ? position ?? undefined : undefined} className={`dropdown-menu ${portalled ? 'profile-version-menu' : ''} ${className === 'server-resource-select' ? 'server-resource-menu' : ''} ${profilePicker ? 'profile-picker-menu' : ''} ${accountPicker ? 'profile-account-menu' : ''}`} role="listbox" aria-label={placeholder} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); event.preventDefault(); setOpen(false); root.current?.querySelector('button')?.focus(); return } const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=option]')); if (['ArrowDown', 'ArrowUp'].includes(event.key) || event.target instanceof HTMLButtonElement && ['Home', 'End'].includes(event.key)) { event.preventDefault(); const index = options.indexOf(document.activeElement as HTMLButtonElement); options[event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : index < 0 ? event.key === 'ArrowDown' ? 0 : options.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length]?.focus() } }}>
       {searchable && <><div className="dropdown-search"><Search size={15} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder={searchPlaceholder ?? translate(language, 'Sürüm ara')} aria-label={searchPlaceholder ?? translate(language, 'Sürüm ara')} /></div><div className="dropdown-search-divider" role="separator" /></>}
       <DropdownOptions>{shown.length ? shown.map(item => <button type="button" role="option" aria-selected={item.value === value} key={item.value} onClick={() => { onChange(item.value); setOpen(false); root.current?.querySelector('button')?.focus() }}>
-        {item.icon}{item.type && <span className={`version-glyph ${item.type}`}>{item.optifine ? <OptifineGlyph /> : <VersionGlyph type={item.type} custom={item.custom} />}</span>}<span className="dropdown-option-copy"><strong>{item.label}</strong>{item.detail && <small>{item.detailIcon}{item.detail}</small>}</span>{item.recent && <span className="dropdown-recent">{item.recent}</span>}
+        {item.icon}{item.type && <span className={`version-glyph ${item.type}`}>{item.optifine ? <OptifineGlyph /> : <VersionGlyph type={item.type} custom={item.custom} versionId={item.value} />}</span>}<span className="dropdown-option-copy"><strong>{item.label}</strong>{item.detail && <small>{item.detailIcon}{item.detail}</small>}</span>{item.recent && <span className="dropdown-recent">{item.recent}</span>}
       </button>) : <div className="dropdown-empty">{translate(language, 'Sonuç bulunamadı.')}</div>}</DropdownOptions>
     </div>
   return <div ref={root} title={title} className={`custom-dropdown ${className} ${accountPicker ? 'profile-account-select' : ''} ${open && !disabled ? 'open' : ''}`}>
     <button type="button" disabled={disabled} className="dropdown-trigger" aria-label={placeholder} aria-haspopup="listbox" aria-expanded={open && !disabled} onClick={() => { setPosition(null); setOpen(!open); setQuery('') }}>
       {leadingIcon}
       {selected?.icon}
-      {selected?.type && <span className={`version-glyph ${selected.type}`}>{selected.optifine ? <OptifineGlyph /> : <VersionGlyph type={selected.type} custom={selected.custom} />}</span>}
+      {selected?.type && <span className={`version-glyph ${selected.type}`}>{selected.optifine ? <OptifineGlyph /> : <VersionGlyph type={selected.type} custom={selected.custom} versionId={selected.value} />}</span>}
       <span className="dropdown-copy"><strong>{selected?.label ?? placeholder}</strong>{selected?.detail && <small>{selected.detailIcon}{selected.detail}</small>}</span><ChevronDown size={17} />
     </button>
     {open && !disabled && (portalled ? position && createPortal(choices, document.body) : choices)}
@@ -750,7 +751,7 @@ function App() {
   const activeDownload = pendingDownloads.find(job => !job.queued && job.phase !== 'queued') ?? pendingDownloads[0]
   const waiting = pendingDownloads.length - (activeDownload ? 1 : 0)
   const downloadStatus = activeDownload ? `${activeDownload.title} · ${t(activeDownload.phase === 'paused' ? 'İndirme duraklatıldı.' : activeDownload.phase === 'queued' ? 'Kuyrukta bekliyor.' : activeDownload.phase === 'downloading' ? 'İndiriliyor.' : activeDownload.phase === 'retrying' ? 'Bağlantı yeniden kuruluyor.' : activeDownload.phase === 'verifying' ? 'Doğrulanıyor.' : 'Hazırlanıyor.')} ${activeDownload.totalBytes ? `${formatBytes(activeDownload.downloadedBytes)} / ${formatBytes(activeDownload.totalBytes)}` : ''}${activeDownload.phase === 'downloading' && activeDownload.bytesPerSecond ? ` · ${formatBytes(activeDownload.bytesPerSecond)}/sn` : ''}${waiting ? ` · ${t('{count} indirme kuyrukta', { count: waiting })}` : ''}` : ''
-  return <div className="app-shell">
+  return <ClientIconsProvider versions={versions}><div className="app-shell">
     <div className="titlebar"><div className="titlebar-left"><img src={logo} /> Green Launcher</div><div className="titlebar-actions"><button aria-label={t('Küçült')} onClick={() => window.launcher.windowAction('minimize')}><Minus size={16} /></button><button aria-label={t('Büyüt')} onClick={() => window.launcher.windowAction('maximize')}><Maximize2 size={13} /></button><button aria-label={t('Kapat')} className="close-window" onClick={() => window.launcher.windowAction('close')}><X size={17} /></button></div></div>
     <div className="app-body">
       <aside className={`sidebar ${inProfileWorkspace ? 'profile-sidebar' : ''}`}>{inProfileWorkspace && managedProfile ? <>
@@ -861,7 +862,7 @@ function App() {
               const installed = !pendingOptifine && (!!variantId || !!selectedVariant || item.installed)
               const selected = variantId ? browsedVersionId === variantId : item.id === browsedVersionId || !!selectedVariant || pendingOptifine
               return <div className={`version-row ${selected ? 'selected' : ''}`} key={id} role="button" tabIndex={0} aria-label={`${id} sürümünü seç`} onClick={() => chooseVersion(id)} onContextMenu={event => openVersionContextMenu(event, actionId, installed)} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseVersion(id) } }}>
-                <div className="version-main">{variantId ? <span className="version-glyph optifine-list-glyph"><OptifineGlyph /></span> : item.custom ? <span className="version-glyph"><VersionGlyph custom /></span> : <VersionVariantMenu language={language} version={item} selectedId={browsedVersionId} onSelect={chooseVersion} />}<div><strong>{id}</strong><span>{variantId || selectedVariant || pendingOptifine ? 'OptiFine' : item.custom ? t('Özel istemci') : localVersionLabels[item.type]}</span></div></div>
+                <div className="version-main">{variantId ? <span className="version-glyph optifine-list-glyph"><OptifineGlyph /></span> : item.custom ? <span className="version-glyph"><VersionGlyph custom versionId={item.id} /></span> : <VersionVariantMenu language={language} version={item} selectedId={browsedVersionId} onSelect={chooseVersion} />}<div><strong>{id}</strong><span>{variantId || selectedVariant || pendingOptifine ? 'OptiFine' : item.custom ? t('Özel istemci') : localVersionLabels[item.type]}</span></div></div>
                 <div className="row-date"><span>{date(item.releaseTime, language)}</span>{!item.custom && <button className="release-link" title={t('Minecraft resmî sitesinde aç')} aria-label={`${id}: ${t('Minecraft resmî sitesinde aç')}`} onClick={event => { event.stopPropagation(); run(() => window.launcher.openExternal(releaseNotesUrl(item))) }}><ExternalLink size={15} /></button>}</div>
                 <div className="row-status">{installed ? <span className="installed-tag"><Check size={13} /> {t('Yüklü')}</span> : <span className="not-installed">{t('İndirilebilir')}</span>}</div>
                 <div className="row-actions">{pendingOptifine
@@ -969,7 +970,7 @@ function App() {
     {deleteId && <div className="modal-backdrop"><div className="modal confirm-modal"><DialogHeading title={<>{t('Profil silinsin mi?')}</>} description={<>{t('Profil listeden kaldırılacak. Dünyaların bilgisayarında kalacak.')}</>} closeLabel={t('Kapat')} onClose={() => setDeleteId(null)} /><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setDeleteId(null)}>{t('Vazgeç')}</button><button className="delete-button" onClick={() => run(async () => { setState(await window.launcher.deleteProfile(deleteId)); setDeleteId(null) }, t('Profil kaldırıldı.'))}><Trash2 size={16} /> {t('Profili sil')}</button></div></div></div>}
     {pendingVersionDelete && <div className="modal-backdrop"><div className="modal confirm-modal"><DialogHeading title={<>{t('Sürüm kaldırılsın mı?')}</>} description={<><strong>{pendingVersionDelete}</strong> {t('Sürüm dosyaları Geri Dönüşüm Kutusu’na taşınacak. Dünyaların ve profillerin korunur.')}</>} closeLabel={t('Kapat')} onClose={() => setPendingVersionDelete(null)} /><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setPendingVersionDelete(null)}>{t('Vazgeç')}</button><button className="delete-button" onClick={deleteSelectedVersion}><Trash2 size={16} /> {t('Sürümü kaldır')}</button></div></div></div>}
     {pendingJavaDelete && <div className="modal-backdrop"><div className="modal confirm-modal"><DialogHeading title={<>{t('Java kurulumunu kaldır')}</>} description={<><strong>Java {pendingJavaDelete.version}</strong> {t('Geri Dönüşüm Kutusu’na taşınacak.')}</>} closeLabel={t('Kapat')} onClose={() => setPendingJavaDelete(null)} /><div className="modal-actions"><div className="spacer" /><button className="secondary" onClick={() => setPendingJavaDelete(null)}>{t('Vazgeç')}</button><button className="delete-button" onClick={() => deleteJava(pendingJavaDelete)}><Trash2 size={16} /> {t('Sil')}</button></div></div></div>}
-  </div>
+  </div></ClientIconsProvider>
 }
 
 export default App

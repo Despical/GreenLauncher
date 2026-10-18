@@ -195,7 +195,10 @@ else {
     mainWindow!.once('ready-to-show', () => {
       lastInstalled = confirmUpdate(store.dataPath, app.getVersion(), process.env.PORTABLE_EXECUTABLE_FILE || process.execPath, logs, result => downloads.recordLauncherUpdate(result.version, result.at, 0, true))
       send('launcher:update', { ...updater.get(), lastInstalled })
-      if (process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT) setTimeout(() => app.quit(), 2000)
+      if (process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT) {
+        const timeout = Number(process.env.GREEN_LAUNCHER_UPDATE_QA_TIMEOUT_MS ?? 2000)
+        setTimeout(() => app.quit(), Number.isFinite(timeout) ? Math.min(30000, Math.max(2000, timeout)) : 2000)
+      }
     })
     const accountService = new AccountService(store)
     const accountSkins = new AccountSkins(join(store.dataPath, 'skin-cache'), (account, skin) => {
