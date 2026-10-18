@@ -78,6 +78,13 @@ const v015Sections = [
   ] }
 ]
 
+const v0192Changes = [
+  'İstemci klasörlerinden ve JAR dosyalarından ikonlar otomatik bulunur; sürüm listesinde ve profillerde kullanılır.',
+  'Elle seçilen profil ikonları korunur; ikon bulunamayan istemciler varsayılan simgeyi kullanır.',
+  'İkonlar önbelleğe alınır ve boyutlandırılır; kaynak istemci dosyaları değiştirilmez.',
+  'Electron çalışma zamanı 44.7.0 sürümüne güncellendi.'
+]
+
 const v0191Changes = [
   'Kurulum güncellemeleri değişmeyen verileri daha fazla yeniden kullanır; sonraki güncellemelerde büyük kurulum dosyasının çoğunu tekrar indirmen gerekmez.',
   'Eski kurulum paketinden yeni biçime ilk geçiş daha büyük bir indirme gerektirebilir. Mevcut kurulumunu güncelleyebilirsin; hesapların, profillerin ve dünyaların korunur.'
@@ -97,6 +104,7 @@ const v019Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.19.2', date: '2026-10-18', title: 'Özel istemciler için otomatik ikonlar', intro: 'İçe aktarılan istemcilerin kendi ikonları artık sürümlerde ve profillerde görünür.', changes: v0192Changes, sections: [{ title: 'Arayüz ve performans', changes: v0192Changes }] },
   { version: '0.19.1', date: '2026-10-09', title: 'Daha küçük kurulum güncellemeleri', intro: 'Kurulum paketlerinde daha az tekrar, sonraki güncellemelerde daha küçük indirmeler.', changes: v0191Changes, sections: [{ title: 'Düzeltmeler', changes: v0191Changes }] },
   { version: '0.19.0', date: '2026-10-09', title: 'Oyun alışkanlıklarını keşfet', intro: 'Profil analizleri, etkinlik takvimi ve ekran görüntüsü adlandırma.', changes: v019Sections.flatMap(section => section.changes), sections: v019Sections },
   { version: '0.18.2', date: '2026-10-08', title: 'Ana sayfanı kişiselleştir', intro: 'Özel arka planlar, animasyonlu sıralama ve daha düzenli ayarlar.', changes: [
