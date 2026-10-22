@@ -56,7 +56,6 @@ servers.json
 !/scripts/check-i18n.mjs
 !/scripts/portable-manifest.cjs
 !/scripts/portable-metadata.mjs
-!/scripts/prepare-update-bootstrap.mjs
 !/scripts/qa-accounts-package.cjs
 !/scripts/splash-helper.cpp
 !/scripts/test-accounts.cjs

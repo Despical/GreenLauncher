@@ -20,6 +20,16 @@ for(const name of ['out/main/index.js','out/renderer/index.html'])assert.equal(a
 const html=fs.readFileSync('out/renderer/index.html','utf8')
 for(const match of html.matchAll(/\.\/assets\/([^" ]+)/g)){const file='out/renderer/assets/'+match[1];assert.equal(asar.extractFile(archive,path.normalize(file)).equals(fs.readFileSync(file)),true,file)}
 const main=asar.extractFile(archive,path.normalize('out/main/index.js')).toString()
+const entries=asar.listPackage(archive).map(file=>file.replaceAll('\\','/'))
+for(const module of ['@dnd-kit/core','@dnd-kit/sortable','@dnd-kit/utilities','@fontsource-variable/inter','@fontsource-variable/space-grotesk','lucide-react','react','react-dom','skinview3d','three']) {
+  assert.equal(entries.some(file=>file===`/node_modules/${module}`||file.startsWith(`/node_modules/${module}/`)),false,`${module} is bundled into the renderer and must not be shipped twice`)
+}
+assert.equal(entries.some(file=>file.endsWith('.map')),false,'development source maps are excluded')
+assert.equal(entries.some(file=>file.startsWith('/node_modules/prismarine-nbt/sample/')),false,'NBT samples are excluded')
+const notices=asar.extractFile(archive,path.normalize('out/renderer/third-party-licenses.txt')).toString()+asar.extractFile(archive,path.normalize('out/renderer/font-licenses.txt')).toString()
+for(const module of ['react','react-dom','lucide-react','skinview3d','three','@dnd-kit/core','@fontsource-variable/inter','@fontsource-variable/space-grotesk'])assert.ok(notices.includes(module),`bundled renderer license is preserved: ${module}`)
+assert.deepEqual(fs.readdirSync('release/win-unpacked/locales').filter(file=>file.endsWith('.pak')).sort(),['de.pak','en-US.pak','fr.pak','pl.pak','ru.pak','tr.pak'])
+for(const file of ['LICENSES.chromium.html','resources/LICENSE','ffmpeg.dll','dxcompiler.dll','vk_swiftshader.dll'])assert.ok(fs.statSync(path.join('release/win-unpacked',file)).size>0,`required runtime and notices are retained: ${file}`)
 assert.match(main,/frames=\['','\.','\.\.','\.\.\.'\]/)
 assert.match(main,/setAppDetails/)
 assert.match(main,/api\.mojang\.com\/users\/profiles\/minecraft/)
