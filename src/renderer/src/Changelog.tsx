@@ -78,6 +78,16 @@ const v015Sections = [
   ] }
 ]
 
+const v0193Changes = [
+  'Profil sürüm seçicisindeki liste sınırı kaldırıldı; eski sürümler ve özel istemciler aranabilir.',
+  'Sürümlerin sağ tık menüsünden seçilen sürümle yeni profil oluşturulabilir; yeni profiller 1920×1080 pencere boyutuyla başlar.',
+  'Oyun açıldığında launcher’ı kapatma ayarı eklendi; varsayılan olarak kapalıdır ve açıkken oyun çalışmaya devam eder.',
+  'Profil ve sürüm kısayolları yalnızca yükleme ekranını gösterir; oyun başladıktan sonra launcher tercihe göre kapanır veya arka planda kalır.',
+  'Arka planda animasyonlar, karakter önizlemesi ve gereksiz yenilemeler durdurularak boşta kaynak kullanımı azaltıldı.',
+  'Hesap ve dünya verilerini okuyan bileşenler gerektiğinde yüklenerek açılışta yapılan iş azaltıldı.',
+  'Kurulum paketindeki ek portable kaldırıldı; gereksiz bağımlılıklar ve dosyalar ayıklanarak setup ve portable küçültüldü.'
+]
+
 const v0192Changes = [
   'İstemci klasörlerinden ve JAR dosyalarından ikonlar otomatik bulunur; sürüm listesinde ve profillerde kullanılır.',
   'Elle seçilen profil ikonları korunur; ikon bulunamayan istemciler varsayılan simgeyi kullanır.',
@@ -104,6 +114,7 @@ const v019Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.19.3', date: '2026-10-22', title: 'Daha hafif launcher, doğrudan oyun', intro: 'Eksiksiz sürüm seçimi, sessiz kısayollar ve daha küçük indirmeler.', changes: v0193Changes, sections: [{ title: 'Arayüz ve performans', changes: v0193Changes }] },
   { version: '0.19.2', date: '2026-10-18', title: 'Özel istemciler için otomatik ikonlar', intro: 'İçe aktarılan istemcilerin kendi ikonları artık sürümlerde ve profillerde görünür.', changes: v0192Changes, sections: [{ title: 'Arayüz ve performans', changes: v0192Changes }] },
   { version: '0.19.1', date: '2026-10-09', title: 'Daha küçük kurulum güncellemeleri', intro: 'Kurulum paketlerinde daha az tekrar, sonraki güncellemelerde daha küçük indirmeler.', changes: v0191Changes, sections: [{ title: 'Düzeltmeler', changes: v0191Changes }] },
   { version: '0.19.0', date: '2026-10-09', title: 'Oyun alışkanlıklarını keşfet', intro: 'Profil analizleri, etkinlik takvimi ve ekran görüntüsü adlandırma.', changes: v019Sections.flatMap(section => section.changes), sections: v019Sections },
