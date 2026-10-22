@@ -574,7 +574,7 @@ export class GameService {
     } finally { this.busy = false }
   }
 
-  async play(profileId: string | null, versionOverride?: string, allowAdditional = false, serverOverride?: string, serverPreference?: ServerJoinPreference, temporaryOfflineName?: string, worldId?: string): Promise<LaunchResult> {
+  async play(profileId: string | null, versionOverride?: string, allowAdditional = false, serverOverride?: string, serverPreference?: ServerJoinPreference, temporaryOfflineName?: string, worldId?: string, backgroundLaunch = false): Promise<LaunchResult> {
     if (this.busy) throw new Error('Başka bir oyun veya indirme işlemi devam ediyor.')
     const state = this.store.get()
     if (profileId === null && (!versionOverride || !versionIdPattern.test(versionOverride))) throw new Error('Geçersiz sürüm kimliği.')
@@ -691,9 +691,9 @@ export class GameService {
         this.window()?.show(); this.window()?.focus?.()
         return true
       }
-      const consoleShown = openConsole('launch')
-      if (!consoleShown && profile.hideLauncher === true) { this.hiddenForGames = true; this.window()?.hide() }
-      else if (!consoleShown && profile.hideLauncher === undefined && state.settings.closeOnLaunch) this.window()?.minimize()
+      const consoleShown = !backgroundLaunch && openConsole('launch')
+      if (!backgroundLaunch && !consoleShown && profile.hideLauncher === true) { this.hiddenForGames = true; this.window()?.hide() }
+      else if (!backgroundLaunch && !consoleShown && profile.hideLauncher === undefined && state.settings.closeOnLaunch) this.window()?.minimize()
       const finish = (error?: string, consoleOpened = false) => {
         if (!this.sessions.delete(id)) return
         this.playtime.finish(id)

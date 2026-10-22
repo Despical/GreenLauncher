@@ -12,7 +12,12 @@ constexpr int height = 360;
 Gdiplus::Bitmap* background = nullptr;
 std::wstring readyFile;
 DWORD startedAt = 0;
+HANDLE ownerProcess = nullptr;
 int dotCount = 0;
+struct GdiLifetime {
+  ULONG_PTR token = 0;
+  ~GdiLifetime() { if (token) Gdiplus::GdiplusShutdown(token); }
+};
 
 LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM word, LPARAM longValue) {
   switch (message) {
@@ -22,7 +27,8 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM word, LPARAM longV
         InvalidateRect(window, nullptr, FALSE);
       } else if (word == 2 &&
                  (GetFileAttributesW(readyFile.c_str()) != INVALID_FILE_ATTRIBUTES ||
-                  GetTickCount() - startedAt > 60000)) {
+                  (ownerProcess ? WaitForSingleObject(ownerProcess, 0) == WAIT_OBJECT_0
+                                : GetTickCount() - startedAt > 60000))) {
         DestroyWindow(window);
       }
       return 0;
@@ -55,20 +61,20 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM word, LPARAM longV
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int) {
   int count = 0;
   LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &count);
-  if (!args || count != 3) {
+  if (!args || (count != 3 && count != 4)) {
     if (args) LocalFree(args);
     return 1;
   }
   const std::wstring imagePath = args[1];
   readyFile = args[2];
+  if (count == 4) ownerProcess = OpenProcess(SYNCHRONIZE, FALSE, wcstoul(args[3], nullptr, 10));
   LocalFree(args);
 
   Gdiplus::GdiplusStartupInput input;
-  ULONG_PTR gdiplusToken = 0;
-  if (Gdiplus::GdiplusStartup(&gdiplusToken, &input, nullptr) != Gdiplus::Ok) return 1;
+  GdiLifetime gdiplus;
+  if (Gdiplus::GdiplusStartup(&gdiplus.token, &input, nullptr) != Gdiplus::Ok) return 1;
   Gdiplus::Bitmap bitmap(imagePath.c_str());
   if (bitmap.GetLastStatus() != Gdiplus::Ok) {
-    Gdiplus::GdiplusShutdown(gdiplusToken);
     return 1;
   }
   background = &bitmap;
@@ -80,7 +86,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int) {
   windowClass.lpszClassName = L"GreenLauncherSplash";
   windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
   if (!RegisterClassExW(&windowClass)) {
-    Gdiplus::GdiplusShutdown(gdiplusToken);
     return 1;
   }
 
@@ -90,7 +95,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int) {
                                 L"Green Launcher loading", WS_POPUP, x, y, width, height,
                                 nullptr, nullptr, instance, nullptr);
   if (!window) {
-    Gdiplus::GdiplusShutdown(gdiplusToken);
     return 1;
   }
   startedAt = GetTickCount();
@@ -106,6 +110,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int) {
     DispatchMessageW(&message);
   }
   background = nullptr;
-  Gdiplus::GdiplusShutdown(gdiplusToken);
+  if (ownerProcess) CloseHandle(ownerProcess);
   return 0;
 }

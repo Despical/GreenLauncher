@@ -76,3 +76,5 @@ servers.json
 !/scripts/test-source.cjs
 !/scripts/test-idle-downloads.cjs
 !/scripts/test-startup-lazy.cjs
+!/scripts/test-shortcut-startup.cjs
+!/scripts/test-splash-helper.cjs

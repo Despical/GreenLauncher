@@ -42,8 +42,17 @@ const replacement = `Function .onInit
   StrCmp $R6 "" 0 newInstance
   FindWindow $0 "Chrome_WidgetWin_1" "Green Launcher"
   StrCmp $0 0 newInstance
+    \${StdUtils.GetAllParameters} $R0 0
+    ClearErrors
+    \${GetOptions} $R0 "--launch-profile=" $R1
+    IfErrors 0 forwardRequest
+    ClearErrors
+    \${GetOptions} $R0 "--launch-version=" $R1
+    IfErrors 0 forwardRequest
+    FindWindow $0 "Chrome_WidgetWin_1" "Green Launcher"
     System::Call 'user32::ShowWindow(p r0, i 9)i .r1'
     System::Call 'user32::SetForegroundWindow(p r0)i .r1'
+    forwardRequest:
     StrCpy $INSTDIR "${runtimeDirectory}"
     IfFileExists "$INSTDIR\\.complete" 0 newInstance
     IfFileExists "$INSTDIR\\\${APP_EXECUTABLE_FILENAME}" 0 newInstance
@@ -77,7 +86,8 @@ const startHelper = `Section
   File /oname=$PLUGINSDIR\\splash-helper.exe "${helper}"
   File /oname=$PLUGINSDIR\\splash.png "${splash}"
   StrCpy $R8 "$PLUGINSDIR\\splash-ready"
-  Exec '"$PLUGINSDIR\\splash-helper.exe" "$PLUGINSDIR\\splash.png" "$R8"'
+  System::Call 'kernel32::GetCurrentProcessId()i .r0'
+  Exec '"$PLUGINSDIR\\splash-helper.exe" "$PLUGINSDIR\\splash.png" "$R8" "$0"'
   !ifdef SPLASH_IMAGE`
 if (!section.test(original)) throw new Error('portable.nsi Section bulunamadı.')
 const launch = /  \$\{StdUtils\.GetAllParameters\} \$R0 0\r?\n\r?\n  !ifdef SPLASH_IMAGE/
@@ -141,7 +151,7 @@ const completeExtraction = `  IfErrors runtimeCacheFailed
   Abort
   runtimeCacheLaunch:
   System::Call 'Kernel32::SetEnvironmentVariable(t, t)i ("PORTABLE_EXECUTABLE_DIR"`
-const patched = `Var runtimeMutex\n!include "${join(root, 'build', 'runtime-manifest.nsh')}"\n` + original.replace(init, replacement).replace(section, startHelper).replace(launch, passReadyFile).replace(exit, stopHelper)
+const patched = `!include "FileFunc.nsh"\nVar runtimeMutex\n!include "${join(root, 'build', 'runtime-manifest.nsh')}"\n` + original.replace(init, replacement).replace(section, startHelper).replace(launch, passReadyFile).replace(exit, stopHelper)
   .replace(extractionStart, cachedExtraction).replace(extractionEnd, completeExtraction).replace(cleanup, '\t; Keep this completed runtime for the next launch.\nSectionEnd')
 writeFileSync(join(root, 'build', 'portable-runtime.json'), JSON.stringify({ id: runtimeId, directory: `GreenLauncher/runtime/${runtimeId}` }, null, 2))
 

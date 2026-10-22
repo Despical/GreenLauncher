@@ -50,13 +50,15 @@ import type { GameVersion, LauncherActivity, LauncherProfile, LauncherSettings, 
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
-let splashShownAt = 0
 let splashFinishing = false
 const nativeSplashReadyFile = process.env.GREEN_LAUNCHER_SPLASH_READY_FILE
 let tray: Tray | null = null
 let minimizeToTray = false
 let quitting = false
 let pendingShortcut = parseShortcut(process.argv)
+const backgroundStartup = pendingShortcut !== null
+let shortcutLoading = backgroundStartup
+let nativeSplashPending = !!nativeSplashReadyFile
 let pendingNavigation = navigationArgument(process.argv)
 let keepForGames = () => false
 let dispatchShortcut: (() => void) | null = null
@@ -72,13 +74,14 @@ function send(event: string, value: unknown): void {
 
 function showMainWindow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return
+  shortcutLoading = false
+  finishSplash(false)
   mainWindow.show()
   if (mainWindow.isMinimized()) mainWindow.restore()
   mainWindow.focus()
 }
 
 function createSplashWindow(): void {
-  splashShownAt = 0
   splashFinishing = false
   const splashPath = app.isPackaged ? join(process.resourcesPath, 'portable-splash.png') : join(app.getAppPath(), 'build/portable-splash.png')
   const splash = readFileSync(splashPath).toString('base64')
@@ -95,7 +98,6 @@ function createSplashWindow(): void {
   })
   splashWindow.once('ready-to-show', () => {
     if (!splashFinishing && splashWindow && !splashWindow.isDestroyed()) {
-      splashShownAt = Date.now()
       splashWindow.show()
     }
   })
@@ -109,27 +111,16 @@ function createSplashWindow(): void {
   </script></html>`)}`)
 }
 
-function finishSplash(): void {
-  if (nativeSplashReadyFile) {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
-    setTimeout(() => {
-      try { writeFileSync(nativeSplashReadyFile, 'ready') } catch { /* The portable wrapper may already be closing. */ }
-    }, 120)
-    return
-  }
-  if (!splashShownAt) {
-    splashFinishing = true
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
-    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.destroy()
-    splashWindow = null
-    return
-  }
+function finishSplash(reveal = true): void {
   splashFinishing = true
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+  if (reveal && mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+  const closing = splashWindow, readyFile = nativeSplashPending ? nativeSplashReadyFile : undefined
+  splashWindow = null
+  nativeSplashPending = false
   setTimeout(() => {
-    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close()
-    splashWindow = null
-  }, 120)
+    if (readyFile) { try { writeFileSync(readyFile, 'ready') } catch { /* The portable wrapper may already be closing. */ } }
+    if (closing && !closing.isDestroyed()) closing.close()
+  }, 120).unref()
 }
 
 function createWindow(): void {
@@ -159,7 +150,7 @@ function createWindow(): void {
       relaunchDisplayName: 'Green Launcher'
     })
   }
-  mainWindow.once('ready-to-show', finishSplash)
+  mainWindow.once('ready-to-show', () => { if (!backgroundStartup && !shortcutLoading) finishSplash() })
   mainWindow.on('close', event => {
     if ((minimizeToTray || keepForGames()) && !quitting) { event.preventDefault(); mainWindow?.hide() }
   })
@@ -174,8 +165,8 @@ else {
   app.on('second-instance', (_event, argv) => {
     const request = parseShortcut(argv)
     const page = navigationArgument(argv)
+    if (request) { pendingShortcut = request; dispatchShortcut?.(); return }
     if (page) send('launcher:navigate', page)
-    if (request) { pendingShortcut = request; dispatchShortcut?.() }
     showMainWindow()
   })
 
@@ -295,6 +286,8 @@ else {
       const request = pendingShortcut
       if (!request) return
       pendingShortcut = null
+      shortcutLoading = true
+      if (!nativeSplashPending && !splashWindow) createSplashWindow()
       void (async () => {
         if (game.getLaunchState().preparing || modpacks.isInstalling || installingContent) throw new Error('Oyun hazırlanıyor. İkinci başlatma yapılmadı.')
         const profile = store.allProfiles().find(item => item.id === request.profileId)
@@ -306,11 +299,13 @@ else {
         if (profile) changed(store.selectProfile(profile.id))
         const versionId = profile ? undefined : request.versionId
         const target = profileJoinTarget(profile)
-        const start = () => game.play(profile?.id ?? null, versionId, false, undefined, undefined, undefined, target.worldId)
+        const start = () => game.play(profile?.id ?? null, versionId, false, undefined, undefined, undefined, target.worldId, true)
         const result = await queue(`Minecraft ${profile?.modLoaderVersion ?? profile?.versionId ?? versionId}`, () => profile && target.worldId ? worlds.launch(profile.id, target.worldId, start) : start(), profile?.id, true)
-        if (result.status === 'confirmation-required') send('launcher:launchRequest', { profileId: profile?.id ?? null, versionId, accountId: owner })
+        shortcutLoading = false
+        finishSplash(false)
+        if (result.status === 'confirmation-required') { showMainWindow(); send('launcher:launchRequest', { profileId: profile?.id ?? null, versionId, accountId: owner }) }
         changed(store.get())
-      })().catch(error => { logs.record('Kısayol', error); send('launcher:shortcutError', diagnoseError(error).message) })
+      })().catch(error => { shortcutLoading = false; showMainWindow(); logs.record('Kısayol', error); send('launcher:shortcutError', diagnoseError(error).message) })
     }
     const accountChangeAllowed = () => { if (downloads.pending || game.getLaunchState().preparing || modpacks.isInstalling || installingContent) throw new Error('İşlem tamamlanana kadar hesap değiştirilemez.') }
     const updateEngine = new NsisUpdater({ provider: 'github', owner: 'Despical', repo: 'GreenLauncher' })

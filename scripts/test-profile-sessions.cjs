@@ -247,9 +247,16 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   check('disabled console section suppresses both navigation preferences and persists across restart',()=>{assert.equal(consoleRequests.length,beforeCrashRequests+1);const saved=new LauncherStore().get().profiles.find(p=>p.id===b);assert.equal(saved.consoleEnabled,false);assert.equal(saved.showConsoleOnLaunch,true);assert.equal(saved.showConsoleOnCrash,true)})
   launchMode='real'
   check('launcher exit on launch defaults off',()=>assert.equal(store.get().settings.exitOnLaunch,false))
+  edit({consoleEnabled:true,showConsoleOnLaunch:true,showConsoleOnCrash:false,hideLauncher:true,quitOnGameExit:false})
+  const beforeShortcut={shown,hidden,requests:consoleRequests.length}
+  await game.play(b,undefined,false,undefined,undefined,undefined,undefined,true)
+  check('shortcut launch suppresses automatic console and window changes',()=>{assert.equal(shown,beforeShortcut.shown);assert.equal(hidden,beforeShortcut.hidden);assert.equal(consoleRequests.length,beforeShortcut.requests)})
+  await stop(children.at(-1))
+  check('shortcut game exit leaves the launcher in the background',()=>assert.equal(shown,beforeShortcut.shown))
+  edit({consoleEnabled:false})
   store.updateSettings({exitOnLaunch:true})
   const beforeLaunchQuit=quit
-  await game.play(b)
+  await game.play(b,undefined,false,undefined,undefined,undefined,undefined,true)
   check('global exit preference exits only after a live detached child starts',()=>{assert.equal(quit,beforeLaunchQuit+1);assert.equal(options.at(-1).extraExecOption.detached,true);assert.equal(options.at(-1).extraExecOption.stdio,'ignore');assert.equal(children.at(-1).exitCode,null)})
   children.at(-1).ref()
   await stop(children.at(-1))
