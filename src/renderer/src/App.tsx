@@ -657,6 +657,7 @@ function App() {
     if (action === 'manage') { openProfileWorkspace(id); return }
     if (action === 'edit') { editProfile(item); return }
     if (action === 'delete') { setDeleteId(id); return }
+    if (action === 'show-folder') { await run(() => window.launcher.openVersionLocation(profileLaunchVersion(item))); return }
     if (action === 'mods-folder') { await run(() => window.launcher.openProfileMods(id)); return }
     if (profileTaskLock.current.has(id)) { setPage('downloads'); return }
     profileTaskLock.current.add(id); setProfileTasks([...profileTaskLock.current])

@@ -7,7 +7,7 @@ import { translate, type Language } from './i18n'
 import { profileVersionLabel } from '../../shared/profile-version'
 import './profiles.css'
 
-export type ProfileAction = 'manage' | 'edit' | 'clone' | 'export' | 'repair' | 'shortcut' | 'mods-folder' | 'delete'
+export type ProfileAction = 'manage' | 'edit' | 'clone' | 'export' | 'repair' | 'shortcut' | 'show-folder' | 'mods-folder' | 'delete'
 
 export function ProfileMenu({ profile, x, y, language, pending, onClose, onAction }: {
   profile: LauncherProfile; x: number; y: number; language: Language; pending: boolean
@@ -44,6 +44,7 @@ export function ProfileMenu({ profile, x, y, language, pending, onClose, onActio
   const actions = [
     { id: 'manage', title: 'Profili yönet', icon: Layers3 },
     { id: 'edit', title: 'Profili düzenle', icon: Pencil },
+    { id: 'show-folder', title: 'Klasörde göster', icon: FolderOpen },
     { id: 'clone', title: 'Profili klonla', icon: Copy }, { id: 'export', title: 'Dışa aktar', icon: Upload },
     { id: 'repair', title: 'Dosyaları onar', icon: ShieldCheck }, { id: 'shortcut', title: 'Masaüstüne kısayol oluştur', icon: Monitor },
     { id: 'delete', title: 'Profili sil', icon: Trash2 }
