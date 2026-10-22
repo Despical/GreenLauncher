@@ -108,6 +108,7 @@ export function SkinPreview({ account, t, onNotify, active = true, onViewChange 
     let preview: SkinViewer | null = null
     let observer: ResizeObserver | null = null
     const visibility = () => { if (preview) preview.renderPaused = document.hidden || !activeRef.current }
+    if (!active) return
     if (skin === undefined) { setStatus('loading'); return }
     if (!skin) { setStatus('missing'); return }
     setStatus('loading')
@@ -120,7 +121,7 @@ export function SkinPreview({ account, t, onNotify, active = true, onViewChange 
           canvas: canvas.current,
           width: Math.round(stage.current.clientWidth),
           height: Math.round(stage.current.clientHeight),
-          pixelRatio: Math.min(3, Math.max(2, window.devicePixelRatio)),
+          pixelRatio: Math.min(2, window.devicePixelRatio || 1),
           zoom: 0.8
         })
         viewer.current = preview
@@ -156,7 +157,7 @@ export function SkinPreview({ account, t, onNotify, active = true, onViewChange 
       preview?.dispose()
       if (viewer.current === preview) viewer.current = null
     }
-  }, [skin])
+  }, [skin, active])
 
   useEffect(() => { if (viewer.current) viewer.current.autoRotate = autoRotate }, [autoRotate])
 

@@ -75,3 +75,4 @@ servers.json
 !/scripts/update-helper.manifest
 !/scripts/verify-release.cjs
 !/scripts/test-source.cjs
+!/scripts/test-idle-downloads.cjs

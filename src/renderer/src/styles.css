@@ -1233,3 +1233,5 @@ body .mods-setup, body .mods-welcome { background: #161b22; border-color: #30363
 body .empty-state, body .library-empty, body .profile-empty, body .account-page-empty, body .mods-favorites-empty, body .error-log-empty, body .minecraft-console-empty, body .managed-account-empty, body .servers-empty, body .worlds-empty, body .download-empty, body .provider-connection-state, body .resource-empty { background: #161b22; }
 .modal-actions > .modal-primary { width: auto; flex: none; height: 39px; padding: 0 16px; font-size: 13px; }
 .modal-actions { justify-content: flex-end; }
+/* Stop decorative work while another app or the game has focus. */
+body.launcher-backgrounded *, body.launcher-backgrounded *::before, body.launcher-backgrounded *::after { animation-play-state: paused !important; }

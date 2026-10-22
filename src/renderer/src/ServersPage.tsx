@@ -76,7 +76,7 @@ export function ServersPage({ state, versions, language, launchBusy, isVisible, 
     setDraft(null); setDeleting(null); setJoining(null); setDragOrder(null); setDragPreview(null)
     if (!listProfileId) { setLoading(false); setSelected(null); return }
     const sync = async () => {
-      if (fetching) return
+      if (fetching || document.hidden) return
       fetching = true
       try {
         const items = await window.launcher.getServers(listProfileId)

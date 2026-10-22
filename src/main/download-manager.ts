@@ -23,9 +23,10 @@ export class DownloadManager {
   private playing = false
   private settings: LauncherSettings
   private rateRevision = 0
-  private timer: NodeJS.Timeout
+  private timer?: NodeJS.Timeout
   private flights = new Map<string, Promise<void>>()
   private lastPublish = 0
+  private lastSnapshot = ''
   private history: DownloadJob[] = []
 
   constructor(settings: LauncherSettings, private emit: (snapshot: DownloadSnapshot) => void, private historyPath?: string) {
@@ -37,8 +38,6 @@ export class DownloadManager {
       } catch { /* A missing or damaged history never blocks downloads. */ }
     }
     shared = this
-    this.timer = setInterval(() => this.publish(), 400)
-    this.timer.unref()
   }
   dispose() { clearInterval(this.timer); for (const job of this.jobs) for (const controller of job.controllers) controller.abort(); if (shared === this) shared = undefined }
   get pending() { return this.jobs.some(job => !['completed', 'failed'].includes(job.phase)) }
@@ -95,7 +94,18 @@ export class DownloadManager {
     this.history = [view, ...this.history.filter(item => item.id !== job.id)].slice(0, 5)
     this.saveHistory()
   }
-  private publish() { if (Date.now() - this.lastPublish < 100) return; this.lastPublish = Date.now(); this.emit(this.snapshot()) }
+  private publish() {
+    if (this.pending) {
+      this.timer ??= setInterval(() => this.publish(), 400)
+      this.timer.unref()
+    } else { clearInterval(this.timer); this.timer = undefined }
+    if (this.pending && Date.now() - this.lastPublish < 100) return
+    this.lastPublish = Date.now()
+    const snapshot = this.snapshot(), serialized = JSON.stringify(snapshot)
+    if (serialized === this.lastSnapshot) return
+    this.lastSnapshot = serialized
+    this.emit(snapshot)
+  }
   configure(settings: LauncherSettings) { this.settings = settings; this.rateRevision++; for (const job of this.jobs) { job.rateClock = 0; job.samples = []; job.estimatedSeconds = undefined }; this.interruptBlocked(); this.publish(); this.pump() }
   setPlaying(playing: boolean) { this.playing = playing; this.interruptBlocked(); this.publish(); this.pump() }
   private interruptBlocked() { for (const job of this.jobs) if (this.blocked(job)) { job.rateClock = 0; for (const controller of job.controllers) controller.abort() } }

@@ -41,6 +41,7 @@ import optifineIcon from '../assets/optifine-mark.png'
 import javaIcon from '../assets/java-original.svg'
 import { enabledHeroSlides } from './hero-slides'
 import { HeroBackground } from './HeroBackground'
+import { useWindowActive } from './useWindowActive'
 import { HeroSettings } from './HeroSettings'
 import packageJson from '../../../package.json'
 import './profile-workspace.css'
@@ -147,12 +148,12 @@ function Dropdown({ value, options, onChange, placeholder, searchable = false, c
   const accountPicker = options.some(item => item.icon && item.detailIcon)
   const matching = options.filter(item => `${item.label} ${profilePicker ? '' : `${item.value} ${item.detail ?? ''}`}`.toLocaleLowerCase('tr').includes(query.trim().toLocaleLowerCase('tr')))
   const shown = showAll ? matching : matching.slice(0, 100)
-  const choices = <div ref={menu} style={portalled ? position ?? undefined : undefined} className={`dropdown-menu ${portalled ? 'profile-version-menu' : ''} ${className === 'server-resource-select' ? 'server-resource-menu' : ''} ${profilePicker ? 'profile-picker-menu' : ''} ${accountPicker ? 'profile-account-menu' : ''}`} role="listbox" aria-label={placeholder} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); event.preventDefault(); setOpen(false); root.current?.querySelector('button')?.focus(); return } const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=option]')); if (['ArrowDown', 'ArrowUp'].includes(event.key) || event.target instanceof HTMLButtonElement && ['Home', 'End'].includes(event.key)) { event.preventDefault(); const index = options.indexOf(document.activeElement as HTMLButtonElement); options[event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : index < 0 ? event.key === 'ArrowDown' ? 0 : options.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length]?.focus() } }}>
+  const choices = open && !disabled ? <div ref={menu} style={portalled ? position ?? undefined : undefined} className={`dropdown-menu ${portalled ? 'profile-version-menu' : ''} ${className === 'server-resource-select' ? 'server-resource-menu' : ''} ${profilePicker ? 'profile-picker-menu' : ''} ${accountPicker ? 'profile-account-menu' : ''}`} role="listbox" aria-label={placeholder} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); event.preventDefault(); setOpen(false); root.current?.querySelector('button')?.focus(); return } const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=option]')); if (['ArrowDown', 'ArrowUp'].includes(event.key) || event.target instanceof HTMLButtonElement && ['Home', 'End'].includes(event.key)) { event.preventDefault(); const index = options.indexOf(document.activeElement as HTMLButtonElement); options[event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : index < 0 ? event.key === 'ArrowDown' ? 0 : options.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length]?.focus() } }}>
       {searchable && <><div className="dropdown-search"><Search size={15} /><input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder={searchPlaceholder ?? translate(language, 'Sürüm ara')} aria-label={searchPlaceholder ?? translate(language, 'Sürüm ara')} /></div><div className="dropdown-search-divider" role="separator" /></>}
       <DropdownOptions>{shown.length ? shown.map(item => <button type="button" role="option" aria-selected={item.value === value} key={item.value} onClick={() => { onChange(item.value); setOpen(false); root.current?.querySelector('button')?.focus() }}>
         {item.icon}{item.type && <span className={`version-glyph ${item.type}`}>{item.optifine ? <OptifineGlyph /> : <VersionGlyph type={item.type} custom={item.custom} versionId={item.value} />}</span>}<span className="dropdown-option-copy"><strong>{item.label}</strong>{item.detail && <small>{item.detailIcon}{item.detail}</small>}</span>{item.recent && <span className="dropdown-recent">{item.recent}</span>}
       </button>) : <div className="dropdown-empty">{translate(language, 'Sonuç bulunamadı.')}</div>}</DropdownOptions>
-    </div>
+    </div> : null
   return <div ref={root} title={title} className={`custom-dropdown ${className} ${accountPicker ? 'profile-account-select' : ''} ${open && !disabled ? 'open' : ''}`}>
     <button type="button" disabled={disabled} className="dropdown-trigger" aria-label={placeholder} aria-haspopup="listbox" aria-expanded={open && !disabled} onClick={() => { setPosition(null); setOpen(!open); setQuery('') }}>
       {leadingIcon}
@@ -239,6 +240,7 @@ function ProfilePageButton({ index, active, language, onClick }: { index: number
 }
 
 function App() {
+  const windowActive = useWindowActive()
   const updates = useLauncherUpdate()
   const [state, setState] = useState<LauncherState | null>(null)
   const stateRef = useRef(state)
@@ -817,7 +819,7 @@ function App() {
         {visited.has('shader-packs') && managedProfile && <div className="retained-page" hidden={page !== 'shader-packs'}><Suspense fallback={<div className="content-page page-loading" role="status"><LoaderCircle className="spin" size={28} /><span>{t('Yükleniyor...')}</span></div>}><ResourcePacksPage key={installedContentScope(managedProfile, 'shader')} kind="shader" profile={managedProfile} language={language} isVisible={page === 'shader-packs'} running={instances.some(instance => instance.profileId === managedProfile.id)} onNotice={notifyCape} /></Suspense></div>}
         {visited.has('account') && <div className="retained-page" hidden={page !== 'account'}><div className="content-page account-page">
           <div className="page-heading"><div><h2>{t('Profilim')}</h2><p>{account?.kind === 'offline' ? t('Çevrimdışı oyuncu bilgilerini burada görebilirsin.') : t('Minecraft hesabını ve karakter görünümünü burada görebilirsin.')}</p></div><button className="heading-action primary" onClick={() => setAccountOpen(true)}><UsersRound size={17} /> {t('Hesapları yönet')}</button></div>
-          {account ? <SkinPreview key={account.id} account={account} t={t} onNotify={notifyCape} active={page === 'account'} onViewChange={setAccountView} /> : <div className="account-page-empty"><div className="account-page-empty-icon"><UserRound size={34} /></div><h3>{t('Hesap ekle')}</h3><p>{t('Microsoft hesabını bağla veya bir çevrimdışı oyuncu adı seç.')}</p><button className="modal-primary" onClick={() => setAccountOpen(true)}><UsersRound size={18} /> {t('Hesapları yönet')}</button><button className="account-page-offline-add" onClick={() => { setOfflineCreateOpen(true) }}><WifiOff size={17} /> {t('Çevrimdışı hesap ekle')}</button></div>}
+          {account ? <SkinPreview key={account.id} account={account} t={t} onNotify={notifyCape} active={page === 'account' && windowActive} onViewChange={setAccountView} /> : <div className="account-page-empty"><div className="account-page-empty-icon"><UserRound size={34} /></div><h3>{t('Hesap ekle')}</h3><p>{t('Microsoft hesabını bağla veya bir çevrimdışı oyuncu adı seç.')}</p><button className="modal-primary" onClick={() => setAccountOpen(true)}><UsersRound size={18} /> {t('Hesapları yönet')}</button><button className="account-page-offline-add" onClick={() => { setOfflineCreateOpen(true) }}><WifiOff size={17} /> {t('Çevrimdışı hesap ekle')}</button></div>}
         </div></div>}
         {page === 'home' && <><div className="home-hero">
           {heroSlides.map((slide, index) => <HeroBackground key={slide.id} slide={slide} active={index === heroIndex} />)}

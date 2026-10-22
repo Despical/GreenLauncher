@@ -40,7 +40,7 @@ export function WorldsPage({ state, language, launchBusy, instances, isVisible, 
     let cancelled = false, fetching = false, previousError = ''
     setWorlds([]); setSelected(''); setRenaming(null); setDeleting(null); setError(''); setLoading(!!profileId)
     const sync = async () => {
-      if (!profileId || fetching || busy.current) return
+      if (!profileId || fetching || busy.current || document.hidden) return
       fetching = true
       try { await update(); previousError = '' } catch (reason) {
         if (!cancelled && current.current === scope) { const message = diagnoseError(reason).message; if (message !== previousError) onNotice(t(message)); previousError = message }
