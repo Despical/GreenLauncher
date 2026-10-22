@@ -962,6 +962,7 @@ const dictionary: Record<string, [string, string, string, string, string]> = {
   'Sürümü indir': ['Download version', 'Version herunterladen', 'Télécharger la version', 'Скачать версию', 'Pobierz wersję'],
   'Farklı dünyalar ve ayarlar için dilediğinde yeni profil oluştur.': ['Create profiles for different worlds and settings.', 'Erstelle Profile für verschiedene Welten und Einstellungen.', 'Crée des profils pour différents mondes et réglages.', 'Создавай профили для разных миров и настроек.', 'Twórz profile dla różnych światów i ustawień.'],
   'Yeni profil': ['New profile', 'Neues Profil', 'Nouveau profil', 'Новый профиль', 'Nowy profil'],
+  'Profil oluştur': ['Create profile', 'Profil erstellen', 'Créer un profil', 'Создать профиль', 'Utwórz profil'],
   'Henüz profil yok': ['No profiles yet', 'Noch keine Profile', 'Aucun profil', 'Профилей пока нет', 'Brak profili'],
   'Profil kaydedildi.': ['Profile saved.', 'Profil gespeichert.', 'Profil enregistré.', 'Профиль сохранён.', 'Profil zapisany.'],
   'Profil kaldırıldı.': ['Profile removed.', 'Profil entfernt.', 'Profil supprimé.', 'Профиль удалён.', 'Profil usunięty.'],
