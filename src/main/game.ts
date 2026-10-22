@@ -665,7 +665,7 @@ export class GameService {
         resolution: { ...windowSize, fullscreen: profile.fullscreen === true },
         ...(worldId !== undefined ? { quickPlaySingleplayer: worldId } : serverLaunchOptions(version.minecraftVersion || profile.versionId, serverAddress)),
         extraJVMArgs,
-        extraExecOption: { detached: false, windowsHide: true }
+        extraExecOption: { detached: state.settings.exitOnLaunch === true, windowsHide: true, ...(state.settings.exitOnLaunch ? { stdio: 'ignore' as const } : {}) }
       })
       if (!process.pid) throw new Error('Oyun işlemi başlatılamadı.')
       if (process.exitCode !== null || process.signalCode !== null) throw new Error(`Oyun başlatılırken kapandı (${process.exitCode ?? process.signalCode}).`)
@@ -709,6 +709,7 @@ export class GameService {
       }
       process.once('exit', code => finish(code === 0 ? undefined : `Çıkış kodu: ${code ?? 'bilinmiyor'}`, code !== 0 && openConsole('crash')))
       process.once('error', error => finish(message(error), openConsole('crash')))
+      if (state.settings.exitOnLaunch) { process.unref(); this.quitLauncher() }
       return { status: 'started' }
 
     } catch (error) {

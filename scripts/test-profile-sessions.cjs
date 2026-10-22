@@ -77,7 +77,7 @@ const {GameService}=load('src/main/game.ts',{'@xmcl/installer':{...require('@xmc
   if(launchMode==='gate') await new Promise(resolve=>{releaseGate=resolve})
   const floodMarker=path.join(root,'startup-after-heavy-output.txt')
   const code=launchMode==='flood' ? "let left=2;const done=()=>{if(--left===0)require('node:fs').writeFileSync(process.argv[1],'startup completed')};process.stdout.write(Buffer.alloc(2*1024*1024,65),done);process.stderr.write(Buffer.alloc(2*1024*1024,66),done);setInterval(()=>{},1000)" : launchMode==='code-0'||launchMode==='code-7' ? `setTimeout(()=>process.exit(${launchMode==='code-0'?0:7}),200)` : 'setInterval(()=>{},1000)'
-  const child=spawn(process.execPath,['-e',code,floodMarker],{windowsHide:true,stdio:launchMode==='flood'?'pipe':'ignore'})
+  const child=spawn(process.execPath,['-e',code,floodMarker],{...opts.extraExecOption,windowsHide:true,stdio:launchMode==='flood'?'pipe':'ignore'})
   children.push(child); await once(child,'spawn'); return child
 }}})
 let hidden=0, shown=0, quit=0
@@ -246,6 +246,16 @@ const stop=async child=>{const exit=once(child,'exit');child.kill();await exit}
   edit({consoleEnabled:false,showConsoleOnLaunch:true});launchMode='code-7';await game.play(b);await once(children.at(-1),'close')
   check('disabled console section suppresses both navigation preferences and persists across restart',()=>{assert.equal(consoleRequests.length,beforeCrashRequests+1);const saved=new LauncherStore().get().profiles.find(p=>p.id===b);assert.equal(saved.consoleEnabled,false);assert.equal(saved.showConsoleOnLaunch,true);assert.equal(saved.showConsoleOnCrash,true)})
   launchMode='real'
+  check('launcher exit on launch defaults off',()=>assert.equal(store.get().settings.exitOnLaunch,false))
+  store.updateSettings({exitOnLaunch:true})
+  const beforeLaunchQuit=quit
+  await game.play(b)
+  check('global exit preference exits only after a live detached child starts',()=>{assert.equal(quit,beforeLaunchQuit+1);assert.equal(options.at(-1).extraExecOption.detached,true);assert.equal(options.at(-1).extraExecOption.stdio,'ignore');assert.equal(children.at(-1).exitCode,null)})
+  children.at(-1).ref()
+  await stop(children.at(-1))
+  launchMode='failure';await assert.rejects(()=>game.play(b),/simulated spawn failure/)
+  check('failed launch never closes the launcher',()=>assert.equal(quit,beforeLaunchQuit+1))
+  store.updateSettings({exitOnLaunch:false});launchMode='real'
   store.removeAccount(second)
   check('removed override account is rejected at save',()=>assert.throws(()=>edit({accountOverride:true,launchAccountId:second}),/hesap/))
   const persisted = JSON.parse(fs.readFileSync(path.join(root,'launcher.json'),'utf8'));persisted.profiles.find(p=>p.id===b).accountOverride=true;persisted.profiles.find(p=>p.id===b).launchAccountId=second;fs.writeFileSync(path.join(root,'launcher.json'),JSON.stringify(persisted));const staleStore=new LauncherStore();const staleGame=new GameService(staleStore,{},()=>null,()=>{});await assert.rejects(()=>staleGame.play(b),/hesap/);check('missing override account never silently falls back to another account',()=>assert.equal(staleGame.getRunningInstances().length,0))

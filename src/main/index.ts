@@ -213,6 +213,13 @@ else {
     const favorites = new ModFavorites(join(store.dataPath, 'mod-favorites.json'))
     const modrinth = new ModrinthService(store)
     const discord = new DiscordPresence(DISCORD_APPLICATION_ID, store.get().settings.discordPresence)
+    let pendingGameExit: ReturnType<typeof setTimeout> | undefined
+    const quitAfterTransfers = () => {
+      clearTimeout(pendingGameExit)
+      if (downloads.pending || game.getLaunchState().preparing) { pendingGameExit = setTimeout(quitAfterTransfers, 250); return }
+      app.quit()
+    }
+    app.on('before-quit', () => clearTimeout(pendingGameExit))
     const game = new GameService(store, accountService, () => mainWindow, (activity: LauncherActivity) => {
       send('launcher:activity', activity)
       // Preparation failures are recorded by their rejected IPC/shortcut request.
@@ -222,7 +229,7 @@ else {
         const versionId = game.getRunningInstances()[0]?.versionId
         if (versionId) discord.setPlaying(versionId)
       } else if (!game.getRunningInstances().length && (activity.kind === 'idle' || activity.kind === 'error')) discord.clearPlaying()
-    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()), () => app.quit(), change => send('launcher:gameLog', change), target => send('launcher:consoleRequest', target))
+    }, instances => { downloads.setPlaying(instances.length > 0); send('launcher:instances', instances); if (instances.length) discord.setPlaying(instances[0].versionId); else discord.clearPlaying() }, () => send('launcher:state', store.get()), quitAfterTransfers, change => send('launcher:gameLog', change), target => send('launcher:consoleRequest', target))
     app.on('before-quit', () => game.flushPlaytime())
     keepForGames = () => game.getRunningInstances().length > 0
     const modpacks = new ModpackService(store, game, activity => { downloads.activity(activity); send('launcher:activity', activity) })

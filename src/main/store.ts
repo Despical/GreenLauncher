@@ -21,6 +21,7 @@ function defaultSettings(): LauncherSettings {
   width: window.width,
   height: window.height,
     closeOnLaunch: false,
+    exitOnLaunch: false,
     showSnapshots: false,
     animateHero: true,
     ...normalizeHeroSettings({}),
@@ -64,6 +65,7 @@ export class LauncherStore {
     settings.downloadSpeedLimitKiB = bounded(settings.downloadSpeedLimitKiB, 0, 0, 102400)
     settings.downloadConcurrency = bounded(settings.downloadConcurrency, 6, 1, 12)
     settings.pauseDownloadsWhilePlaying = settings.pauseDownloadsWhilePlaying === true
+    settings.exitOnLaunch = settings.exitOnLaunch === true
     settings.savePlaytime = settings.savePlaytime !== false
     settings.showPlaytime = settings.showPlaytime !== false
     settings.showTotalPlaytime = settings.showTotalPlaytime !== false
@@ -156,6 +158,7 @@ export class LauncherStore {
     settings.width = defaults.width
     settings.height = defaults.height
     if (typeof changes.closeOnLaunch === 'boolean') settings.closeOnLaunch = changes.closeOnLaunch
+    if (typeof changes.exitOnLaunch === 'boolean') settings.exitOnLaunch = changes.exitOnLaunch
     if (typeof changes.showSnapshots === 'boolean') settings.showSnapshots = changes.showSnapshots
     if (typeof changes.animateHero === 'boolean') settings.animateHero = changes.animateHero
     Object.assign(settings, normalizeHeroSettings({ ...settings, ...changes }))

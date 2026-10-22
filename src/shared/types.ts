@@ -74,6 +74,7 @@ export interface LauncherSettings {
   width: number
   height: number
   closeOnLaunch: boolean
+  exitOnLaunch?: boolean
   showSnapshots: boolean
   animateHero: boolean
   heroBackgrounds?: HeroBackground[]
