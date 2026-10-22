@@ -76,3 +76,4 @@ servers.json
 !/scripts/verify-release.cjs
 !/scripts/test-source.cjs
 !/scripts/test-idle-downloads.cjs
+!/scripts/test-startup-lazy.cjs

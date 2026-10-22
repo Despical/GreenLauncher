@@ -2,7 +2,8 @@ import { lstat, readdir, readFile, writeFile, mkdir, rename, copyFile, cp, rm, r
 import { basename, join, resolve, dirname } from 'node:path'
 import { randomUUID, createHash } from 'node:crypto'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import { parseUncompressed, writeUncompressed, type NBT, type Compound } from 'prismarine-nbt'
+import type { NBT, Compound } from 'prismarine-nbt'
+import { minecraftNbt } from './minecraft-nbt'
 import type { LauncherStore } from './store'
 import type { SavedWorld } from '../shared/types'
 
@@ -21,7 +22,7 @@ async function readNbt(file: string) {
   const info = await lstat(file)
   if (!info.isFile() || info.isSymbolicLink() || info.size > limit) throw new Error('Dünya verileri okunamadı.')
   const bytes = await readFile(file), compressed = bytes[0] === 31 && bytes[1] === 139
-  const root = parseUncompressed(compressed ? gunzipSync(bytes, { maxOutputLength: limit }) : bytes, 'big')
+  const root = minecraftNbt().parseUncompressed(compressed ? gunzipSync(bytes, { maxOutputLength: limit }) : bytes, 'big')
   if (root.type !== 'compound') throw new Error('Dünya verileri okunamadı.')
   return { root, bytes, compressed }
 }
@@ -122,7 +123,7 @@ export class WorldService {
       const path = await this.path(profileId, id); await this.unlocked(path)
       const document = await level(path), original = hash(document.bytes)
       document.data.LevelName = { type: 'string', value: name.trim() }
-      const bytes = writeUncompressed(document.root, 'big')
+      const bytes = minecraftNbt().writeUncompressed(document.root, 'big')
       if (bytes.length > limit) throw new Error('Dünya verileri okunamadı.')
       const file = join(path, 'level.dat'), temp = `${file}.${randomUUID()}.tmp`
       try {
@@ -149,7 +150,7 @@ export class WorldService {
       } })
       if (name) {
         const document = await level(staging); document.data.LevelName = { type: 'string', value: name }
-        const bytes = writeUncompressed(document.root, 'big'); await writeFile(join(staging, 'level.dat'), document.compressed ? gzipSync(bytes) : bytes)
+        const bytes = minecraftNbt().writeUncompressed(document.root, 'big'); await writeFile(join(staging, 'level.dat'), document.compressed ? gzipSync(bytes) : bytes)
       }
       await level(staging); await this.unlocked(source); this.assertIdle(dirname(saves))
       await rename(staging, join(saves, id)); return id

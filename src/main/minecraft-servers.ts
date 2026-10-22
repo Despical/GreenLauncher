@@ -2,7 +2,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, 
 import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import { parseUncompressed, writeUncompressed, type NBT, type List, TagType } from 'prismarine-nbt'
+import type { NBT, List, TagType } from 'prismarine-nbt'
+import { minecraftNbt } from './minecraft-nbt'
 import { normalizeServerAddress } from '../shared/server-launch'
 
 export type MinecraftServerEntry = List<TagType.Compound>['value']['value'][number]
@@ -20,7 +21,7 @@ export function readMinecraftServers(directory: string): MinecraftServerList {
       let bytes = readFileSync(file); hash = fingerprint(bytes)
       compressed = bytes[0] === 0x1f && bytes[1] === 0x8b
       if (compressed) bytes = gunzipSync(bytes, { maxOutputLength: 8 * 1024 ** 2 })
-      root = parseUncompressed(bytes, 'big')
+      root = minecraftNbt().parseUncompressed(bytes, 'big')
       if (root.type !== 'compound') throw new Error('invalid root')
     } catch { throw new Error('Minecraft sunucu listesi okunamadı. Mevcut dosya korunuyor.') }
   }
@@ -31,7 +32,7 @@ export function readMinecraftServers(directory: string): MinecraftServerList {
 }
 export function writeMinecraftServers(directory: string, document: MinecraftServerList): void {
   const file = join(directory, 'servers.dat'), temp = `${file}.${randomUUID()}.tmp`
-  const bytes = writeUncompressed(document.root, 'big')
+  const bytes = minecraftNbt().writeUncompressed(document.root, 'big')
   if (bytes.length > 8 * 1024 ** 2) throw new Error('Minecraft sunucu listesi okunamadı. Mevcut dosya korunuyor.')
   mkdirSync(directory, { recursive: true })
   try {

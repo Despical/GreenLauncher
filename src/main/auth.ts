@@ -2,7 +2,7 @@ import { app, BrowserWindow, safeStorage } from 'electron'
 import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { MicrosoftAuthenticator, MojangClient } from '@xmcl/user'
+import type { MicrosoftAuthenticator, MojangClient } from '@xmcl/user'
 import type { GameAccount } from '../shared/types'
 import { LauncherStore } from './store'
 
@@ -15,8 +15,10 @@ type TokenCache = Record<string, Token>
 
 export class AccountService {
   private readonly cachePath = join(app.getPath('userData'), 'auth-cache.bin')
-  private readonly xbox = new MicrosoftAuthenticator()
-  private readonly mojang = new MojangClient()
+  private xboxClient?: MicrosoftAuthenticator
+  private mojangClient?: MojangClient
+  private get xbox(): MicrosoftAuthenticator { return this.xboxClient ??= new (require('@xmcl/user').MicrosoftAuthenticator)() }
+  private get mojang(): MojangClient { return this.mojangClient ??= new (require('@xmcl/user').MojangClient)() }
   private cache: TokenCache = {}
 
   constructor(private readonly store: LauncherStore) {
