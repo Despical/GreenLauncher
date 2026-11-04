@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@xhayper/discord-rpc": "1.5.1",
-    "@xmcl/core": "^2.16.2",
+    "@xmcl/core": "^2.16.3",
     "@xmcl/installer": "^6.3.4",
     "@xmcl/user": "^4.4.2",
     "electron-updater": "6.8.11",
