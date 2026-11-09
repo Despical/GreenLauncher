@@ -78,6 +78,11 @@ const v015Sections = [
   ] }
 ]
 
+const v0194Changes = [
+  'Profil menüsüne “Klasörde göster” eklendi; profilin oyun klasörü tek tıkla açılır.',
+  'Electron ve Minecraft kurulum kitaplıkları güncellendi; güvenlik ve kararlılık iyileştirmeleri launcher’a dahil edildi.'
+]
+
 const v0193Changes = [
   'Profil sürüm seçicisindeki liste sınırı kaldırıldı; eski sürümler ve özel istemciler aranabilir.',
   'Sürümlerin sağ tık menüsünden seçilen sürümle yeni profil oluşturulabilir; yeni profiller 1920×1080 pencere boyutuyla başlar.',
@@ -114,6 +119,7 @@ const v019Sections = [
 ]
 
 const releases: ReleaseNotes[] = [
+  { version: '0.19.4', date: '2026-11-09', title: 'Profil klasörüne hızlı erişim', intro: 'Profil klasörünü doğrudan açma ve güncel kitaplıklar.', changes: v0194Changes, sections: [{ title: 'Arayüz ve performans', changes: v0194Changes }] },
   { version: '0.19.3', date: '2026-10-22', title: 'Daha hafif launcher, doğrudan oyun', intro: 'Eksiksiz sürüm seçimi, sessiz kısayollar ve daha küçük indirmeler.', changes: v0193Changes, sections: [{ title: 'Arayüz ve performans', changes: v0193Changes }] },
   { version: '0.19.2', date: '2026-10-18', title: 'Özel istemciler için otomatik ikonlar', intro: 'İçe aktarılan istemcilerin kendi ikonları artık sürümlerde ve profillerde görünür.', changes: v0192Changes, sections: [{ title: 'Arayüz ve performans', changes: v0192Changes }] },
   { version: '0.19.1', date: '2026-10-09', title: 'Daha küçük kurulum güncellemeleri', intro: 'Kurulum paketlerinde daha az tekrar, sonraki güncellemelerde daha küçük indirmeler.', changes: v0191Changes, sections: [{ title: 'Düzeltmeler', changes: v0191Changes }] },
