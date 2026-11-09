@@ -259,7 +259,7 @@ export interface LauncherApi {
   getJavaRuntimes(): Promise<JavaRuntimeInfo[]>
   deleteJavaRuntime(path: string): Promise<void>
   openJavaLocation(path: string): Promise<void>
-  createProfileShortcut(profileId: string): Promise<string>
+  createProfileShortcut(profileId: string, iconPng?: string): Promise<string>
   createVersionShortcut(versionId: string): Promise<string>
   playVersion(versionId: string, allowAdditional?: boolean, serverAddress?: string, serverPreference?: ServerJoinPreference, temporaryOfflineName?: string): Promise<LaunchResult>
   importCustomClient(): Promise<{ id: string; versions: GameVersion[] } | null>
@@ -279,6 +279,7 @@ export interface LauncherApi {
   getProfileModsPath(profileId: string): Promise<string | null>
   openProfileMods(profileId: string): Promise<void>
   openVersionLocation(versionId: string): Promise<void>
+  replaceVersionJar(versionId: string): Promise<string | null>
   getErrorLog(): Promise<LauncherErrorEntry[]>
   clearErrorLog(): Promise<LauncherErrorEntry[]>
   openErrorLog(): Promise<void>

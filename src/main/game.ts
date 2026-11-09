@@ -3,8 +3,9 @@ import { WorldService } from './worlds'
 import { app, BrowserWindow, screen, shell } from 'electron'
 import { cpus, freemem, totalmem, platform, release, arch } from 'node:os'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { randomUUID } from 'node:crypto'
-import { dirname, join, relative, sep } from 'node:path'
+import { createHash, randomUUID } from 'node:crypto'
+import { dirname, extname, join, relative, resolve, sep } from 'node:path'
+import { copyFile, open, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { LibraryInfo, MinecraftFolder, Version, launch, type ResolvedVersion } from '@xmcl/core'
 import { normalizeServerAddress, serverLaunchMode, serverLaunchOptions } from '../shared/server-launch'
 import { customRuntime, customJavaVersion, customResolvedVersion } from './custom-runtime'
@@ -196,6 +197,44 @@ export class GameService {
     const installed = this.installedVersion(id)
     if (!installed) throw new Error('Bu sürüm henüz yüklü değil.')
     return installed.folder.getVersionRoot(id)
+  }
+
+  /** Replaces the client JAR used to launch a version, keeping the previous file as a backup. */
+  async replaceVersionJar(id: string, source: string): Promise<string> {
+    const installed = this.installedVersion(id)
+    if (!installed) throw new Error('Bu sürüm henüz yüklü değil.')
+    if (this.busy || this.running) throw new Error('Oyun açıkken veya indirme sürerken JAR değiştirilemez.')
+    if (extname(source).toLowerCase() !== '.jar' || !existsSync(source) || !statSync(source).isFile()) throw new Error('Geçerli bir .jar dosyası seçin.')
+    const header = Buffer.alloc(2), handle = await open(source, 'r')
+    try { await handle.read(header, 0, 2, 0) } finally { await handle.close() }
+    if (header.toString('latin1') !== 'PK') throw new Error('Geçerli bir .jar dosyası seçin.')
+    const version = await Version.parse(installed.folder, id)
+    const target = installed.folder.getVersionJar(version.minecraftVersion)
+    if (resolve(source).toLowerCase() === resolve(target).toLowerCase()) throw new Error('Seçilen dosya zaten bu sürümün JAR dosyası.')
+    const bytes = await readFile(source)
+    const sha1 = createHash('sha1').update(bytes).digest('hex')
+    mkdirSync(dirname(target), { recursive: true })
+    const temporary = target + '.' + randomUUID() + '.tmp'
+    await writeFile(temporary, bytes)
+    try {
+      if (existsSync(target)) await copyFile(target, target + '.backup')
+      await rename(temporary, target)
+    } catch (error) {
+      await rm(temporary, { force: true })
+      const code = (error as NodeJS.ErrnoException).code
+      throw new Error(code === 'EBUSY' || code === 'EPERM' ? 'JAR dosyası başka bir uygulama tarafından kullanılıyor.' : 'JAR dosyası değiştirilemedi.')
+    }
+    // Launch prechecks validate the client JAR hash recorded in the version JSON.
+    const jsonPath = installed.folder.getVersionJson(version.minecraftVersion)
+    if (existsSync(jsonPath)) {
+      const json = JSON.parse(readFileSync(jsonPath, 'utf8')) as { downloads?: { client?: { sha1?: string; size?: number } } }
+      if (json.downloads?.client) {
+        json.downloads.client.sha1 = sha1
+        json.downloads.client.size = bytes.length
+        writeFileSync(jsonPath, JSON.stringify(json, null, 2))
+      }
+    }
+    return target
   }
 
   async versions(refresh: boolean | 'if-stale' = false): Promise<GameVersion[]> {

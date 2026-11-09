@@ -18,7 +18,7 @@ import { profileLaunchVersion, profileVersionLabel } from '../../shared/profile-
 import { serverLaunchMode } from '../../shared/server-launch'
 import { JavaSettings } from './JavaSettings'
 import { LauncherMenu } from './LauncherMenu'
-import { ProfileIcon } from './ProfileIcon'
+import { ProfileIcon, profileIconPng, profileIconSource } from './ProfileIcon'
 import { ClientIcon, ClientIconsProvider } from './ClientIcons'
 import { diagnoseError } from '../../shared/errors'
 import { languages, translate, type Language } from './i18n'
@@ -658,6 +658,7 @@ function App() {
     if (action === 'edit') { editProfile(item); return }
     if (action === 'delete') { setDeleteId(id); return }
     if (action === 'show-folder') { await run(() => window.launcher.openVersionLocation(profileLaunchVersion(item))); return }
+    if (action === 'replace-jar') { try { if (await window.launcher.replaceVersionJar(profileLaunchVersion(item))) notifyCape(t('{name} için istemci JAR dosyası değiştirildi.', { name: item.name })) } catch (error) { notifyCape(friendlyError(error)) } return }
     if (action === 'mods-folder') { await run(() => window.launcher.openProfileMods(id)); return }
     if (profileTaskLock.current.has(id)) { setPage('downloads'); return }
     profileTaskLock.current.add(id); setProfileTasks([...profileTaskLock.current])
@@ -665,7 +666,7 @@ function App() {
       if (action === 'clone') { const result = await window.launcher.cloneProfile(id); setState(result.state); notifyCape(t('Profil klonlandı.')) }
       if (action === 'export') { const path = await window.launcher.exportProfile(id); if (path) notifyCape(t('Profil paketi dışa aktarıldı.')) }
       if (action === 'repair') { setState(await window.launcher.repairProfile(id)); void window.launcher.getVersions().then(setVersions).catch(() => {}); notifyCape(t('Profil dosyaları doğrulandı ve gerekli dosyalar onarıldı.')) }
-      if (action === 'shortcut') { await window.launcher.createProfileShortcut(id); notifyCape(t('Masaüstü kısayolu oluşturuldu.')) }
+      if (action === 'shortcut') { await window.launcher.createProfileShortcut(id, await profileIconPng(profileIconSource(item, versions))); notifyCape(t('Masaüstü kısayolu oluşturuldu.')) }
     } catch (error) { notifyCape(friendlyError(error)) }
     finally { profileTaskLock.current.delete(id); setProfileTasks([...profileTaskLock.current]) }
   }

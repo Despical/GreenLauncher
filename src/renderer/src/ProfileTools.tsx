@@ -1,13 +1,13 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDownToLine, Copy, FolderOpen, Image, Layers3, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import { ArrowDownToLine, Copy, FileArchive, FolderOpen, Image, Layers3, LoaderCircle, Monitor, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import type { LauncherProfile, ProfileCover } from '../../shared/types'
 import { AccountDialog } from './AccountControls'
 import { translate, type Language } from './i18n'
 import { profileVersionLabel } from '../../shared/profile-version'
 import './profiles.css'
 
-export type ProfileAction = 'manage' | 'edit' | 'clone' | 'export' | 'repair' | 'shortcut' | 'show-folder' | 'mods-folder' | 'delete'
+export type ProfileAction = 'manage' | 'edit' | 'clone' | 'export' | 'repair' | 'shortcut' | 'show-folder' | 'replace-jar' | 'mods-folder' | 'delete'
 
 export function ProfileMenu({ profile, x, y, language, pending, onClose, onAction }: {
   profile: LauncherProfile; x: number; y: number; language: Language; pending: boolean
@@ -45,11 +45,12 @@ export function ProfileMenu({ profile, x, y, language, pending, onClose, onActio
     { id: 'manage', title: 'Profili yönet', icon: Layers3 },
     { id: 'edit', title: 'Profili düzenle', icon: Pencil },
     { id: 'show-folder', title: 'Klasörde göster', icon: FolderOpen },
+    { id: 'replace-jar', title: 'İstemci JAR dosyasını değiştir', icon: FileArchive },
     { id: 'clone', title: 'Profili klonla', icon: Copy }, { id: 'export', title: 'Dışa aktar', icon: Upload },
     { id: 'repair', title: 'Dosyaları onar', icon: ShieldCheck }, { id: 'shortcut', title: 'Masaüstüne kısayol oluştur', icon: Monitor },
     { id: 'delete', title: 'Profili sil', icon: Trash2 }
   ] as const
-  return <div ref={root} className="version-context-menu profile-context-menu" role="menu" aria-label={t('Profil seçenekleri')} style={{ left: Math.max(10, Math.min(window.innerWidth - 270, x)), top: Math.max(50, Math.min(window.innerHeight - 430, y)) }}>
+  return <div ref={root} className="version-context-menu profile-context-menu" role="menu" aria-label={t('Profil seçenekleri')} style={{ left: Math.max(10, Math.min(window.innerWidth - 270, x)), top: Math.max(50, Math.min(window.innerHeight - 466, y)) }}>
     <div className="version-context-label">{profile.name}</div><div className="version-context-divider" />
     {actions.map(({ id, title, icon: Icon }) => <Fragment key={id}>{id === 'delete' && (modsPath && <button role="menuitem" className="profile-mods-folder" title={modsPath} onClick={() => { onClose(); onAction('mods-folder') }}><FolderOpen size={16} /><span><strong>{t('Mod klasörünü aç')}</strong><small>{modsPath}</small></span></button>)}{id === 'delete' && <div className="version-context-divider" role="separator" />}<button role="menuitem" className={id === 'delete' ? 'danger' : ''} disabled={pending && ['clone', 'export', 'repair', 'delete'].includes(id)} onClick={() => { onClose(); onAction(id) }}><Icon size={16} />{t(title)}</button></Fragment>)}
   </div>

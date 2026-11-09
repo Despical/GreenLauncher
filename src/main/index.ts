@@ -1,5 +1,6 @@
 import { profileJoinTarget } from '../shared/profile-settings'
 import { chooseProfileIcon } from './profile-icons'
+import { profileShortcutIco } from './shortcut-icon'
 import { HeroBackgrounds } from './hero-backgrounds'
 import { maxHeroBackgrounds } from '../shared/hero-backgrounds'
 import { WorldService } from './worlds'
@@ -64,6 +65,20 @@ let keepForGames = () => false
 let dispatchShortcut: (() => void) | null = null
 const shortcutTarget = executable
 const shortcutIcon = persistentIcon
+
+/** Stores a profile's rendered icon as an ICO for its desktop shortcut; undefined keeps the launcher icon. */
+function profileShortcutIcon(profileId: string, iconPng?: string): string | undefined {
+  try {
+    if (!iconPng || iconPng.length > 2_000_000 || !/^[a-zA-Z0-9-]{1,64}$/.test(profileId)) return undefined
+    const icon = profileShortcutIco(iconPng)
+    if (!icon) return undefined
+    const directory = join(app.getPath('userData'), 'windows', 'profiles')
+    mkdirSync(directory, { recursive: true })
+    const target = join(directory, profileId + '.ico')
+    writeFileSync(target, icon)
+    return target
+  } catch { return undefined }
+}
 
 // Set the data directory before Electron starts its GPU and renderer processes.
 app.setPath('userData', prepareDataPath(process.env.GREEN_LAUNCHER_UPDATE_QA_ROOT || app.getPath('appData')))
@@ -641,6 +656,12 @@ else {
       const error = await shell.openPath(game.versionLocation(versionId))
       if (error) throw new Error('Sürüm klasörü açılamadı.')
     })
+    handle('launcher:replace-version-jar', async (versionId: string) => {
+      const language = store.get().settings.language
+      const selection = await dialog.showOpenDialog(mainWindow!, { title: translate(language, 'İstemci JAR dosyasını seç'), properties: ['openFile'], filters: [{ name: translate(language, 'JAR dosyaları'), extensions: ['jar'] }] })
+      if (selection.canceled || !selection.filePaths[0]) return null
+      return game.replaceVersionJar(versionId, selection.filePaths[0])
+    })
     handle('launcher:get-error-log', () => logs.get())
     handle('launcher:clear-error-log', () => logs.clear())
     handle('launcher:open-error-log', () => { shell.showItemInFolder(logs.path) })
@@ -714,7 +735,7 @@ else {
       if (!(await game.javaRuntimes()).some(runtime => runtime.path.toLowerCase() === path.toLowerCase()) || !existsSync(path)) throw new Error('Java dosyası bulunamadı.')
       shell.showItemInFolder(path)
     })
-    handle('launcher:create-profile-shortcut', (profileId: string) => {
+    handle('launcher:create-profile-shortcut', (profileId: string, iconPng?: string) => {
       if (!app.isPackaged) throw new Error('Masaüstü kısayolu kurulu sürümde oluşturulabilir.')
       const profile = store.get().profiles.find(item => item.id === profileId)
       if (!profile) throw new Error('Profil bulunamadı.')
@@ -727,7 +748,7 @@ else {
         args: shortcutArguments(account.id, profile.id),
         cwd: dirname(shortcutTarget()),
         description: `${account.name} · ${profile.name} profiliyle Minecraft'ı başlat`,
-        icon: shortcutIcon(),
+        icon: profileShortcutIcon(profile.id, iconPng) ?? shortcutIcon(),
         iconIndex: 0,
         appUserModelId: 'com.greenlauncher.desktop'
       })

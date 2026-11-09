@@ -8,7 +8,8 @@ import quilt from '../assets/loaders/quilt.svg'
 import liteloader from '../assets/loaders/liteloader.svg'
 import './loader-icon.css'
 
-const icons = { none: vanilla, optifine, fabric, forge, neoforge, quilt, liteloader }
+export const loaderIconSources: Record<ProfileLoader, string> = { none: vanilla, optifine, fabric, forge, neoforge, quilt, liteloader }
+const icons = loaderIconSources
 export function LoaderIcon({ loader }: { loader: ProfileLoader }) {
   return <span className="profile-loader-icon" data-loader={loader} aria-hidden="true"><img src={icons[loader]} alt="" draggable={false} /></span>
 }
